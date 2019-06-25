@@ -69,6 +69,7 @@ function Init() {
     'resize',
     debounce(() => {
       UR.Publish('WINDOW:SIZE');
+      console.clear();
     }, 500)
   );
   // initialize app when DOM is completely resolved

@@ -1,6 +1,6 @@
 /*//////////////////////////////// NOTES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
-REFACTOR
+REFACTORED VERSION
 should be a child of RoutedView
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * //////////////////////////////////////*/
@@ -10,12 +10,14 @@ should be a child of RoutedView
 import React from 'react';
 import PropTypes from 'prop-types';
 import '@svgdotjs/svg.draggable.js';
-import PMCView from '../modules/pmc-view';
+import PMCView from '../modules/pmc-view-refactor';
 import DATA from '../modules/pmc-data';
 
-import { cssblue, cssreact, cssalert } from '../modules/console-styles';
+import { cssreact, cssalert } from '../modules/console-styles';
 
 const DBG = false;
+console.log('%cWARN: using SVGView Refactor', cssalert);
+
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

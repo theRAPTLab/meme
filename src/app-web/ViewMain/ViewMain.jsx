@@ -161,10 +161,6 @@ class ViewMain extends React.Component {
     NOTE: Material UI uses FlexBox
     we can insert a CSSGRID into here eventually
     /*/
-    if (DBG) {
-      console.clear();
-      console.info('WINDOW RESIZE');
-    }
     this.viewRect = this.refMain.current.getBoundingClientRect();
     this.toolRect = this.refToolbar.current.getBoundingClientRect();
     // NOTE: viewWidth/viewHeigg
