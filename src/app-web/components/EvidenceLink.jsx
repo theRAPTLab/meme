@@ -90,7 +90,6 @@ class EvidenceLink extends React.Component {
         note: evlink.note,
         rating: evlink.rating
       });
-      return;
     }
     // Don't throw an error here
     // If the EvidenceLink has been deleted, the deletion event triggers
@@ -229,7 +228,6 @@ class EvidenceLink extends React.Component {
         // subsequent source selections from being applied to ALL open
         // evlinks.
         this.setState({ listenForSourceSelection: false });
-        return;
       }
     }
   }

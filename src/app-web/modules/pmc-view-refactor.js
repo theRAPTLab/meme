@@ -6,7 +6,7 @@ import { cssinfo, cssalert, csstab } from './console-styles';
 import UR from '../../system/ursys';
 import DEFAULTS from './defaults';
 
-const { PAD, SVGDEFS, COLOR, UTIL } = DEFAULTS;
+const { PAD, SVGDEFS, COLOR } = DEFAULTS;
 console.log('%cWARN: using PMCView Refactor', cssalert);
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
@@ -26,14 +26,12 @@ let m_element;
 let m_svgroot;
 const DBG = false;
 
-/// REFLECT DUMP
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// console.log(`Reflection test`, UTIL.DumpObj(DATA));
-
 /// PRIVATE HELPERS ///////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 UR.Sub('PROP:MOVED', data => {
-  VMech.DrawEdges();
+  if (data) {
+    VMech.DrawEdges();
+  }
 });
 
 /// PUBLIC METHODS ////////////////////////////////////////////////////////////
@@ -81,8 +79,9 @@ PMCView.DefineDefs = svg => {
  * It shouldn't be called externally.
  * @param {SVGJSinstance} svg - SVGJS instance to add DEFs to
  */
-PMCView.DefineSymbols = svg => { };
-
+PMCView.DefineSymbols = svg => {
+  console.log('no symbols to add to', svg);
+};
 
 /// LIFECYCLE /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -115,7 +114,7 @@ PMCView.SyncPropsFromGraphData = () => {
     VProp.Release(id);
   });
   added.forEach(id => {
-    const vprop = VProp.New(id, m_svgroot);
+    VProp.New(id, m_svgroot); // returns vprop instance but not using
   });
   updated.forEach(id => {
     VProp.Update(id);
@@ -167,7 +166,7 @@ PMCView.SyncBadgesFromEvLinkData = () => {
     VProp.ReleaseBadge(id);
   });
   added.forEach(id => {
-    const vbadge = VProp.NewBadge(id, m_svgroot);
+    VProp.NewBadge(id, m_svgroot); // returns vbadge but not using
   });
   updated.forEach(id => {
     VProp.UpdateBadge(id);
@@ -201,7 +200,7 @@ PMCView.UpdateViewModel = () => {
   // walk through every component
   components.forEach(compId => {
     VProp.MoveToRoot(compId);
-    const bbox = u_Recurse(compId);
+    u_Recurse(compId); // returns bbox, but we're not using it when refreshing
   });
   if (DBG) console.groupEnd();
 };
@@ -273,10 +272,10 @@ window.may1.Update = () => {
   PMCView.SyncBadgesFromEvLinkData();
   PMCView.UpdateViewModel();
   PMCView.UpdateView();
-}
+};
 window.may1.ForceUpdate = () => {
   UR.Publish('FORCE_UPDATE');
-}
+};
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

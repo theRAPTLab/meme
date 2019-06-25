@@ -248,7 +248,7 @@ class VProp {
     });
     if (DBG) {
       const out = `${this.Id()} sees ${distances.length} potential outedges to ${targetId}`;
-      // console.log(out, distances);
+      console.log(out, distances);
     }
 
     // if no drawable line (e.g. overlapping) then return no line
@@ -676,7 +676,6 @@ window.meme.dumpid = id => {
   function recurse(propId) {
     const vis = DATA.VM_VProp(propId);
     const visHeight = vis.Height();
-    const visY = vis.Y();
     console.group(`[${propId}] y=${visHeight} (${visHeight})`);
     const kids = DATA.Children(propId);
     kids.forEach(kid => {
