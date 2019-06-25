@@ -69,7 +69,7 @@ class EvidenceLink extends React.Component {
     UR.Sub('SELECTION_CHANGED', this.handleSelectionChange);
   }
 
-  componentDidMount() {}
+  componentDidMount() { }
 
   componentWillUnmount() {
     UR.Unsub('DATA_UPDATED', this.HandleDataUpdate);
@@ -114,7 +114,7 @@ class EvidenceLink extends React.Component {
       isBeingEdited: false
     });
   }
-  
+
   HandleDeleteButtonClick() {
     DATA.PMC_DeleteEvidenceLink(this.props.evId);
   }
@@ -235,7 +235,7 @@ class EvidenceLink extends React.Component {
   }
 
   toggleExpanded() {
-    if (DBG) console.log(PKG,'evidence link clicked');
+    if (DBG) console.log(PKG, 'evidence link clicked');
     if (this.state.isExpanded) {
       this.setState({
         isExpanded: false,
@@ -342,15 +342,15 @@ class EvidenceLink extends React.Component {
                     }}
                   />
                 ) : (
-                  <div className={classes.evidenceLabelField}>{note}</div>
-                )}
+                    <div className={classes.evidenceLabelField}>{note}</div>
+                  )}
               </Grid>
             </Grid>
           </Grid>
           <Grid item xs={isExpanded ? 12 : 3}>
             <Grid
               container
-              spacing={8} 
+              spacing={8}
               className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRatingCollapsed}
             >
               <Grid item xs={4} hidden={!isExpanded}>

@@ -33,7 +33,9 @@
     "prefer-const": "off",
     "prefer-destructuring": "off",
     "class-methods-use-this": "off",
-    "no-param-reassign": "warn"
+    "no-param-reassign": "warn",
+    "react/prop-types":"warn"
+
   },
   "settings": {
   }

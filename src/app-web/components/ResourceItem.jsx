@@ -26,10 +26,10 @@ import { withStyles } from '@material-ui/core/styles';
 
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-import MEMEStyles from '../components/MEMEStyles';
+import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import DATA from '../modules/pmc-data';
-import EvidenceList from '../components/EvidenceList';
+import EvidenceList from './EvidenceList';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -59,7 +59,7 @@ class ResourceItem extends React.Component {
     UR.Sub('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.handleEvidenceLinkOpen);
   }
 
-  componentDidMount() {}
+  componentDidMount() { }
 
   componentWillUnmount() {
     UR.Unsub('SHOW_EVIDENCE_LINK', this.handleEvidenceLinkOpen);
@@ -83,7 +83,7 @@ class ResourceItem extends React.Component {
 
   handleEvidenceLinkOpen(data) {
     if (this.props.resource.rsrcId === data.rsrcId) {
-      if (DBG) console.log(PKG, 'OPENING Resource', data.rsrcId, ' data.evId is',data);
+      if (DBG) console.log(PKG, 'OPENING Resource', data.rsrcId, ' data.evId is', data);
       this.setState(
         {
           isExpanded: true

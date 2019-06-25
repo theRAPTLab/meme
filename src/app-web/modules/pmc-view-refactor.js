@@ -167,7 +167,7 @@ PMCView.SyncBadgesFromEvLinkData = () => {
     VProp.ReleaseBadge(id);
   });
   added.forEach(id => {
-    const vprop = VProp.NewBadge(id, m_svgroot);
+    const vbadge = VProp.NewBadge(id, m_svgroot);
   });
   updated.forEach(id => {
     VProp.UpdateBadge(id);

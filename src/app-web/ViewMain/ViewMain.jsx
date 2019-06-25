@@ -52,8 +52,7 @@ import UR from '../../system/ursys';
 import DATA from '../modules/pmc-data';
 import EvidenceList from '../components/EvidenceList';
 import ResourceItem from '../components/ResourceItem';
-import { cssblue, cssreact, cssdraw } from '../modules/console-styles';
-import { data } from '@svgdotjs/svg.js/src/modules/optional/data';
+import { cssreact } from '../modules/console-styles';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

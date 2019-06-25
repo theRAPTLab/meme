@@ -529,7 +529,8 @@ function u_Layout(offset, id) {
     // rather than inside the parent. So we add a check here: if it's at 0,0, we skip the
     // move until after the children have been drawn.
     if (DBG) console.log('compVis is at', compVis.X(), compVis.X());
-    if (compVis.X() !== 0 && compVis.Y() !== 0) { // e.g. not adding a new property
+    if (compVis.X() !== 0 && compVis.Y() !== 0) {
+      // e.g. not adding a new property
       compVis.Move(x, y); // draw compVis where it should go in screen space
     }
     y += compVis.DataHeight() + PAD.MIN;
@@ -565,7 +566,7 @@ VProp.NewBadge = (id, svgRoot) => {
 
   // Find my corresponding VProp
   const evlink = DATA.EvidenceLinkByEvidenceId(id);
-  if (evlink.propId === undefined) return; // Not evidence for a property, probably a vmech
+  if (evlink.propId === undefined) return undefined; // Not evidence for a property, probably a vmech
   const myVProp = DATA.VM_VProp(evlink.propId);
   myVProp.badgesCount++;
   const badgeCount = myVProp.badgesCount;
@@ -573,6 +574,7 @@ VProp.NewBadge = (id, svgRoot) => {
   let vbadge = myVProp.gRoot.group();
   vbadge.id = id;
   vbadge.propId = evlink.propId;
+
   vbadge.Release = () => {
     // FIXME - Need to update myVProp.badgesCount?
     // FIXME - This is wrong!  How do we remove ourselves?
@@ -582,18 +584,19 @@ VProp.NewBadge = (id, svgRoot) => {
     const ev = DATA.EvidenceLinkByEvidenceId(vbadge.id);
     vbadge.UpdateRating(ev.rating);
   };
-  vbadge.UpdateRating = (rating) => {
+  vbadge.UpdateRating = rating => {
     let ratingLabel = '';
     for (let i = 1; i <= rating; i++) {
       ratingLabel += '*';
     }
     vbadge.gRating.text(ratingLabel).attr({ x: vbadge.gCircle.cx() - rating * 3.5 });
-  }
+  };
 
   const radius = m_minHeight + m_pad / 2;
   const x = myVProp.gRoot.x();
   const y = myVProp.gRoot.y() + (badgeCount - 1) * 7.5; // FIXME hack -- for some reason Y on subsequent badges is decreased
   const referenceLabel = DATA.Resource(evlink.rsrcId).referenceLabel;
+
   vbadge.gCircle = vbadge
     .circle(radius)
     .fill('#b2dfdb')
@@ -624,7 +627,6 @@ VProp.NewBadge = (id, svgRoot) => {
       x + m_minWidth - badgeCount * (radius + 0.25 * m_pad) - m_pad + 0.4 * radius,
       y + radius / 2 - m_pad + 20
     );
-
 
   DATA.VM_VBadgeSet(id, vbadge);
   return vbadge;
