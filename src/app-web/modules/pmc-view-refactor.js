@@ -208,13 +208,14 @@ PMCView.UpdateViewModel = () => {
 // return struct { id, w, h } w/out padding
 function u_Recurse(propId) {
   const propVis = VProp.GetVisual(propId);
-  const self = propVis.GetDataBBox();
+  const self = propVis.GetDataBBox(); // size of data without padding
   self.h += PAD.MIN;
   if (DBG) console.group(`${propId} recurse`);
   /* WALK CHILD PROPS */
   const childIds = DATA.Children(propId);
   // if there are no children, break recursion
   if (childIds.length === 0) {
+    self.w += PAD.MIN2;
     propVis.SetSize(self);
     propVis.SetKidsBBox({ w: 0, h: 0 });
     if (DBG) console.groupEnd();
