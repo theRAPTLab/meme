@@ -138,11 +138,9 @@ PMCView.SyncMechsFromGraphData = () => {
   const { added, removed, updated } = DATA.VM_GetVMechChanges();
   removed.forEach(pathId => {
     VMech.Release(pathId);
-    DATA.VM_VMechDelete(pathId);
   });
   added.forEach(pathId => {
-    const vmech = VMech.New(pathId, m_svgroot);
-    DATA.VM_VMechSet(vmech, pathId);
+    VMech.New(pathId, m_svgroot);
   });
   updated.forEach(pathId => {
     VMech.Update(pathId);
