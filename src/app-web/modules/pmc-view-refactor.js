@@ -262,19 +262,8 @@ PMCView.UpdateView = () => {
   if (DBG) console.groupEnd();
 };
 
+/*/ DEBUG OBJECT /*/
 window.PMC = PMCView;
-
-if (window.may1 === undefined) window.may1 = {};
-window.may1.Update = () => {
-  PMCView.SyncPropsFromGraphData();
-  PMCView.SyncMechsFromGraphData();
-  PMCView.SyncBadgesFromEvLinkData();
-  PMCView.UpdateViewModel();
-  PMCView.UpdateView();
-};
-window.may1.ForceUpdate = () => {
-  UR.Publish('FORCE_UPDATE');
-};
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
