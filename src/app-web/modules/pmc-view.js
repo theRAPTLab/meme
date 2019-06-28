@@ -200,7 +200,7 @@ PMCView.UpdateViewModel = () => {
   // walk through every component
   components.forEach(compId => {
     VProp.MoveToRoot(compId);
-    const bbox = u_Recurse(compId);
+    u_Recurse(compId); // returns bbox { id, w, h } but not used here
   });
   if (DBG) console.groupEnd();
 };
@@ -209,7 +209,7 @@ PMCView.UpdateViewModel = () => {
 // set the component directly
 // return struct { id, w, h } w/out padding
 function u_Recurse(propId) {
-  const propVis = VProp.GetVisual(propId);
+  const propVis = DATA.VM_VProp(propId);
   const self = propVis.GetDataBBox();
   self.h += PAD.MIN;
   if (DBG) console.group(`${propId} recurse`);
@@ -225,7 +225,7 @@ function u_Recurse(propId) {
   // otherwise, let's recurse!
   let sizes = [];
   childIds.forEach(childId => {
-    const childVis = VProp.GetVisual(childId);
+    const childVis = DATA.VM_VProp(childId);
     childVis.ToParent(propId);
     const size = u_Recurse(childId);
     childVis.SetKidsBBox(size);

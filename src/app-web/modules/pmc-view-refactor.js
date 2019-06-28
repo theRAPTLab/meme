@@ -15,7 +15,7 @@ console.log('%cWARN: using PMCView Refactor', cssalert);
  * @module PMCViewRefactor
  * @desc
  * Manages the SVGJS instance that is contained by SVGView.
- *
+ * It also maintains the list of
  */
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const PMCView = {};
@@ -110,15 +110,9 @@ PMCView.SyncModeSettings = () => {
 PMCView.SyncPropsFromGraphData = () => {
   if (DBG) console.groupCollapsed(`%c:SyncPropsFromGraphData()`, cssinfo);
   const { added, removed, updated } = DATA.VM_GetVPropChanges();
-  removed.forEach(id => {
-    VProp.Release(id);
-  });
-  added.forEach(id => {
-    VProp.New(id, m_svgroot); // returns vprop instance but not using
-  });
-  updated.forEach(id => {
-    VProp.Update(id);
-  });
+  removed.forEach(id => VProp.Release(id));
+  added.forEach(id => VProp.New(id, m_svgroot)); // returns vprop instance but not using
+  updated.forEach(id => VProp.Update(id));
   if (DBG) {
     if (removed.length) console.log(`%c:Removing ${removed.length} dead nodes`, csstab);
     if (added.length) console.log(`%c:Adding ${added.length} new nodes`, csstab);
@@ -136,15 +130,9 @@ PMCView.SyncMechsFromGraphData = () => {
   if (DBG) console.groupCollapsed(`%c:SyncMechsFromGraphData()`, cssinfo);
   // the following arrays contain pathIds
   const { added, removed, updated } = DATA.VM_GetVMechChanges();
-  removed.forEach(pathId => {
-    VMech.Release(pathId);
-  });
-  added.forEach(pathId => {
-    VMech.New(pathId, m_svgroot);
-  });
-  updated.forEach(pathId => {
-    VMech.Update(pathId);
-  });
+  removed.forEach(pathId => VMech.Release(pathId));
+  added.forEach(pathId => VMech.New(pathId, m_svgroot));
+  updated.forEach(pathId => VMech.Update(pathId));
   if (DBG) {
     if (removed.length) console.log(`%c:Removing ${removed.length} dead edgeObjs`, csstab);
     if (added.length) console.log(`%c:Adding ${added.length} new edgeObjs`, csstab);
@@ -197,7 +185,7 @@ PMCView.UpdateViewModel = () => {
 
   // walk through every component
   components.forEach(compId => {
-    VProp.MoveToRoot(compId);
+    DATA.VM_VProp(compId).ToRoot(); // components are always on the root svg
     u_Recurse(compId); // returns bbox, but we're not using it when refreshing
   });
   if (DBG) console.groupEnd();
@@ -207,48 +195,53 @@ PMCView.UpdateViewModel = () => {
 // set the component directly
 // return struct { id, w, h } w/out padding
 function u_Recurse(propId) {
-  const propVis = VProp.GetVisual(propId);
-  const self = propVis.GetDataBBox(); // size of data without padding
-  self.h += PAD.MIN;
-  if (DBG) console.group(`${propId} recurse`);
+  const vprop = DATA.VM_VProp(propId)
+  // first get base size of vprop's data
+  const databbox = vprop.GetDataBBox();
+  databbox.h += PAD.MIN; // add vertical padding
+
   /* WALK CHILD PROPS */
   const childIds = DATA.Children(propId);
-  // if there are no children, break recursion
+
+  /* CASE 1: THERE ARE NO CHILDREN */
   if (childIds.length === 0) {
-    self.w += PAD.MIN2;
-    propVis.SetSize(self);
-    propVis.SetKidsBBox({ w: 0, h: 0 });
-    if (DBG) console.groupEnd();
-    return self;
+    // terminal nodes have no children
+    // so the calculation of size is easy
+    databbox.w += PAD.MIN2; // add horizontal padding
+    vprop.SetSize(databbox); // store calculated overall size
+    vprop.SetKidsBBox({ w: 0, h: 0 }); // no children, so no dimension
+    return databbox; // end recursion by returning known value
   }
-  // otherwise, let's recurse!
-  let sizes = [];
+
+  /* CASE 2: THERE ARE CHILDREN */
+  // so collect array of sizes from all children of this node
+  let childSizes = [];
   childIds.forEach(childId => {
-    const childVis = VProp.GetVisual(childId);
-    childVis.ToParent(propId);
-    const size = u_Recurse(childId);
-    childVis.SetKidsBBox(size);
-    sizes.push(size);
+    const cvprop = DATA.VM_VProp(childId);
+    cvprop.ToParent(propId); // nest child in parent
+    const csize = u_Recurse(childId);
+    cvprop.SetKidsBBox(csize);
+    childSizes.push(csize);
   });
-  //
-  const pbox = sizes.reduce((accbox, item) => {
+  // find the widest box while adding all the heights of children
+  // note: returned widths have MINx2 padding
+  //       returned heights have MIN padding
+  const kidsbbox = childSizes.reduce((accbox, item) => {
     return {
-      id: propId,
       w: Math.max(accbox.w, item.w),
       h: accbox.h + item.h
     };
   });
-  // adjust size
-  const all = {
-    id: pbox.id,
-    w: Math.max(self.w, pbox.w) + PAD.MIN2,
-    h: self.h + pbox.h
+  vprop.SetKidsBBox(kidsbbox); // set size of children area
+  // compute minimum bounding box of vprop including child area
+  const bbox = {
+    w: Math.max(databbox.w, kidsbbox.w) + PAD.MIN2,
+    h: databbox.h + kidsbbox.h
   };
-  all.h += childIds.length > 1 ? PAD.MIN2 : PAD.MIN;
-  propVis.SetSize(all);
-  propVis.SetKidsBBox(all);
-  if (DBG) console.groupEnd();
-  return all;
+  // add additional vertical padding
+  bbox.h += childIds.length > 1 ? PAD.MIN2 : PAD.MIN;
+  vprop.SetSize(bbox);
+  return bbox;
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
