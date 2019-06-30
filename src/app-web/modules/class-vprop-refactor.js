@@ -383,16 +383,83 @@ VProp.Update = id => {
   vprop.Update();
   return vprop;
 };
+
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  LIFECYCLE: Sizes all the properties to fit their contained props
  *  based on their display state
+ */
+VProp.SizeComponents = () => {
+  // first get the list of component ids to walk through
+  const components = DATA.Components();
+
+  // walk through every component
+  components.forEach(compId => {
+    recursePropSize(compId); // note: returns bbox, but we're not using it here
+  });
+  if (DBG) console.groupEnd();
+
+  /// RECURSION ///////////////////////////////////////////////////////////////
+  /// given a propId, updates dimension data for each VProp so they are sized
+  /// to contain their data and child VProps
+  /// return struct { id, w, h } w/out padding
+  function recursePropSize(propId) {
+    const vprop = DATA.VM_VProp(propId);
+    // first get base size of vprop's data
+    const databbox = vprop.GetDataBBox();
+    databbox.h += PAD.MIN; // add vertical padding
+    /*** WALK CHILD PROPS ***/
+    const childIds = DATA.Children(propId);
+    /*** CASE 1: THERE ARE NO CHILDREN */
+    if (childIds.length === 0) {
+      // terminal nodes have no children
+      // so the calculation of size is easy
+      databbox.w += PAD.MIN2; // add horizontal padding
+      vprop.SetSize(databbox); // store calculated overall size
+      vprop.SetKidsBBox({ w: 0, h: 0 }); // no children, so no dimension
+      return databbox; // end recursion by returning known value
+    }
+    /*** CASE 2: THERE ARE CHILDREN */
+    let childSizes = []; // collect sizes of each child
+    childIds.forEach(childId => {
+      const cvprop = DATA.VM_VProp(childId);
+      const csize = recursePropSize(childId);
+      cvprop.SetKidsBBox(csize);
+      childSizes.push(csize);
+    });
+    // find the widest box while adding all the heights of children
+    // note: returned widths have MINx2 padding, heights have MIN
+    const kidsbbox = childSizes.reduce((accbox, item) => {
+      return {
+        w: Math.max(accbox.w, item.w),
+        h: accbox.h + item.h
+      };
+    });
+    vprop.SetKidsBBox(kidsbbox); // set size of children area
+    // compute minimum bounding box of vprop including child area
+    const bbox = {
+      id: propId,
+      w: Math.max(databbox.w, kidsbbox.w) + PAD.MIN2,
+      h: databbox.h + kidsbbox.h
+    };
+    // add additional vertical padding
+    bbox.h += childIds.length > 1 ? PAD.MIN2 : PAD.MIN;
+    vprop.SetSize(bbox);
+    return bbox;
+  }
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  LIFECYCLE: Draws properties into layout. Assumes they have been sized
+ *  already based on their display state
  */
 VProp.LayoutComponents = () => {
   const components = DATA.Components();
   // then dp ;aupit
   let xCounter = PAD.MIN2;
   let yCounter = PAD.MIN2;
+  let rowHeight = 0;
 
   // walk through all components
   // for each component, get the size of all children
@@ -403,12 +470,12 @@ VProp.LayoutComponents = () => {
     recurseLayout({ x: xCounter, y: yCounter }, id);
     const compVis = DATA.VM_VProp(id);
     const compHeight = compVis.Height();
-    highHeight = Math.max(compHeight, highHeight);
+    rowHeight = Math.max(compHeight, rowHeight);
     xCounter += compVis.GetSize().width + PAD.MIN2;
     if (xCounter > 700) {
-      yCounter += highHeight + PAD.MIN2;
+      yCounter += rowHeight + PAD.MIN2;
       xCounter = PAD.MIN2;
-      highHeight = 0;
+      rowHeight = 0;
     }
     DATA.VM_VProp(id).ToRoot(); // components are always on the root svg
 
@@ -416,8 +483,9 @@ VProp.LayoutComponents = () => {
   });
 };
 
-let highHeight = 0;
-
+/// RECURSION ///////////////////////////////////////////////////////////////
+/// given a propId and starting x,y, draw the components spread on the
+/// screen
 function recurseLayout(pos, id) {
   let { x, y } = pos;
   if (DBG) console.group(`${id} draw at (${x},${y})`);
