@@ -154,7 +154,7 @@ class VProp {
     this.gRoot.move(x, y);
   }
 
-  //
+  // this is the size of the entire component
   SetSize(wObj, h) {
     if (typeof wObj === 'object') {
       this.width = wObj.w;
@@ -429,6 +429,8 @@ VProp.LayoutComponents = () => {
       xCounter = PAD.MIN2;
       highHeight = 0;
     }
+    DATA.VM_VProp(id).ToRoot(); // components are always on the root svg
+
     if (DBG) console.groupEnd();
   });
 };
@@ -462,6 +464,7 @@ function u_Layout(offset, id) {
       const addH = childVis.Height() + PAD.MIN;
       y += addH;
       if (DBG) console.log(`y + ${addH} = ${y}`);
+      childVis.ToParent(id); // nest child in parent
     });
     // HACK for Add Property
     // Move parent component AFTER children or the children will end up with wrong offsets
