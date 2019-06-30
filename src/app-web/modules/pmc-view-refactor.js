@@ -1,12 +1,13 @@
 import SVGJS from '@svgdotjs/svg.js/src/svg';
 import DATA from './pmc-data';
 import VProp from './class-vprop-refactor';
+import VBadge from './class-vbadge-refactor';
 import VMech from './class-vmech';
 import { cssinfo, cssalert, csstab, cssdraw } from './console-styles';
 import UR from '../../system/ursys';
 import DEFAULTS from './defaults';
 
-const { PAD, SVGDEFS, COLOR } = DEFAULTS;
+const { SVGDEFS, COLOR } = DEFAULTS;
 console.log('%cWARN: using PMCView Refactor', cssalert);
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
@@ -24,7 +25,8 @@ const PMCView = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 let m_element;
 let m_svgroot;
-const DBG = false;
+//
+const DBG = true;
 
 /// PRIVATE HELPERS ///////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -170,7 +172,7 @@ PMCView.SyncModeSettings = () => {
  * structures that are used to *display* the data (viewmodel) is updated.
  */
 PMCView.SyncPropsFromGraphData = () => {
-  if (DBG) console.groupCollapsed(`%c:SyncPropsFromGraphData()`, cssinfo);
+  // if (DBG) console.groupCollapsed(`%c:SyncPropsFromGraphData()`, cssinfo);
   const { added, removed, updated } = DATA.VM_GetVPropChanges();
   removed.forEach(id => VProp.Release(id));
   added.forEach(id => VProp.New(id, m_svgroot)); // returns vprop instance but not using
@@ -179,8 +181,8 @@ PMCView.SyncPropsFromGraphData = () => {
     if (removed.length) console.log(`%c:Removing ${removed.length} dead nodes`, csstab);
     if (added.length) console.log(`%c:Adding ${added.length} new nodes`, csstab);
     if (updated.length) console.log(`%c:Updating ${updated.length} nodes`, csstab);
-    console.groupEnd();
   }
+  // if (DBG) console.groupEnd();
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
@@ -189,7 +191,7 @@ PMCView.SyncPropsFromGraphData = () => {
  * structures (the viewmodel) is updated to reflect it.
  */
 PMCView.SyncMechsFromGraphData = () => {
-  if (DBG) console.groupCollapsed(`%c:SyncMechsFromGraphData()`, cssinfo);
+  // if (DBG) console.groupCollapsed(`%c:SyncMechsFromGraphData()`, cssinfo);
   // the following arrays contain pathIds
   const { added, removed, updated } = DATA.VM_GetVMechChanges();
   removed.forEach(pathId => VMech.Release(pathId));
@@ -199,8 +201,8 @@ PMCView.SyncMechsFromGraphData = () => {
     if (removed.length) console.log(`%c:Removing ${removed.length} dead edgeObjs`, csstab);
     if (added.length) console.log(`%c:Adding ${added.length} new edgeObjs`, csstab);
     if (updated.length) console.log(`%c:Updating ${updated.length} edgeObjs`, csstab);
-    console.groupEnd();
   }
+  // if (DBG) console.groupEnd();
 };
 /**
  * LIFECYCLE: Syncs PMC property changes from model to the
@@ -208,23 +210,24 @@ PMCView.SyncMechsFromGraphData = () => {
  * structures that are used to *display* the data (viewmodel) is updated.
  */
 PMCView.SyncBadgesFromEvLinkData = () => {
-  if (DBG) console.groupCollapsed(`%c:SyncBadgesFromEvLinkData()`, cssinfo);
+  // if (DBG) console.groupCollapsed(`%c:SyncBadgesFromEvLinkData()`, cssinfo);
   const { added, removed, updated } = DATA.VM_GetVBadgeChanges();
   removed.forEach(id => {
-    VProp.ReleaseBadge(id);
+    VBadge.Release(id);
   });
   added.forEach(id => {
-    VProp.NewBadge(id, m_svgroot); // returns vbadge but not using
+    VBadge.New(id, m_svgroot); // returns vbadge but not using
   });
   updated.forEach(id => {
-    VProp.UpdateBadge(id);
+    VBadge.Update(id);
   });
   if (DBG) {
     if (removed.length) console.log(`%c:Removing ${removed.length} dead badges`, csstab);
     if (added.length) console.log(`%c:Adding ${added.length} new badges`, csstab);
     if (updated.length) console.log(`%c:Updating ${updated.length} badges`, csstab);
-    console.groupEnd();
   }
+  // if (DBG) console.groupEnd();
+
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -242,19 +245,21 @@ PMCView.UpdateModel = () => {
  * list and calculates how to resize them so they are properly drawn nested.
  */
 PMCView.UpdateViewModel = () => {
-  if (DBG) console.groupCollapsed(`%c:UpdateViewModel()`, cssinfo);
+  // if (DBG) console.groupCollapsed(`%c:UpdateViewModel()`, cssinfo);
   VProp.SizeComponents();
+  // if (DBG) console.groupEnd();
 };
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  * LIFECYCLE: Draws the current view from the updated viewmodel. Currently
  * handles layout and edge drawing.
  */
 PMCView.UpdateView = () => {
-  if (DBG) console.groupCollapsed(`%c:UpdateView()`, cssinfo);
+  // if (DBG) console.groupCollapsed(`%c:UpdateView()`, cssinfo);
   VProp.LayoutComponents();
   VMech.DrawEdges();
-  if (DBG) console.groupEnd();
+  // if (DBG) console.groupEnd();
 };
 
 /*/ DEBUG OBJECT /*/

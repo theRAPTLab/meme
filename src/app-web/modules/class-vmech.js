@@ -10,6 +10,8 @@ const { VMECH, COLOR, CoerceToEdgeObj, SVGDEFS } = DEFAULTS;
 const m_up = VMECH.UP;
 const m_blen = VMECH.BLEN;
 
+const DBG = false;
+
 /// PRIVATE HELPERS ///////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// accepts either edgeObj or v,w as parameters
@@ -205,7 +207,7 @@ VMech.New = (pathId, svgRoot) => {
   if (DATA.VM_VMechExists(pathId)) throw Error(`${pathId} is already allocated`);
   if (svgRoot.constructor.name !== 'Svg') throw Error(`arg2 must be SVGJS draw instance`);
   const vmech = new VMech(pathId, svgRoot);
-  console.log('created vmech', vmech.id);
+  if (DBG) console.log('created vmech', vmech.id);
   DATA.VM_VMechSet(vmech, pathId);
   return vmech;
 };

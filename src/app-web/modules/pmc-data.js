@@ -497,7 +497,7 @@ PMCData.BuildModel = () => {
   h_evidenceByMech = new Map();
   a_evidence.forEach(ev => {
     let mechId = ev.mechId;
-    if (mechId === undefined) return; // not a mech ev link    
+    if (mechId === undefined) return; // not a mech ev link
     let evidenceLinkArray = h_evidenceByMech.get(mechId); // any existing?
     if (evidenceLinkArray === undefined) evidenceLinkArray = []; // new
     if (!evidenceLinkArray.includes(mechId)) evidenceLinkArray.push(ev);
@@ -833,6 +833,7 @@ PMCData.VM_GetVBadgeChanges = () => {
   });
   return { added, removed, updated };
 };
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
  *  returns the VBadge corresponding to evId if it exists
@@ -1151,40 +1152,45 @@ PMCData.PropEvidence = (nodeId) => {
  *  @param {string|undefined} rsrcId - if defined, id string of the resource object
  */
 PMCData.EvidenceLinkByEvidenceId = (evId) => {
-  return a_evidence.find(item => {
+  const evlink = a_evidence.find(item => {
     return item.evId === evId;
   });
+  return evlink;
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Set propId to `undefined` to unlink
 PMCData.SetEvidenceLinkPropId = (evId, propId) => {
-  let ev = a_evidence.find(item => {
+  let evlink = a_evidence.find(item => {
     return item.evId === evId;
   });
-  ev.propId = propId;
+  evlink.propId = propId;
   // Call BuildModel to rebuild hash tables since we've added a new propId
   PMCData.BuildModel(); // DATA_UPDATED called by BuildModel()
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
-  let ev = a_evidence.find(item => {
+  let evlink = a_evidence.find(item => {
     return item.evId === evId;
   });
-  ev.mechId = mechId;
+  evlink.mechId = mechId;
   // Call BuildModel to rebuild hash tables since we've added a new mechId
   PMCData.BuildModel(); // DATA_UPDATED called by BuildModel()
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkNote = (evId, note) => {
-  let ev = a_evidence.find(item => {
+  let evlink = a_evidence.find(item => {
     return item.evId === evId;
   });
-  ev.note = note;
+  evlink.note = note;
   UR.Publish('DATA_UPDATED');
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkRating = (evId, rating) => {
-  let ev = a_evidence.find(item => {
+  let evlink = a_evidence.find(item => {
     return item.evId === evId;
   });
-  if (ev) {
-    ev.rating = rating;
+  if (evlink) {
+    evlink.rating = rating;
     UR.Publish('DATA_UPDATED');
     return;
   }
