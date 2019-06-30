@@ -15,7 +15,7 @@ import DATA from '../modules/pmc-data';
 
 import { cssreact, cssalert } from '../modules/console-styles';
 
-const DBG = false;
+const DBG = true;
 console.log('%cWARN: using SVGView Refactor', cssalert);
 
 
@@ -44,12 +44,11 @@ class SVGView extends React.Component {
 
   componentDidUpdate(prevProps, prevState) {
     // placeholder to trap resizing
-    let dimChanged = prevProps.viewWidth !== this.viewWidth;
-    dimChanged = dimChanged || prevProps.viewHeight !== this.viewHeight;
+    let dimChanged = prevProps.viewWidth !== this.props.viewWidth;
+    dimChanged = dimChanged || prevProps.viewHeight !== this.props.viewHeight;
     if (dimChanged) {
-      const prompt = `componentDidUpdate()`;
       if (DBG)
-        console.log(`%c${prompt} props ${this.props.viewWidth} ${this.props.viewHeight}`, cssreact);
+        console.log(`%ccomponentDidUpdate() winsize ${this.props.viewWidth}x${this.props.viewHeight}`, cssreact);
       this.DoAppLoop();
       // DEBUG WINDOW UPDATE
       // PMCView.DrawTestScene(this.props.viewWidth, this.props.viewHeight);
@@ -84,7 +83,7 @@ class SVGView extends React.Component {
     // for dimensions to begin valid
     if (DBG) {
       const css = this.props.viewWidth && this.props.viewHeight ? cssreact : cssalert;
-      console.log(`%crender() props ${this.props.viewWidth}x${this.props.viewHeight}`, css);
+      console.log(`%crender() called. winsize ${this.props.viewWidth}x${this.props.viewHeight}`, css);
     }
     // returns a root svg that is the PARENT of the SVGJS-created draw surface
     return (
