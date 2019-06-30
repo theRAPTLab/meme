@@ -20,17 +20,6 @@ const DIM_RADIUS = 3;
 //
 const DBG = false;
 
-/// PRIVATE HELPERS ///////////////////////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// accepts either edgeObj or v,w as parameters
-function m_Norm(aObj, bNum) {
-  if (typeof aObj === 'object') {
-    if (bNum === undefined) return aObj.keys();
-    throw Error(`can't normalize aObj ${aObj}, bNum ${bNum}`);
-  }
-  return [aObj, bNum];
-}
-
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
@@ -72,7 +61,7 @@ class VProp {
     this.gRoot.draggable();
     this.gRoot.on('dragstart.propmove', event => {
       event.preventDefault();
-      console.log(`dragstart.propmove ${this.id}`);
+      // console.log(`dragstart.propmove ${this.id}`);
       this.dragStartBox = event.detail.box;
     });
     this.gRoot.on('dragmove.propmove', event => {
@@ -85,7 +74,7 @@ class VProp {
     });
     this.gRoot.on('dragend.propmove', event => {
       event.stopPropagation();
-      console.log(`dragend.propmove ${this.id}`);
+      // console.log(`dragend.propmove ${this.id}`);
       const { x: x1, y: y1 } = this.dragStartBox;
       const { x: x2, y: y2 } = this.dragMoveBox;
       if (Math.abs(x1 - x2) < 5 && Math.abs(y1 - y2) < 5) {
@@ -303,14 +292,6 @@ class VProp {
     return { id: this.id, w: this.kidsWidth, h: this.kidsHeight };
   }
 
-  MoveKids(xObj, yNum) {
-    const [xx, yy] = m_Norm(xObj, yNum);
-    if (typeof xx !== 'number') throw Error(`x ${xx} is not an number`, xx);
-    if (typeof yy !== 'number') throw Error(`y ${yy} is not an number`, yy);
-    console.log(`${this.id} moving kids to ${xx},${yy}`);
-    this.gKids.move(xx, yy);
-  }
-
   /**
    * Redraw svg elements from properties that may have been updated by
    * Update().
@@ -419,7 +400,7 @@ VProp.LayoutComponents = () => {
   components.forEach(id => {
     // get the Visual
     if (DBG) console.groupCollapsed(`%c:layout component ${id}`, cssinfo);
-    u_Layout({ x: xCounter, y: yCounter }, id);
+    recurseLayout({ x: xCounter, y: yCounter }, id);
     const compVis = DATA.VM_VProp(id);
     const compHeight = compVis.Height();
     highHeight = Math.max(compHeight, highHeight);
@@ -437,22 +418,14 @@ VProp.LayoutComponents = () => {
 
 let highHeight = 0;
 
-function u_Layout(offset, id) {
-  let { x, y } = offset;
+function recurseLayout(pos, id) {
+  let { x, y } = pos;
   if (DBG) console.group(`${id} draw at (${x},${y})`);
   const compVis = DATA.VM_VProp(id);
   if (!compVis.HackWasMoved()) {
     if (DBG) console.log(`moving ${compVis.id}`);
-    // HACK: For some reason when adding a property, the parent component
-    // ends up at 0,0 again, while the children get drawn to the right screen
-    // coordinates.  The result is the children are drawn offset to the parent
-    // rather than inside the parent. So we add a check here: if it's at 0,0, we skip the
-    // move until after the children have been drawn.
+    compVis.Move(pos.x, pos.y); // draw compVis where it should go in screen space
     if (DBG) console.log('compVis is at', compVis.X(), compVis.X());
-    if (compVis.X() !== 0 && compVis.Y() !== 0) {
-      // e.g. not adding a new property
-      compVis.Move(x, y); // draw compVis where it should go in screen space
-    }
     y += compVis.DataHeight() + PAD.MIN;
     x += PAD.MIN;
     const children = DATA.Children(id);
@@ -460,15 +433,12 @@ function u_Layout(offset, id) {
     children.forEach(cid => {
       const childVis = DATA.VM_VProp(cid);
       widest = Math.max(widest, childVis.GetKidsBBox()).w;
-      u_Layout({ x, y }, cid);
+      recurseLayout({ x, y }, cid);
       const addH = childVis.Height() + PAD.MIN;
       y += addH;
       if (DBG) console.log(`y + ${addH} = ${y}`);
       childVis.ToParent(id); // nest child in parent
     });
-    // HACK for Add Property
-    // Move parent component AFTER children or the children will end up with wrong offsets
-    compVis.Move(offset.x, offset.y); // draw compVis where it should go in screen space
   } else if (DBG) {
     console.log(`skipping layout of ${compVis.id}`);
   }

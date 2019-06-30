@@ -52,11 +52,11 @@ import UR from '../../system/ursys';
 import DATA from '../modules/pmc-data';
 import EvidenceList from '../components/EvidenceList';
 import ResourceItem from '../components/ResourceItem';
-import { cssreact } from '../modules/console-styles';
+import { cssreact, cssdraw } from '../modules/console-styles';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = true;
+const DBG = false;
 const PKG = 'ViewMain:';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
@@ -120,7 +120,7 @@ class ViewMain extends React.Component {
         url: '',
         links: -1
       }
-    }
+    };
   }
 
   componentDidMount() {
@@ -168,6 +168,8 @@ class ViewMain extends React.Component {
     const innerWidth = window.innerWidth - MEMEStyles.DRAWER_WIDTH;
     const innerHeight = window.innerHeight - this.toolRect.height;
 
+    // debugging: double-refresh issue
+    console.log('%cUpdateDimensions Fired', cssdraw);
     this.setState(
       {
         viewWidth: Math.min(viewWidth, innerWidth),
@@ -176,7 +178,9 @@ class ViewMain extends React.Component {
       () => {
         // Force screen to redraw after setting size.
         // Also forces badge redraw
-        this.HandleForceUpdate();
+        // debug: this seems like a hack, so removing it to see
+        // what the issue is
+        // this.HandleForceUpdate();
       }
     );
   }
@@ -188,7 +192,6 @@ class ViewMain extends React.Component {
   HandleAddEdgeDialogLabelChange(e) {
     this.setState({ addEdgeLabel: e.target.value });
   }
-
 
   // User clicked on "(+) Add Component" drawer button
   HandleComponentAdd() {
@@ -296,7 +299,6 @@ class ViewMain extends React.Component {
     this.HandleAddPropClose();
   }
 
-
   handleAddEdge() {
     if (DBG) console.log('Add!');
     // clear the label first
@@ -394,8 +396,6 @@ class ViewMain extends React.Component {
     const { classes } = this.props;
     const { addPropLabel, addPropPropId, componentIsSelected, mechIsSelected } = this.state;
     const resources = DATA.AllResources();
-    if (DBG)
-      console.log(`%crender() size ${this.state.viewWidth}x${this.state.viewHeight}`, cssreact);
     return (
       <div className={classes.root}>
         <CssBaseline />
@@ -464,7 +464,9 @@ class ViewMain extends React.Component {
               <AddIcon />
             </Fab>
           </Tooltip>
-          <Typography align="center" variant="caption">Add Mechanism</Typography>
+          <Typography align="center" variant="caption">
+            Add Mechanism
+          </Typography>
         </Drawer>
 
         <main className={classes.content} ref={this.refMain}>
@@ -508,8 +510,10 @@ class ViewMain extends React.Component {
                     {DATA.Prop(this.state.addEdgeSource).name}
                   </div>
                 ) : (
-                    <div className={classes.evidenceLinkSourceAvatarWaiting}>1. Click on a source...</div>
-                  )}
+                  <div className={classes.evidenceLinkSourceAvatarWaiting}>
+                    1. Click on a source...
+                  </div>
+                )}
                 &nbsp;
                 <TextField
                   autoFocus
@@ -527,10 +531,10 @@ class ViewMain extends React.Component {
                     {DATA.Prop(this.state.addEdgeTarget).name}
                   </div>
                 ) : (
-                    <div className={classes.evidenceLinkSourceAvatarWaiting}>
-                      2. Click on a target...
+                  <div className={classes.evidenceLinkSourceAvatarWaiting}>
+                    2. Click on a target...
                   </div>
-                  )}
+                )}
                 <div style={{ flexGrow: '1' }} />
                 <Button onClick={this.handleAddEdgeClose} color="primary">
                   Cancel
@@ -546,7 +550,6 @@ class ViewMain extends React.Component {
               </div>
             </Paper>
           </Card>
-
         </main>
 
         {/* Resource Library */}
@@ -591,8 +594,8 @@ class ViewMain extends React.Component {
                     {this.state.selectedResource.type === 'simulation' ? (
                       <ImageIcon />
                     ) : (
-                        <DescriptionIcon />
-                      )}
+                      <DescriptionIcon />
+                    )}
                   </Typography>
                 </CardContent>
               </Card>
@@ -669,7 +672,7 @@ class ViewMain extends React.Component {
           <DialogActions>
             <Button onClick={this.HandleAddPropClose} color="primary">
               Cancel
-              </Button>
+            </Button>
             <Button onClick={this.HandleAddPropCreate} color="primary">
               {addPropPropId === '' ? 'Create' : 'Save'}
             </Button>
@@ -707,8 +710,7 @@ class ViewMain extends React.Component {
         >
           <AddIcon /> Add property
         </Fab>
-
-      </div >
+      </div>
     );
   }
 }

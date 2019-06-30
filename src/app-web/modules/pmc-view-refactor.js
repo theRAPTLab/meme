@@ -50,6 +50,68 @@ PMCView.InitializeViewgraph = container => {
   PMCView.DefineSymbols(m_svgroot);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PMCView.TestGroups = () => {
+  m_svgroot.clear();
+  const gt = m_svgroot.group();
+  const gm = m_svgroot.group();
+
+  console.group('%cTEST GROUP TRANSFORMS', cssdraw);
+  /* TEST TRANSFORM on GROUP, MOVE on ELEMENTS */
+  gt.text(add => {
+    add.tspan('group using transform').newLine();
+    add.tspan('added elements using move').newLine();
+  }).move(0, 110);
+  // create a rect at 0,0 with width 100,100
+  gt.rect(100, 100).fill({ color: `#550000` });
+  /* TRANSFORM GROUP */
+  gt.transform({ translateX: 50, translateY: 100 });
+  // add another small rect at 0,0, size 10, transform to 10,10
+  gt.rect(10, 10)
+    .fill({ color: 'red' })
+    .transform({ translateX: 10, translateY: 10 });
+  /* TRANSFORM GROUP AGAIN */
+  gt.transform({ translateX: 50, translateY: 200 });
+  // add a circle on root svg at 0,0 radius 20, centered at 50,50
+  // then add to group
+  const gtc = m_svgroot
+    .circle(20, 20)
+    .fill({ color: 'red' })
+    .center(50, 50);
+  gt.add(gtc);
+  /* BECAUSE TRANSFORM IS ADDED TO GROUP, ALL CHILDREN INHERIT */
+
+  /* TEST MOVE on GROUP, MOVE on ELEMENTS */
+  gm.text(add => {
+    add.tspan('group using move').newLine();
+    add.tspan('added elements using move').newLine();
+  }).move(0, 110);
+  // create a rect at 0,0 with width 100,100
+  gm.rect(100, 100).fill({ color: '#005500' });
+  /* MOVE GROUP */
+  gm.move(200, 50);
+  // add another small rect at 0,0, size 10, transform to 10,10
+  gm.rect(10, 10)
+    .fill({ color: 'green' })
+    .move(10, 10);
+  /* MOVE GROUP AGAIN */
+  gm.move(300, 50);
+  // add a circle on root svg at 0,0 radius 20, centered at 50,50
+  // then add to group
+  const gmc = m_svgroot
+    .circle(20, 20)
+    .fill({ color: 'green' })
+    .center(50, 50);
+  gm.add(gmc);
+  /* BECAUSE GROUP IS MOVED BUT TRANSFORM ISN'T SHARED, ALL CHILDREN
+     ARE DRAWN RELATIVE TO ORIGIN
+  */
+
+  console.groupEnd();
+  /* GLOBALS */
+  window.gt = gt;
+  window.gm = gm;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  * PRIVATE: Define named svg "defs" for reuse in the view. For example, arrowheads.
  * It shouldn't be called externally.
@@ -185,15 +247,15 @@ PMCView.UpdateViewModel = () => {
 
   // walk through every component
   components.forEach(compId => {
-    recurse_Size(compId); // note: returns bbox, but we're not using it here
+    recursePropSize(compId); // note: returns bbox, but we're not using it here
   });
   if (DBG) console.groupEnd();
 
   /// RECURSION ///////////////////////////////////////////////////////////////
-  /// given a propId, updates dimension data for each VProp so they are the
-  /// right size
+  /// given a propId, updates dimension data for each VProp so they are sized
+  /// to contain their data and child VProps
   /// return struct { id, w, h } w/out padding
-  function recurse_Size(propId) {
+  function recursePropSize(propId) {
     const vprop = DATA.VM_VProp(propId);
     // first get base size of vprop's data
     const databbox = vprop.GetDataBBox();
@@ -213,7 +275,7 @@ PMCView.UpdateViewModel = () => {
     let childSizes = []; // collect sizes of each child
     childIds.forEach(childId => {
       const cvprop = DATA.VM_VProp(childId);
-      const csize = recurse_Size(childId);
+      const csize = recursePropSize(childId);
       cvprop.SetKidsBBox(csize);
       childSizes.push(csize);
     });
