@@ -56,7 +56,9 @@ class VProp {
     this.mechPoints = []; // array of points available for mechanism connections
     // hacked items
     this.hack = { wasMoved: false };
+    // hacked vbadge support
     this.badgesCount = 0; // number of badges attached to this prop
+
     // higher order display properties
     this.gRoot.draggable();
     this.gRoot.on('dragstart.propmove', event => {

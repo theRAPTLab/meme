@@ -1,5 +1,5 @@
 import DATA from './pmc-data';
-import { cssalert } from './console-styles';
+import { cssalert, cssinfo } from './console-styles';
 import DEFAULTS from './defaults';
 import UR from '../../system/ursys';
 
@@ -36,7 +36,15 @@ class VBadge {
 
     // Find my corresponding VProp
     const evlink = DATA.EvidenceLinkByEvidenceId(badgeId);
-    if (evlink.propId === undefined) return undefined; // Not evidence for a property, probably a vmech
+    if (evlink === undefined) throw Error('no evidence defined in model');
+    // Not evidence for a property, probably a vmech
+    if (evlink.propId === undefined) {
+      // CODE REVIEW: VBadge shouldn't even be called if it doesn't support Mechanisms, or VBadge should be smarter
+      return undefined;
+      // throw Error('VBadge Error: non-prop vbadges are not yet supported');
+    }
+
+    // evidence provided is a propId, so we should connect to it
     const myVProp = DATA.VM_VProp(evlink.propId);
     myVProp.badgesCount++; // CODE REVIEW: this mechanism using badgeCount properties seems unsystematic
     const badgeCount = myVProp.badgesCount;
@@ -84,12 +92,16 @@ class VBadge {
         y + radius / 2 - m_pad + 20
       );
 
+    // save for VM_GetVBadgeChanges
+    this.evlink = evlink;
+    this.id = badgeId;
+
   }
 
   /** return associated nodeId
    * @returns {string} nodeId string
    */
-  Id() {
+  LinkedProp() {
     return this.id;
   }
 
@@ -122,6 +134,7 @@ class VBadge {
   Release() {
     // FIXME - Need to update myVProp.badgesCount?
     // FIXME - This is wrong!  How do we remove ourselves?
+    DATA.VM_VBadgeDelete(this.evlink.evId);
     if (this.gBadge) this.gBadge.remove();
   }
 
@@ -151,28 +164,28 @@ class VBadge {
  *  Allocate VBadge instances through this static method. It maintains
  *  the collection of all allocated visuals through DATA.VM_* calls as well
  */
-VBadge.New = (id, svgRoot) => {
-  if (DATA.VM_VBadge(id)) throw Error(`${id} is already allocated`);
+VBadge.New = (evId, svgRoot) => {
+  if (DATA.VM_VBadge(evId)) throw Error(`${evId} is already allocated`);
   if (svgRoot.constructor.name !== 'Svg') throw Error(`arg2 must be SVGJS draw instance`);
-  const vbadge = new VBadge(id, svgRoot);
-  DATA.VM_VBadgeSet(id, vbadge);
+  const vbadge = new VBadge(evId, svgRoot);
+  DATA.VM_VBadgeSet(evId, vbadge);
   return vbadge;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  De-allocate VProp instance by id.
  */
-VBadge.Release = id => {
-  const vbadge = DATA.VM_VBadge(id);
-  DATA.VM_VBadgeDelete(id);
+VBadge.Release = evId => {
+  const vbadge = DATA.VM_VBadge(evId);
+  DATA.VM_VBadgeDelete(evId);
   return vbadge.Release();
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  Update instance from associated data id
  */
-VBadge.Update = id => {
-  const vbadge = DATA.VM_VBadge(id);
+VBadge.Update = evId => {
+  const vbadge = DATA.VM_VBadge(evId);
   if (vbadge) vbadge.Update();
   return vbadge;
 };
