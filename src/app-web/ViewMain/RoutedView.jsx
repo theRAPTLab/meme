@@ -47,7 +47,7 @@ class RoutedView extends React.Component {
         return <SVGView {...routedProps} />;
       case 'paper':
         return <PaperView {...routedProps} />;
-      case 'svgrx':
+      case 'refactor':
         return <SVGViewRefactor {...routedProps} />;
       default:
         return <div>unrecognized display mode:{mode}</div>;
