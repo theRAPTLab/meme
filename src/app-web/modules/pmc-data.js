@@ -808,6 +808,38 @@ PMCData.VM_VMechSet = (vmech, evo, ew) => {
  *  containing evIds.
  */
 PMCData.VM_GetVBadgeChanges = () => {
+  const added = [];
+  const updated = [];
+  const removed = [];
+  // removed
+  map_vbadges.forEach((val_badge, key_evId) => {
+    // if both propId and mechId are undefined, then this evidenceLink
+    // is not linking to any prop or mech, so delete the badge.
+    if (val_badge.propId === undefined && val_badge.mechId === undefined) {
+      removed.push(key_evId);
+      if (DBG) console.log('removed', key_evId);
+    }
+  });
+  // find what matches and what is new by pathid
+  a_evidence.forEach(evLink => {
+    const evId = evLink.evId;
+    if (map_vbadges.has(evId)) {
+      updated.push(evId);
+      if (DBG) console.log('updated', evId);
+    } else {
+      added.push(evId);
+      if (DBG) console.log('added', evId);
+    }
+  });
+  return { added, removed, updated };
+};
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** API.VIEWMODEL:
+ *  returns an object containing added, updated, removed string arrays
+ *  containing evIds.
+ */
+PMCData.VM_GetVBadgeChangesRefactor = () => {
   /*\
     is there something wrong with this detecting code?
 

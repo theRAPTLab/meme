@@ -213,7 +213,7 @@ PMCView.SyncMechsFromGraphData = () => {
  */
 PMCView.SyncBadgesFromEvLinkData = () => {
   // if (DBG) console.groupCollapsed(`%c:SyncBadgesFromEvLinkData()`, cssinfo);
-  const { added, removed, updated } = DATA.VM_GetVBadgeChanges();
+  const { added, removed, updated } = DATA.VM_GetVBadgeChangesRefactor();
   removed.forEach(id => {
     VBadge.Release(id);
   });
