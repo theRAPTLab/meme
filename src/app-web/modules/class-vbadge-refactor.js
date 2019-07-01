@@ -35,23 +35,26 @@ class VBadge {
     if (svgRoot.constructor.name !== 'Svg') throw Error(`arg2 must be SVGJS draw instance`);
 
     // Find my corresponding VProp
-    const evlink = DATA.EvidenceLinkByEvidenceId(badgeId);
+    const evlink = DATA.EvidenceLinkByEvidenceId(badgeId) || {};
+    // save minimum props
+    this.id = badgeId;
+    this.evlink = evlink;
+
     if (evlink === undefined) throw Error('no evidence defined in model');
     // Not evidence for a property, probably a vmech
     if (evlink.propId === undefined) {
       // CODE REVIEW: VBadge shouldn't even be called if it doesn't support Mechanisms, or VBadge should be smarter
-      return undefined;
-      // throw Error('VBadge Error: non-prop vbadges are not yet supported');
+      return this;
     }
-
-    // evidence provided is a propId, so we should connect to it
-    const myVProp = DATA.VM_VProp(evlink.propId);
-    myVProp.badgesCount++; // CODE REVIEW: this mechanism using badgeCount properties seems unsystematic
-    const badgeCount = myVProp.badgesCount;
 
     // create an element attached to vprop group
     // note that the drawcode needs to pull the gRoot offset
-    this.gBadge = myVProp.gRoot.group();
+    // evidence provided is a propId, so we should connect to it
+    this.gBadge = svgRoot.group();
+    const myVProp = DATA.VM_VProp(evlink.propId);
+    myVProp.gRoot.add(this.gBadge);
+    myVProp.badgesCount++; // CODE REVIEW: this mechanism using badgeCount properties seems unsystematic
+    const badgeCount = myVProp.badgesCount;
 
     const radius = m_minHeight + m_pad / 2;
     const x = myVProp.gRoot.x();
@@ -91,11 +94,6 @@ class VBadge {
         x + m_minWidth - badgeCount * (radius + 0.25 * m_pad) - m_pad + 0.4 * radius,
         y + radius / 2 - m_pad + 20
       );
-
-    // save for VM_GetVBadgeChanges
-    this.evlink = evlink;
-    this.id = badgeId;
-
   }
 
   /** return associated nodeId
@@ -154,7 +152,10 @@ class VBadge {
     for (let i = 1; i <= rating; i++) {
       ratingLabel += '*';
     }
-    this.gRating.text(ratingLabel).attr({ x: this.gCircle.cx() - rating * 3.5 });
+    /* HACK AROUND BROKEN IMPLEMENTATION */
+    if (this.gRating) {
+      this.gRating.text(ratingLabel).attr({ x: this.gCircle.cx() - rating * 3.5 });
+    }
   }
 }
 

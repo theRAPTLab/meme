@@ -59,7 +59,7 @@ const PMCData = {};
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = false;
+const DBG = true;
 
 /// MODEL /////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -808,14 +808,28 @@ PMCData.VM_VMechSet = (vmech, evo, ew) => {
  *  containing evIds.
  */
 PMCData.VM_GetVBadgeChanges = () => {
+  /*\
+    is there something wrong with this detecting code?
+
+    * map_vbadges maps evId to vbadge
+    * a_evidence contains { evId, propId: undefined, rsrcId, note }
+    * resources and pmc elements are linked by evidence
+    * any change in a piece of evidence potentially changes the vbadge
+    * vbadges are associated with a vprop currently, holding a reference to its id
+
+    vbadge update: this is a rating change or a vpropid change
+    evidence deleted: vbadge should be removed
+    evidence added: vbadge should be added
+  \*/
   const added = [];
   const updated = [];
   const removed = [];
   // removed
   map_vbadges.forEach((val_badge, key_evId) => {
+
     // if both propId and mechId are undefined, then this evidenceLink
     // is not linking to any prop or mech, so delete the badge.
-    if (val_badge.propId === undefined && val_badge.mechId === undefined) {
+    if (val_badge.evlink.propId === undefined && val_badge.evlink.mechId === undefined) {
       removed.push(key_evId);
       if (DBG) console.log('removed', key_evId);
     }
@@ -953,7 +967,6 @@ PMCData.VM_DeselectAllProps = () => {
   // clear selection viewmodel
   selected_vprops.clear();
   if (DBG) console.log(`global selection`, selected_vprops);
-  UR.Publish('SELECTION_CHANGED');
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
@@ -970,7 +983,10 @@ PMCData.VM_DeselectAllMechs = () => {
   // clear selection viewmodel
   selected_vmechs.clear();
   if (DBG) console.log(`global selection`, selected_vmechs);
-  UR.Publish('SELECTION_CHANGED');
+};
+PMCData.VM_DeselectAll = () => {
+  PMCData.VM_DeselectAllProps();
+  PMCData.VM_DeselectAllMechs();
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
@@ -1003,14 +1019,6 @@ PMCData.VM_ToggleMech = vmech => {
   }
   if (DBG) console.log(`vmech selection`, selected_vmechs);
   UR.Publish('SELECTION_CHANGED');
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * select ALL selected visuals, property or mechanism alike
- */
-PMCData.VM_DeselectAll = () => {
-  PMCData.VM_DeselectAllMechs();
-  PMCData.VM_DeselectAllProps();
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
