@@ -46,7 +46,9 @@ PMCView.InitializeViewgraph = container => {
   m_element = container;
   m_svgroot = SVGJS(m_element);
   m_svgroot.mousedown(() => {
-    DATA.VM_DeselectAll();
+    DATA.VM_DeselectAllProps();
+    DATA.VM_DeselectAllMechs();
+    UR.Publish('SELECTION_CHANGED');
   });
   PMCView.DefineDefs(m_svgroot);
   PMCView.DefineSymbols(m_svgroot);

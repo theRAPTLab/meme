@@ -175,6 +175,7 @@ class EvidenceLink extends React.Component {
   HandleSourceSelectClick(evId, rsrcId) {
     // Deselect the prop first, otherwise the deleted prop will remain selected
     DATA.VM_DeselectAll();
+    UR.Publish('SELECTION_CHANGED');
     // Remove any existing evidence links
     DATA.VM_MarkBadgeForDeletion(evId);
     DATA.SetEvidenceLinkPropId(evId, undefined);
