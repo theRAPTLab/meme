@@ -85,7 +85,7 @@ class GroupsList extends React.Component {
       this.setState({
         groups: [],
         classroomId: ''
-      })
+      });
     }
   }
 

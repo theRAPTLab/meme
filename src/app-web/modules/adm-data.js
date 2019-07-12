@@ -14,6 +14,7 @@ const ADMData = {};
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DBG = false;
+const PKG = 'adm-data';
 
 /// MODEL /////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -123,8 +124,7 @@ ADMData.GetClassroomsByTeacher = teacherId => {
 };
 ADMData.SelectClassroom = classroomId => {
   selectedClassroomId = classroomId;
-}
-
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// GROUPS
 /**
@@ -174,6 +174,10 @@ ADMData.GetGroupIdsByClassroom = classroomId => {
  */
 ADMData.UpdateGroup = (groupId, group) => {
   let i = a_groups.findIndex(grp => grp.id === groupId);
+  if (i < 0) {
+    console.error(PKG, '.UpdateGroup could not find group with id', groupId);
+    return;
+  }
   a_groups.splice(i, 1, group);
 };
 ADMData.AddStudents = (groupId, students) => {
@@ -230,8 +234,51 @@ ADMData.GetModelsByClassroom = classroomId => {
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// CRITERIA
+/**
+ *  NewCriteria
+ *  1. Creates a new empty criteria object with a unqiue ID.
+ *  2. Adds the criteria object to the a_criteria array
+ *  3. Returns the criteria object.
+ * 
+ *  Calling `NewCriteria()` will automatically use the currently
+ *  selectedClassssroomId as the classroomId.
+ * 
+ *  Call `NewCriteria('xxId')` to set the classroomId manually.
+ */
+ADMData.NewCriteria = (classroomId = selectedClassroomId) => {
+  const id = GenerateUID('cr');
+  if (classroomId === undefined) {
+    console.error(PKG, '.NewCriteria called with bad classroomId:', classroomId);
+    return;
+  }
+  const crit = {
+    id,
+    label: '',
+    description: '',
+    classroomId
+  };
+  a_criteria.push(crit);
+  return crit;
+};
 ADMData.GetCriteriaByClassroom = classroomId => {
   return a_criteria.filter(crit => crit.classroomId === classroomId);
+};
+ADMData.UpdateCriteria = criteria => {
+  const i = a_criteria.findIndex(cr => cr.id === criteria.id);
+  if (i < 0) {
+    console.error(PKG, '.UpdateCriteria could not find criteria with id', criteria.id);
+    return;
+  }
+  a_criteria.splice(i, 1, criteria);
+};
+ADMData.UpdateCriteriaList = criteriaList => {
+  // Remove any deleted criteria
+  const updatedCriteriaIds = criteriaList.map(criteria => criteria.id);
+  a_criteria = a_criteria.filter(
+    crit => crit.classroomId !== selectedClassroomId || updatedCriteriaIds.includes(crit.id)
+  );
+  // Update existing criteria
+  criteriaList.forEach(criteria => ADMData.UpdateCriteria(criteria));
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
