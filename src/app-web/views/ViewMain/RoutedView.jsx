@@ -5,6 +5,7 @@ import Canvas from '../../components/Canvas';
 import D3SVG from '../../components/D3SVG';
 import CytosView from '../../components/CytoView';
 import SVGView from '../../components/SVGView';
+import SVGViewDev from '../../components/SVGViewDev';
 import PaperView from '../../components/PaperView';
 import DB from '../../modules/prototype.model';
 import { cssalert } from '../../modules/console-styles';
@@ -47,8 +48,8 @@ class RoutedView extends React.Component {
         return <SVGView {...routedProps} />;
       case 'paper':
         return <PaperView {...routedProps} />;
-      case 'refactor':
-        return <SVGView {...routedProps} />;
+      case 'dev':
+        return <SVGViewDev {...routedProps} />;
       default:
         return <div>unrecognized display mode:{mode}</div>;
     }

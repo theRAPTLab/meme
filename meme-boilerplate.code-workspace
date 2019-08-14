@@ -5,18 +5,8 @@
     }
   ],
   "settings": {
-    "editor.formatOnSave": true,
     "prettier.eslintIntegration": true,
     "prettier.arrowParens": "always",
-    "[json]": {
-      "editor.formatOnSave": true
-    },
-    "[javascriptreact]": {
-      "editor.formatOnSave": true
-    },
-    "[javascript]": {
-      "editor.formatOnSave": true
-    },
     "typescript.suggest.completeJSDocs": false,
     "typescript.validate.enable": false,
     "typescript.surveys.enabled": false,

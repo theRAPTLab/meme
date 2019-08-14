@@ -84,19 +84,28 @@ function m_UpdateCurrentPhase(phase) {
     f is a function that does work immediately, or returns a Promise
 /*/
 const Hook = (phase, f, scope) => {
-  // make sure scope is included
-  if (typeof scope !== 'string') throw Error(`<arg3> scope is required (set to module.id)`);
-  // does this phase exist?
-  if (typeof phase !== 'string') throw Error("<arg1> must be PHASENAME (e.g. 'LOADASSETS')");
-  if (!PHASES.includes(phase)) throw Error(phase, 'is not a recognized exec phase');
-  // did we also get a promise?
-  if (!(f instanceof Function))
-    throw Error('<arg2> must be a function optionally returning Promise');
-  // get the list of promises associated with this phase
-  // and add the new promise
-  if (!PHASE_HOOKS.has(phase)) PHASE_HOOKS.set(phase, []);
-  PHASE_HOOKS.get(phase).push({ f, scope });
-  if (DBG) console.log(`[${phase}] added handler`);
+  try {
+    // make sure scope is included
+    if (typeof scope !== 'string') {
+      console.log('GOT', phase, f, scope);
+      if (typeof scope === 'object' && scope.URMOD) scope = scope.URMOD;
+      throw Error(`<arg3> scope should be object with UMOD prop`);
+    }
+    // does this phase exist?
+    if (typeof phase !== 'string') throw Error("<arg1> must be PHASENAME (e.g. 'LOADASSETS')");
+    if (!PHASES.includes(phase)) throw Error(phase, 'is not a recognized exec phase');
+    // did we also get a promise?
+    if (!(f instanceof Function))
+      throw Error('<arg2> must be a function optionally returning Promise');
+    // get the list of promises associated with this phase
+    // and add the new promise
+    if (!PHASE_HOOKS.has(phase)) PHASE_HOOKS.set(phase, []);
+    PHASE_HOOKS.get(phase).push({ f, scope });
+    if (DBG) console.log(`[${phase}] added handler`);
+  } catch (e) {
+    console.error(e);
+    debugger;
+  }
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -181,9 +190,9 @@ const SetScopeFromRoutes = routes => {
     to set the scope, we need to have a unique name to set. this scope is probably
     a directory. we can set the UMOD property using the __dirname config for webpack
     /*/
-    if (component.UMOD === undefined)
+    if (component.URMOD === undefined)
       console.log(`%cWARNING: root view '${loc}' has no UMOD property, so can not set URSYS scope`);
-    const viewpath = component.UMOD || 'boot';
+    const viewpath = component.URMOD || 'boot';
     SetScopePath(viewpath);
   } else {
     /*/

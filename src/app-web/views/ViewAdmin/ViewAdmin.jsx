@@ -112,7 +112,7 @@ ViewAdmin.propTypes = {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path
-ViewAdmin.UMOD = __dirname;
+ViewAdmin.URMOD = __dirname;
 UR.EXEC.Hook(
   'INITIALIZE',
   () => {

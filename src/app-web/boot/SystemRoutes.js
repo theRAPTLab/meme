@@ -40,6 +40,11 @@ const SystemRoutes = [
     component: DevTest
   },
   {
+    path: '/test/:feature',
+    exact: true,
+    component: DevTest
+  },
+  {
     path: '/admin',
     exact: true,
     component: ViewAdmin

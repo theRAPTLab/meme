@@ -1,7 +1,6 @@
 /*///////////////////////////////// ABOUT \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
-  ViewBasic - Basic Starter Layout
-  Uses BOOTSTRAP, not MATERIAL UI
+  TestRoot
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * /////////////////////////////////////*/
 
@@ -41,12 +40,39 @@ class ViewBasic extends React.Component {
     super(props);
     UR.ReloadOnViewChange();
     this.cstrName = this.constructor.name;
-    NETTEST.DoConstructionTests();
+    this.feature = undefined;
+    this.Test(props.match.params.feature || '<no test selected>');
   }
 
   componentDidMount() {
     console.log(`<${this.cstrName}> mounted`);
-    NETTEST.DoMountTests();
+    this.Test();
+  }
+
+  Test(feature) {
+    // construction time
+    if (!this.feature) {
+      if (!feature) {
+        alert(`ERROR: test requires 'match.params.feature' passed to it on construct`);
+        return;
+      }
+      this.feature = feature;
+      switch (this.feature) {
+        case 'ur':
+          NETTEST.DoConstructionTests();
+          break;
+        default:
+      }
+      return;
+    }
+    // after construction
+    switch (this.feature) {
+      case 'ur':
+        NETTEST.DoMountTests();
+        break;
+      default:
+        console.log('no matching test run for', this.feature);
+    }
   }
 
   render() {
@@ -80,7 +106,8 @@ class ViewBasic extends React.Component {
       </div>
     );
   }
-}
+} // ViewBasic component
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// default props are expect properties that we expect
 /// and are declared for validation
@@ -96,7 +123,7 @@ ViewBasic.propTypes = {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path
-ViewBasic.UMOD = __dirname;
+ViewBasic.URMOD = __dirname;
 UR.EXEC.Hook(
   'INITIALIZE',
   () => {

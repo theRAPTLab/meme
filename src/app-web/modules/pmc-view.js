@@ -55,14 +55,20 @@ PMCView.InitializeViewgraph = container => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCView.TestGroups = () => {
   m_svgroot.clear();
-  const gt = m_svgroot.group();
-  const gm = m_svgroot.group();
+  const gt = m_svgroot.group(); // 0,0
+  const gm = m_svgroot.group(); // 0,0
+  const gr = m_svgroot.group(); // 0,0
+  const DIM = 1000;
+  const stroke = { color: 'black', width: 1, opacity: 0.1 };
+  for (let i = 0; i < DIM; i += DIM / 10) m_svgroot.line(i, 0, i, DIM).stroke(stroke);
+  for (let j = 0; j < DIM; j += DIM / 10) m_svgroot.line(0, j, DIM, j).stroke(stroke);
 
   console.group('%cTEST GROUP TRANSFORMS', cssdraw);
   /* TEST TRANSFORM on GROUP, MOVE on ELEMENTS */
   gt.text(add => {
+    add.tspan('move then add element test').newLine();
     add.tspan('group using transform').newLine();
-    add.tspan('added elements using move').newLine();
+    add.tspan('start at 0,0 -> end at 100,200').newLine();
   }).move(0, 110);
   // create a rect at 0,0 with width 100,100
   gt.rect(100, 100).fill({ color: `#550000` });
@@ -73,7 +79,7 @@ PMCView.TestGroups = () => {
     .fill({ color: 'red' })
     .transform({ translateX: 10, translateY: 10 });
   /* TRANSFORM GROUP AGAIN */
-  gt.transform({ translateX: 50, translateY: 200 });
+  gt.transform({ translateX: 100, translateY: 200 });
   // add a circle on root svg at 0,0 radius 20, centered at 50,50
   // then add to group
   const gtc = m_svgroot
@@ -85,8 +91,9 @@ PMCView.TestGroups = () => {
 
   /* TEST MOVE on GROUP, MOVE on ELEMENTS */
   gm.text(add => {
+    add.tspan('move then add element test').newLine();
     add.tspan('group using move').newLine();
-    add.tspan('added elements using move').newLine();
+    add.tspan('start at 0,0 -> end at 300,100').newLine();
   }).move(0, 110);
   // create a rect at 0,0 with width 100,100
   gm.rect(100, 100).fill({ color: '#005500' });
@@ -97,7 +104,7 @@ PMCView.TestGroups = () => {
     .fill({ color: 'green' })
     .move(10, 10);
   /* MOVE GROUP AGAIN */
-  gm.move(300, 50);
+  gm.move(300, 100);
   // add a circle on root svg at 0,0 radius 20, centered at 50,50
   // then add to group
   const gmc = m_svgroot
@@ -108,6 +115,34 @@ PMCView.TestGroups = () => {
   /* BECAUSE GROUP IS MOVED BUT TRANSFORM ISN'T SHARED, ALL CHILDREN
      ARE DRAWN RELATIVE TO ORIGIN
   */
+
+  /* TEST MOVE on GROUP, MOVE on ELEMENTS */
+  gr.text(add => {
+    add.tspan('move then add element test').newLine();
+    add.tspan('group using move+offset').newLine();
+    add.tspan('start at 0,0 -> end at 300,300').newLine();
+  }).move(0, 110);
+  // create a rect at 0,0 with width 100,100
+  gr.rect(100, 100).fill({ color: '#000055' });
+  /* MOVE GROUP */
+  gr.move(200, 150);
+  // add another small rect at 0,0, size 10, transform to 10,10
+  let grx = gr.x(); /* EXTRA */
+  let gry = gr.y(); /* EXTRA */
+  gr.rect(10, 10)
+    .fill({ color: 'blue' })
+    .move(grx + 10, gry + 10);
+  /* MOVE GROUP AGAIN */
+  gr.move(300, 300);
+  // add a circle on root svg at 0,0 radius 20, centered at 50,50
+  // then add to group
+  grx = gr.x(); /* EXTRA */
+  gry = gr.y(); /* EXTRA */
+  const grc = m_svgroot
+    .circle(20, 20)
+    .fill({ color: 'blue' })
+    .center(grx + 50, gry + 50);
+  gr.add(grc);
 
   console.groupEnd();
   /* GLOBALS */
@@ -228,7 +263,6 @@ PMCView.SyncBadgesFromEvLinkData = () => {
     if (updated.length) console.log(`%c:Updating ${updated.length} badges`, csstab);
   }
   // if (DBG) console.groupEnd();
-
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

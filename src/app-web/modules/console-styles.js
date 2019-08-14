@@ -14,8 +14,10 @@ const cssdata = 'color:white;background-color:blue;padding:0 4px';
 const cssreset = 'color:auto;background-color:auto';
 const csstab = 'padding-left:4px';
 const csstab2 = 'padding-left:10px';
+const cssmark = 'color:white;background-color:red;padding:0 4px';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const cssblue = 'color:blue;';
+const cssred = 'color:red;';
 
 /// PUBLIC METHODS ////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -50,8 +52,10 @@ export {
   cssdata,
   cssreact,
   cssblue,
+  cssred,
   cssreset,
   cssalert,
   cssur,
-  cssuri
+  cssuri,
+  cssmark
 };

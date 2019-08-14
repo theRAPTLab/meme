@@ -768,7 +768,7 @@ ViewMain.propTypes = {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path
-ViewMain.UMOD = __dirname;
+ViewMain.URMOD = __dirname;
 UR.EXEC.Hook(
   'INITIALIZE',
   () => {

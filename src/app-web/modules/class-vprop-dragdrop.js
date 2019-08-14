@@ -21,6 +21,7 @@ import UR from '../../system/ursys';
 
 /// PRIVATE DECLARATIONS //////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const DBG = false;
 
 /// PRIVATE HELPERS ///////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -146,28 +147,36 @@ const AddDragDropHandlers = vprop => {
       // if it didn't move much, then it's a click so select
       DATA.VM_ToggleProp(vprop);
       vprop.Move(DragState(vprop).gRootXY);
-      console.log(`[${vpropId}] didn't move enough, so snapping back`);
+      if (DBG) console.log(`[${vpropId}] didn't move enough, so snapping back`);
       return;
     }
+
+    // for every move, move vprop back to root to 'reset' it
+    // before subsequent reparenting
+    vprop.ToRoot();
 
     // it did move, so do drop target magic
     const dropId = DATA.VM_PropsMouseOver().pop();
 
     if (dropId) {
       // there is a drop target
-      console.log(`[${vpropId}] moved to [${dropId}]`);
+      const vparent = DATA.VM_VProp(dropId);
+      vparent.LayoutDisabled(false);
       vprop.LayoutDisabled(false);
+      // this has to come last because this automatically fires layout
       DATA.PMC_SetPropParent(vpropId, dropId);
+      if (DBG) console.log(`[${vpropId}] moved to [${dropId}]`);
     } else {
       // dropped on the desktop, no parent
       const parent = DATA.PropParent(vpropId);
       if (parent) {
-        console.log(`[${vpropId}] moved from [${parent}]`);
+        if (DBG) console.log(`[${vpropId}] moved from [${parent}]`);
         vprop.LayoutDisabled(false);
       } else {
-        console.log(`[${vpropId}] moved on desktop`);
+        if (DBG) console.log(`[${vpropId}] moved on desktop`);
         vprop.LayoutDisabled(true);
       }
+      // this has to come last because this automatically fires layout
       DATA.PMC_SetPropParent(vpropId, undefined);
     }
   });

@@ -708,8 +708,27 @@ PMCData.VM_VBadgeSet = (evId, vbadge) => {
 
 /// SELECTION MANAGER TEMPORARY HOME //////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function u_DumpSelection(prompt) {
+  if (prompt) console.log(prompt);
+  console.table(PMCData.VM_SelectedProps());
+}
 /** API.VIEWMODEL:
  * add the vprop to the selection set. The vprop will be
+ * updated in its appearance to reflect its new state.
+ * @param {object} vprop - VProp instance with id property.
+ */
+PMCData.VM_SelectAddProp = vprop => {
+  // set appropriate vprop flags
+  vprop.visualState.Select();
+  vprop.Draw();
+  // update viewmodel
+  selected_vprops.add(vprop.id);
+  UR.Publish('SELECTION_CHANGED');
+  if (DBG) u_DumpSelection('SelectAddProp');
+};
+
+/** API.VIEWMODEL:
+ * set the vprop to the selection set. The vprop will be
  * updated in its appearance to reflect its new state.
  * @param {object} vprop - VProp instance with id property.
  */
@@ -718,7 +737,14 @@ PMCData.VM_SelectProp = vprop => {
   vprop.visualState.Select();
   vprop.Draw();
   // update viewmodel
+  selected_vprops.forEach(id => {
+    const vp = PMCData.VM_VProp(id);
+    vp.visualState.Deselect();
+  });
+  selected_vprops.clear();
   selected_vprops.add(vprop.id);
+  UR.Publish('SELECTION_CHANGED');
+  if (DBG) u_DumpSelection('SelectProp');
 };
 
 /* API.VIEWMODEL: Tracking Rollovers */
@@ -751,6 +777,8 @@ PMCData.VM_DeselectProp = vprop => {
   vprop.Draw();
   // update viewmodel
   selected_vprops.delete(vprop.id);
+  UR.Publish('SELECTION_CHANGED');
+  if (DBG) u_DumpSelection('DeselectProp');
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
@@ -772,8 +800,8 @@ PMCData.VM_ToggleProp = vprop => {
     selected_vprops.delete(vprop.id);
     vprop.Draw();
   }
-  if (DBG) console.log(`vprop selection`, selected_vprops);
   UR.Publish('SELECTION_CHANGED');
+  if (DBG) u_DumpSelection('ToggleProp');
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
@@ -789,7 +817,8 @@ PMCData.VM_DeselectAllProps = () => {
   });
   // clear selection viewmodel
   selected_vprops.clear();
-  if (DBG) console.log(`global selection`, selected_vprops);
+  UR.Publish('SELECTION_CHANGED');
+  if (DBG) u_DumpSelection('DeselectAllProps');
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
@@ -806,10 +835,6 @@ PMCData.VM_DeselectAllMechs = () => {
   // clear selection viewmodel
   selected_vmechs.clear();
   if (DBG) console.log(`global selection`, selected_vmechs);
-};
-PMCData.VM_DeselectAll = () => {
-  PMCData.VM_DeselectAllProps();
-  PMCData.VM_DeselectAllMechs();
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:

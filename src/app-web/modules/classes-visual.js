@@ -27,7 +27,7 @@ class VisualState {
   constructor(refId) {
     if (typeof refId !== 'string') throw Error('VisualState requires refId string of owner');
     this.refId = refId;
-    this.id = `visualstate-${refId}`;
+    this.id = `stateof '${refId}'`;
     this.selected = new Set();
     this.highlighted = [];
     this.group = [];
@@ -56,16 +56,16 @@ class VisualState {
   Select(...optFlags) {
     if (optFlags.length === 0) {
       this.selected.add(F_SEL);
-      if (DBG) console.log(`${this.id} default add`, this.selected);
+      if (DBG) console.log(`${this.id} +'${F_SEL}'`);
       return;
     }
     optFlags.forEach(arg => {
       if (arg === true) {
         this.selected.add(F_SEL);
-        if (DBG) console.log(`${this.id} true add`, this.selected);
+        if (DBG) console.log(`${this.id} +'${F_SEL}'`);
       } else if (typeof arg === 'string') {
         this.selected.add(arg);
-        if (DBG) console.log(`${this.id} string add`, this.selected);
+        if (DBG) console.log(`${this.id} +'${arg}'`);
       } else {
         throw Error(`${this.id} flag must be [boolean] or [string] type, not [${typeof arg}]`);
       }
@@ -79,16 +79,16 @@ class VisualState {
   Deselect(...optFlags) {
     if (optFlags.length === 0) {
       this.selected.clear();
-      if (DBG) console.log(`${this.id} default deleted all`, this.selected);
+      if (DBG) console.log(`${this.id} erased`);
       return;
     }
     optFlags.forEach(arg => {
       if (arg === true) {
         this.selected.delete(F_SEL);
-        if (DBG) console.log(`true delete`, this.selected);
+        if (DBG) console.log(`${this.id} erased`);
       } else if (typeof arg === 'string') {
         this.selected.delete(arg);
-        if (DBG) console.log(`${this.id} string delete`, this.selected);
+        if (DBG) console.log(`${this.id} -'${arg}'`);
       } else {
         throw Error(`${this.id} flag must be [boolean] or [string] type, not [${typeof arg}]`);
       }
@@ -111,20 +111,21 @@ class VisualState {
     // default no argument is 'selected'
     if (optFlags.length === 0) {
       toggle(this, F_SEL);
-      if (DBG) console.log(`${this.id} toggled state`, this.selected);
+      if (DBG) console.log(`${this.id} toggled '${F_SEL}'`);
       return;
     }
     // process arg list when provided
     optFlags.forEach(arg => {
       if (arg === true) {
         toggle(this, F_SEL);
+        if (DBG) console.log(`${this.id} toggled '${F_SEL}'`);
       } else if (typeof arg === 'string') {
-        toggle(this, F_SEL);
+        toggle(this, arg);
+        if (DBG) console.log(`${this.id} toggled '${arg}'`);
       } else {
         throw Error(`${this.id} flag must be [boolean] or [string] type, not [${typeof arg}]`);
       }
     });
-    if (DBG) console.log(`${this.id} toggled state`, this.selected);
   }
 }
 
