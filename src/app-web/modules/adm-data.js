@@ -25,6 +25,7 @@ let adm_db = {
   a_groups: [],
   a_models: [],
   a_criteria: [],
+  a_sentenceStarters: [],
   a_classroomResources: []
 }; // server database object by reference
 let adm_settings = {}; // local settings, state of the admin view (current displayed class/teacher)
@@ -120,6 +121,24 @@ ADMData.Load = () => {
       label: 'Layout',
       description: 'Does the layout make sense?',
       classroomId: 'cl02'
+    }
+  ];
+  // SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS
+  adm_db.a_sentenceStarters = [
+    {
+      id: 'ss01',
+      classroomId: 'cl01',
+      sentences: 'I noticed...\nI think...'
+    },
+    {
+      id: 'ss02',
+      classroomId: 'cl02',
+      sentences: 'We noticed...'
+    },
+    {
+      id: 'ss03',
+      classroomId: 'cl03',
+      sentences: 'We believe...'
     }
   ];
   // SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS
@@ -707,6 +726,37 @@ ADMData.UpdateCriteriaList = criteriaList => {
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// SENTENCE STARTERS
+///
+
+// Returns a single sentenceStarter object, if not found, undefined
+ADMData.GetSentenceStartersByClassroom = (classroomId = ADMData.GetSelectedClassroomId()) => {
+  const sentenceStarter = adm_db.a_sentenceStarters.filter(ss => ss.classroomId === classroomId);
+  let result;
+  if (Array.isArray(sentenceStarter)) {
+    result = sentenceStarter[0];
+  } else {
+    console.error(
+      PKG,
+      'GetSentenceSTarterByClassroom: Sentence starter for classroomId',
+      classroomId,
+      'not found!'
+    );
+  }
+  return result;
+};
+
+ADMData.UpdateSentenceStarter = sentenceStarter => {
+  const i = adm_db.a_sentenceStarters.findIndex(ss => ss.id === sentenceStarter.id);
+  if (i < 0) {
+    // Sentence starter not found, so it must be new.  Add it.
+    adm_db.a_sentenceStarters.push(sentenceStarter);
+    return;
+  }
+  adm_db.a_sentenceStarters.splice(i, 1, sentenceStarter);
+}
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// RESOURCES
 ///
 
@@ -740,24 +790,6 @@ ADMData.SetClassroomResource = (rsrcId, checked, classroomId) => {
     classroomResources.resources = classroomResources.resources.filter(rsrc => rsrc.id !== rsrcId);
   }
   UR.Publish('ADM_DATA_UPDATED');
-};
-
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// STICKIES
-///
-
-// Returns an empty sticky with the current student info
-ADMData.NewComment = () => {
-  const id = `co${new Date().getTime()}`;
-  const author = ADMData.GetSelectedStudentId();
-  return {
-    id,
-    author,
-    date: new Date(),
-    text: '',
-    criteriaId: '',
-    readBy: []
-  };
 };
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////

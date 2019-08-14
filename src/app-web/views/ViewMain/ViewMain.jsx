@@ -104,6 +104,7 @@ class ViewMain extends React.Component {
     UR.Sub('SHOW_RESOURCE', this.handleResourceClick);
     UR.Sub('SELECTION_CHANGED', this.handleSelectionChange);
     UR.Sub('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
+    UR.Sub('STICKY:UPDATED', this.DoADMDataUpdate); // Broadcast when a group is added.
     this.state = {
       studentName: '',
       studentGroup: '',

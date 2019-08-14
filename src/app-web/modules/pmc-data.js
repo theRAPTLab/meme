@@ -60,6 +60,7 @@ const PMCData = {};
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DBG = false;
+const PKG = 'pmc-data:';
 
 /// MODEL /////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1031,6 +1032,65 @@ PMCData.SetEvidenceLinkRating = (evId, rating) => {
     return;
   }
   throw Error(`no evidence link with evId '${evId}' exists`);
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** API.MODEL:
+ *  Given the passed parentId and parentType, returns the matching data object
+ *  e.g. a property, mechanism, or evidence link
+ *  @param {string} parentId - if defined, id string of the resource object
+ *  @param {string} parentType - if defined, type of the resource object
+ *                  'evidence', 'property', 'mechanism'
+ * 
+ *  This is primarily used by the Sticky Notes system to look up the parent
+ *  components that sticky notes belong to.
+ */
+PMCData.GetParent = (parentId, parentType) => {
+  let parent = {};
+  switch (parentType) {
+    case 'evidence':
+      parent = PMCData.EvidenceLinkByEvidenceId(parentId);
+      break;
+    default:
+      console.error(PKG, 'GetParent parentType', parentType, 'not found');
+  }
+  return parent;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// STICKIES
+///
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** API.MODEL:
+ *  Returns an empty sticky with the current student info
+ *  @param {string} author - author's studentId
+ *  @param {string} sentenceStarter - placeholder text for a new comment
+ * */
+PMCData.NewComment = (author, sentenceStarter) => {
+  const id = `co${new Date().getTime()}`;
+  return {
+    id,
+    author,
+    date: new Date(),
+    text: '',
+    placeholder: sentenceStarter,
+    criteriaId: '',
+    readBy: []
+  };
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** API.MODEL:
+ *  Given the passed parentId and parentType, returns the matching data object
+ *  e.g. a property, mechanism, or evidence link
+ *  @param {string} parentId - if defined, id string of the resource object
+ *  @param {string} parentType - if defined, type of the resource object
+ *                  'evidence', 'property', 'mechanism'
+ * 
+ *  This is primarily used by the Sticky Notes system to look up the parent
+ *  components that sticky notes belong to.
+ */
+PMCData.UpdateComments = (parentId, parentType, comments) => {
+  let parent = PMCData.GetParent(parentId, parentType);
+  parent.comments = comments;
+  UR.Publish('STICKY:UPDATED');
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:

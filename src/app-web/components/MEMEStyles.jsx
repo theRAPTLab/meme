@@ -1,12 +1,12 @@
-import { grey, indigo, orange, red, teal, yellow } from '@material-ui/core/colors';
+import { green, indigo, orange, red, teal, yellow } from '@material-ui/core/colors';
 import { registerMorphableType } from '@svgdotjs/svg.js/src/main';
 import { Hidden } from '@material-ui/core';
 
 const m_drawerWidth = 100;
 const m_edgeDialogWidth = 750;
 const m_primary = indigo[500];
-const m_stickynoteIconColor = `#ffc904`;
-const m_stickynoteColor = `#ffe25a`;
+const m_stickynoteIconColor = yellow[800]; // `#ffc904`;
+const m_stickynoteColor = yellow[400]; //`#ffe25a`;
 const m_systemTextColor = 'rgba(0,0,0,0.35)';
 const m_systemLabelTextColor = 'rgba(0,0,0,0.25)';
 const m_resourceListWidth = 300;
@@ -207,14 +207,14 @@ const styles = theme => {
       alignItems: 'center'
     },
     evidenceBodyRowCollapsed: {
-      height: '25px',
-      marginTop: '0.25em',
+      height: '35px',
+      marginBottom: '2px',
       alignItems: 'baseline'
     },
     evidenceBodyRatingCollapsed: {
       position: 'relative',
-      top: '-50px',
-      left: '170px'
+      top: '-30px',
+      left: '200px'
     },
     evidenceBodyRowCentered: {
       marginTop: '0.25em',
@@ -234,7 +234,6 @@ const styles = theme => {
       fontSize: '0.9em',
       lineHeight: '1em',
       height: '30px',
-      margin: '0 0 15px 10px',
       overflowY: 'auto'
     },
     evidenceLabelFieldExpanded: {
@@ -281,12 +280,13 @@ const styles = theme => {
       width: '290px',
       height: '70px',
       margin: '0 auto',
-      padding: '10px 0 10px 10px',
-      backgroundColor: yellow[50]
+      padding: '1px 0 10px 10px',
+      backgroundColor: teal[100]
     },
     evidenceLinkPaperExpanded: {
       height: 'auto',
-      backgroundColor: yellow[200]
+      padding: '10px 0 10px 10px',
+      backgroundColor: teal[200]
     },
     iconExpanded: {
       transform: 'rotate(180deg)'
@@ -368,7 +368,7 @@ const styles = theme => {
     },
     stickynoteCardRead: {
       color: m_systemTextColor,
-      backgroundColor: 'rgba(0,0,0,0.05)',
+      backgroundColor: m_stickynoteColor,
       margin: '5px',
       padding: '5px 10px',
       width: '325px'
@@ -379,13 +379,15 @@ const styles = theme => {
     stickynoteCardAuthor: {
       alignItems: 'baseline',
       flexGrow: '1',
-      color: m_systemTextColor
+      color: m_systemTextColor,
+      lineHeight: '1.1em',
+      marginRight: '1em'
     },
     stickynoteCardEditBtn: {
       padding: 0
     },
     stickynoteCardInput: {
-      backgroundColor: 'rgba(255,255,255,0.1)',
+      // See boilerplate/src/app-web/components/StickyNoteCard.jsx for local style overrides
       width: '100%',
       overflow: 'hidden' // hide scrollbar
     },
@@ -394,11 +396,13 @@ const styles = theme => {
       padding: '2px 4px'
     },
     stickynoteCardLabel: {
-      fontSize: '0.8em',
-      color: m_systemLabelTextColor
+      fontSize: '14px', // match Typograophy subitlte2
+      color: m_systemLabelTextColor,
+      display: 'inline-flex',
+      lineHeight: '1.1em'
     },
     stickynoteCardCriteria: {
-      fontSize: '0.8em',
+      fontSize: '14px', // match Typograophy subitlte2
       display: 'inline-flex'
     }
   };

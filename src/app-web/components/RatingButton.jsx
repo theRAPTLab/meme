@@ -54,7 +54,8 @@ class RatingButton extends React.Component {
 
   componentWillUnmount() {}
 
-  HandleClick(rating) {
+  HandleClick(rating, e) {
+    e.stopPropagation();
     this.props.UpdateRating(rating);
   }
 
@@ -65,7 +66,7 @@ class RatingButton extends React.Component {
     for (let i = 1; i <= max; i++) {
       let icon = (
         <Button
-          onClick={() => this.HandleClick(i)}
+          onClick={e => this.HandleClick(i, e)}
           size="small"
           className={isExpanded ? classes.ratingButtonLarge : classes.ratingButtonSmall}
           key={i}

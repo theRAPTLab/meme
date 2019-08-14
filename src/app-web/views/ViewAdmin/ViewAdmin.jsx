@@ -17,6 +17,7 @@ import UR from '../../../system/ursys';
 import TeacherSelector from './components/AdmTeacherSelector';
 import ClassroomsSelector from './components/AdmClassroomsSelector';
 import CriteriaView from './components/AdmCriteriaView';
+import SentenceStarters from './components/AdmSentenceStarters';
 import GroupsList from './components/AdmGroupsList';
 import ModelsList from './components/AdmModelsList';
 import ResourcesList from './components/AdmResourcesList';
@@ -86,6 +87,11 @@ class ViewAdmin extends React.Component {
           <Grid item xs={6}>
             <CriteriaView />
           </Grid>
+          <Grid item xs={6}>
+            <SentenceStarters />
+          </Grid>
+        </Grid>
+        <Grid container spacing={2}>
           <Grid item xs={12}>
             <ResourcesList />
           </Grid>

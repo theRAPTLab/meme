@@ -11,9 +11,9 @@ They are controlled components.
 /// LIBRARIES /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import React from 'react';
+import PropTypes from 'prop-types';
 import ClassNames from 'classnames';
 // Material UI Elements
-import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import Divider from '@material-ui/core/Divider';
 import Grid from '@material-ui/core/Grid';
@@ -22,7 +22,6 @@ import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 // Material UI Icons
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import ChatBubbleIcon from '@material-ui/icons/ChatBubble';
 // Material UI Theming
 import { withStyles } from '@material-ui/core/styles';
 
@@ -50,43 +49,45 @@ class EvidenceLink extends React.Component {
     this.state = {
       note: this.props.evlink.note,
       rating: this.props.evlink.rating,
-      comments: this.props.evlink.comments,
-      canBeEdited: false,
       isBeingEdited: false,
       isExpanded: false,
       listenForSourceSelection: false
     };
 
-    this.HandleDataUpdate = this.HandleDataUpdate.bind(this);
-    this.HandleRatingUpdate = this.HandleRatingUpdate.bind(this);
-    this.HandleCancelButtonClick = this.HandleCancelButtonClick.bind(this);
-    this.HandleDeleteButtonClick = this.HandleDeleteButtonClick.bind(this);
-    this.handleEditButtonClick = this.handleEditButtonClick.bind(this);
-    this.handleSaveButtonClick = this.handleSaveButtonClick.bind(this);
-    this.handleEvidenceLinkOpen = this.handleEvidenceLinkOpen.bind(this);
-    this.handleNoteChange = this.handleNoteChange.bind(this);
-    this.HandleSourceSelectClick = this.HandleSourceSelectClick.bind(this);
-    this.EnableSourceSelect = this.EnableSourceSelect.bind(this);
-    this.handleSelectionChange = this.handleSelectionChange.bind(this);
-    this.toggleExpanded = this.toggleExpanded.bind(this);
-    this.OnCommentClick = this.OnCommentClick.bind(this);
+    // Handle Focus
+    // create a ref to store the textInput DOM element
+    this.textInput = React.createRef();
 
-    UR.Sub('DATA_UPDATED', this.HandleDataUpdate);
-    UR.Sub('SHOW_EVIDENCE_LINK_SECONDARY', this.handleEvidenceLinkOpen);
-    UR.Sub('EVLINK:ENABLE_SOURCE_SELECT', this.EnableSourceSelect);
-    UR.Sub('SELECTION_CHANGED', this.handleSelectionChange);
+    this.DoDataUpdate = this.DoDataUpdate.bind(this);
+    this.DoRatingUpdate = this.DoRatingUpdate.bind(this);
+    this.OnCancelButtonClick = this.OnCancelButtonClick.bind(this);
+    this.OnDeleteButtonClick = this.OnDeleteButtonClick.bind(this);
+    this.OnEditButtonClick = this.OnEditButtonClick.bind(this);
+    this.OnSaveButtonClick = this.OnSaveButtonClick.bind(this);
+    this.DoEvidenceLinkOpen = this.DoEvidenceLinkOpen.bind(this);
+    this.OnScreenShotClick = this.OnScreenShotClick.bind(this)
+    this.OnNoteChange = this.OnNoteChange.bind(this);
+    this.OnSourceSelectClick = this.OnSourceSelectClick.bind(this);
+    this.DoEnableSourceSelect = this.DoEnableSourceSelect.bind(this);
+    this.DoSelectionChange = this.DoSelectionChange.bind(this);
+    this.DoToggleExpanded = this.DoToggleExpanded.bind(this);
+
+    UR.Sub('DATA_UPDATED', this.DoDataUpdate);
+    UR.Sub('SHOW_EVIDENCE_LINK_SECONDARY', this.DoEvidenceLinkOpen);
+    UR.Sub('EVLINK:ENABLE_SOURCE_SELECT', this.DoEnableSourceSelect);
+    UR.Sub('SELECTION_CHANGED', this.DoSelectionChange);
   }
 
   componentDidMount() {}
 
   componentWillUnmount() {
-    UR.Unsub('DATA_UPDATED', this.HandleDataUpdate);
-    UR.Unsub('SHOW_EVIDENCE_LINK_SECONDARY', this.handleEvidenceLinkOpen);
-    UR.Unsub('EVLINK:ENABLE_SOURCE_SELECT', this.EnableSourceSelect);
-    UR.Unsub('SELECTION_CHANGED', this.handleSelectionChange);
+    UR.Unsub('DATA_UPDATED', this.DoDataUpdate);
+    UR.Unsub('SHOW_EVIDENCE_LINK_SECONDARY', this.DoEvidenceLinkOpen);
+    UR.Unsub('EVLINK:ENABLE_SOURCE_SELECT', this.DoEnableSourceSelect);
+    UR.Unsub('SELECTION_CHANGED', this.DoSelectionChange);
   }
 
-  HandleDataUpdate() {
+  DoDataUpdate() {
     // The same EvidenceLink can be displayed in both the Resource Library
     // and a Resource View.  If one is updated, the other needs to update itself
     // via the DATA_UPDATED call because `note` is only set by props
@@ -96,8 +97,7 @@ class EvidenceLink extends React.Component {
     if (evlink) {
       this.setState({
         note: evlink.note,
-        rating: evlink.rating,
-        comments: evlink.comments
+        rating: evlink.rating
       });
     }
     // Don't throw an error here
@@ -113,27 +113,46 @@ class EvidenceLink extends React.Component {
    *
    * @param {integer} rating - number of stars selected
    */
-  HandleRatingUpdate(rating) {
+  DoRatingUpdate(rating) {
     DATA.SetEvidenceLinkRating(this.props.evlink.evId, rating);
   }
 
-  HandleCancelButtonClick() {
+  OnScreenShotClick(e) {
+    e.stopPropagation();
+    alert('Screenshot opening is not implemented yet!');
+  }
+
+  OnCancelButtonClick(e) {
+    e.stopPropagation();
     this.setState({
       isBeingEdited: false
     });
   }
 
-  HandleDeleteButtonClick() {
+  OnDeleteButtonClick() {
     DATA.PMC_DeleteEvidenceLink(this.props.evlink.evId);
   }
 
-  handleEditButtonClick() {
-    this.setState({
-      isBeingEdited: true
+  OnEditButtonClick(e) {
+    e.stopPropagation();
+    this.setState({ isBeingEdited: true }, () => {
+      this.FocusTextInput();
     });
   }
 
-  handleSaveButtonClick() {
+  FocusTextInput() {
+    // Explicitly focus the text input using the raw DOM API
+    // Note: we're accessing "current" to get the DOM node
+    // https://reactjs.org/docs/refs-and-the-dom.html#adding-a-ref-to-a-dom-element
+    // https://stackoverflow.com/questions/52222988/how-to-focus-a-material-ui-textfield-on-button-click/52223078
+    this.textInput.current.focus();
+    // Set cursor to end of text.
+    const pos = this.textInput.current.value.length;
+    this.textInput.current.setSelectionRange(pos, pos);
+  }
+
+  OnSaveButtonClick(e) {
+    e.stopPropagation();
     // FIXME May 1 Hack
     // How do we handle draftValue vs committedValue?
     this.setState({
@@ -141,7 +160,7 @@ class EvidenceLink extends React.Component {
     });
   }
 
-  handleEvidenceLinkOpen(data) {
+  DoEvidenceLinkOpen(data) {
     if (this.props.evlink.evId === data.evId) {
       if (DBG) console.log(PKG, 'Expanding', data.evId);
 
@@ -169,7 +188,7 @@ class EvidenceLink extends React.Component {
     }
   }
 
-  handleNoteChange(e) {
+  OnNoteChange(e) {
     if (DBG) console.log(PKG, 'Note Change:', e.target.value);
     this.setState({ note: e.target.value });
     DATA.SetEvidenceLinkNote(this.props.evlink.evId, e.target.value);
@@ -181,7 +200,7 @@ class EvidenceLink extends React.Component {
      user can see the components for selection) and opening up
      the evLink
   */
-  HandleSourceSelectClick(evId, rsrcId) {
+  OnSourceSelectClick(evId, rsrcId) {
     // Deselect the prop first, otherwise the deleted prop will remain selected
     DATA.VM_DeselectAll();
     UR.Publish('SELECTION_CHANGED');
@@ -196,14 +215,14 @@ class EvidenceLink extends React.Component {
     }
   }
 
-  EnableSourceSelect(data) {
+  DoEnableSourceSelect(data) {
     if (data.evId === this.props.evlink.evId) {
       this.setState({ listenForSourceSelection: true });
     }
   }
 
   // User has clicked on a different component/property/mechanism
-  handleSelectionChange() {
+  DoSelectionChange() {
     if (this.state.listenForSourceSelection) {
       let sourceId;
       // Assume mechs are harder to select so check for them first.
@@ -243,7 +262,7 @@ class EvidenceLink extends React.Component {
     }
   }
 
-  toggleExpanded() {
+  DoToggleExpanded() {
     if (DBG) console.log(PKG, 'evidence link clicked');
     if (this.state.isExpanded) {
       this.setState({
@@ -257,21 +276,10 @@ class EvidenceLink extends React.Component {
     }
   }
 
-  OnCommentClick(e) {
-    UR.Publish('STICKY:OPEN', {
-      comments: this.props.evlink.comments,
-      parent: this.props.evlink,
-      x: e.clientX,
-      y: e.clientY,
-      windowWidth: e.view.window.innerWidth, // not used
-      windowHeight: e.view.window.innerHeight // not used
-    });
-  }
-
   render() {
     // evidenceLinks is an array of arrays because there might be more than one?!?
     const { classes, evlink } = this.props;
-    const { evId, rsrcId, propId, mechId, comments } = evlink;
+    const { evId, rsrcId, propId, mechId } = evlink;
     const { note, rating, isBeingEdited, isExpanded, listenForSourceSelection } = this.state;
     if (evId === '') return '';
     let sourceLabel;
@@ -296,53 +304,28 @@ class EvidenceLink extends React.Component {
           classes.evidenceLinkPaper,
           isExpanded ? classes.evidenceLinkPaperExpanded : ''
         )}
+        onClick={this.DoToggleExpanded}
         key={`${rsrcId}`}
       >
-        <Button className={classes.evidenceExpandButton} onClick={this.toggleExpanded}>
+        <Button
+          className={classes.evidenceExpandButton}
+          onClick={this.DoToggleExpanded}
+          hidden={!isExpanded}
+        >
           <ExpandMoreIcon className={isExpanded ? classes.iconExpanded : ''} />
         </Button>
         {/* Title Bar */}
-        <Typography className={classes.evidenceWindowLabel}>EVIDENCE LINK</Typography>
+        <Typography className={classes.evidenceWindowLabel} hidden={!isExpanded}>
+          EVIDENCE LINK
+        </Typography>
         <Typography className={classes.evidencePrompt} hidden={!isExpanded}>
           How does this resource support this component / property / mechanism?
         </Typography>
         {/* Body */}
-        <Grid container className={classes.evidenceBody} spacing={8}>
+        <Grid container className={classes.evidenceBody} spacing={0}>
           {/* Source */}
-          <Grid item xs={isExpanded ? 12 : 3}>
-            <Grid
-              container
-              spacing={1}
-              className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed}
-            >
-              <Grid item xs>
-                <StickyNoteButton
-                  comments={this.props.evlink.comments}
-                  OnClick={this.OnCommentClick}
-                />
-              </Grid>
-              <Grid item xs={4} hidden={!isExpanded}>
-                <Typography variant="caption" align="right">
-                  SOURCE:
-                </Typography>
-              </Grid>
-              <Grid item xs>
-                <div className={classes.evidenceLinkAvatar}>
-                  <Button
-                    onClick={() => {
-                      this.HandleSourceSelectClick(evId, rsrcId);
-                    }}
-                    className={evidenceLinkSelectButtonClass}
-                    disabled={!isBeingEdited}
-                    size="small"
-                  >
-                    {sourceLabel}
-                  </Button>
-                </div>
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item xs={isExpanded ? 12 : 9}>
+
+          <Grid item xs={12}>
             <Grid
               container
               spacing={1}
@@ -353,6 +336,7 @@ class EvidenceLink extends React.Component {
                   DESCRIPTION:
                 </Typography>
               </Grid>
+
               <Grid item xs>
                 {isExpanded ? (
                   <TextField
@@ -364,17 +348,54 @@ class EvidenceLink extends React.Component {
                     placeholder="Click to add label..."
                     autoFocus
                     multiline
-                    onChange={this.handleNoteChange}
+                    onChange={this.OnNoteChange}
+                    onClick={e => {
+                      e.stopPropagation();
+                    }}
                     InputProps={{
                       readOnly: !isBeingEdited
                     }}
+                    inputRef={this.textInput}
                   />
                 ) : (
                   <div className={classes.evidenceLabelField}>{note}</div>
                 )}
               </Grid>
+
+              <Grid item xs={3}>
+                <StickyNoteButton parentId={evId} parentType="evidence" />
+              </Grid>
             </Grid>
           </Grid>
+
+          <Grid item xs={12}>
+            <Grid
+              container
+              spacing={1}
+              className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed}
+            >
+              <Grid item xs={4} hidden={!isExpanded}>
+                <Typography variant="caption" align="right">
+                  SOURCE:
+                </Typography>
+              </Grid>
+              <Grid item xs>
+                <div className={classes.evidenceLinkAvatar}>
+                  <Button
+                    onClick={() => {
+                      this.OnSourceSelectClick(evId, rsrcId);
+                    }}
+                    className={evidenceLinkSelectButtonClass}
+                    disabled={!isBeingEdited}
+                    size="small"
+                  >
+                    {sourceLabel}
+                  </Button>
+                </div>
+              </Grid>
+            </Grid>
+          </Grid>
+
           <Grid item xs={isExpanded ? 12 : 3}>
             <Grid
               container
@@ -391,7 +412,7 @@ class EvidenceLink extends React.Component {
                   rating={rating}
                   isExpanded={isExpanded}
                   ratingLabel=""
-                  UpdateRating={this.HandleRatingUpdate}
+                  UpdateRating={this.DoRatingUpdate}
                 />
               </Grid>
             </Grid>
@@ -403,7 +424,7 @@ class EvidenceLink extends React.Component {
               </Typography>
             </Grid>
             <Grid item xs>
-              <Button className={classes.evidenceScreenshotButton}>
+              <Button className={classes.evidenceScreenshotButton} onClick={this.OnScreenShotClick}>
                 <img
                   src="../static/screenshot_sim.png"
                   alt="screenshot"
@@ -413,26 +434,26 @@ class EvidenceLink extends React.Component {
             </Grid>
           </Grid>
         </Grid>
-        <Divider />
+        <Divider style={{ margin: '10px' }} hidden={!isExpanded} />
         <div style={{ display: 'flex', margin: '10px 10px 5px 0' }}>
           <Button
             hidden={!isExpanded || isBeingEdited}
             size="small"
-            onClick={this.HandleDeleteButtonClick}
+            onClick={this.OnDeleteButtonClick}
           >
             delete
           </Button>
           <Button
             hidden={!isExpanded || !isBeingEdited}
             size="small"
-            onClick={this.HandleCancelButtonClick}
+            onClick={this.OnCancelButtonClick}
           >
             cancel
           </Button>
           <div style={{ flexGrow: '1' }} />
           <Button
             variant="contained"
-            onClick={this.handleEditButtonClick}
+            onClick={this.OnEditButtonClick}
             hidden={!isExpanded || isBeingEdited}
             size="small"
           >
@@ -440,7 +461,7 @@ class EvidenceLink extends React.Component {
           </Button>
           <Button
             variant="contained"
-            onClick={this.handleSaveButtonClick}
+            onClick={this.OnSaveButtonClick}
             hidden={!isExpanded || !isBeingEdited}
             size="small"
           >
@@ -452,6 +473,23 @@ class EvidenceLink extends React.Component {
   }
 }
 
+EvidenceLink.propTypes = {
+  // eslint-disable-next-line react/forbid-prop-types
+  classes: PropTypes.object,
+  // eslint-disable-next-line react/forbid-prop-types
+  evlink: PropTypes.object
+};
+
+EvidenceLink.defaultProps = {
+  classes: {},
+  evlink: {
+    evId: '',
+    propId: '',
+    mechId: '',
+    rsrcId: '',
+    note: ''
+  }
+};
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 export default withStyles(MEMEStyles)(EvidenceLink);
