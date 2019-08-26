@@ -3,6 +3,7 @@ import { cssinfo, cssblue, cssred, cssmark } from './console-styles';
 import DEFAULTS from './defaults';
 import { AddDragDropHandlers } from './class-vprop-dragdrop';
 import { VisualState } from './classes-visual';
+import VBadge from './class-vbadge';
 
 const { VPROP, PAD, COLOR } = DEFAULTS;
 
@@ -36,7 +37,7 @@ const DBG = {
 class VProp {
   /** create a VProp
    * @param {number} propId
-   * @param {SVGJSElement} svg root element
+   * @param {SVGjsElement} svgRoot root element
    */
   constructor(propId, svgRoot) {
     if (typeof propId !== 'string') throw Error(`require string id`);
@@ -69,8 +70,9 @@ class VProp {
     this.dragStartBox = { x: 0, y: 0 };
     this.dragMoveBox = { x: 0, y: 0 };
     this.dragEndBox = { x: 0, y: 0 };
-    // hacked vbadge support
-    this.badgesCount = 0; // number of badges attached to this prop
+
+    // add VBadge group
+    this.vBadge = VBadge.New(this);
 
     // add VProp extensions
     VProp.AddDragDropHandlers(this);
@@ -162,6 +164,10 @@ class VProp {
     }
     // set the background size
     this.visBG.size(this.width, this.height);
+
+    // update vBadge size
+    this.vBadge.SetDimensionsFromParent(this);
+
     return { id: this.id, w: this.width, h: this.height };
   }
 
@@ -313,6 +319,8 @@ class VProp {
     this.visBG.stroke(stroke);
     // draw label
     this.gDataName.transform({ translateX: m_pad, translateY: m_pad / 2 });
+    // draw badge
+    this.vBadge.Draw(this);
     // move
     if (point) this.gRoot.move(point.x, point.y);
   }
@@ -321,6 +329,7 @@ class VProp {
    * Remove  gRoot svg element and all its children
    */
   Release() {
+    this.vBadge.Release();
     return this.gRoot.remove();
   }
 
@@ -352,6 +361,8 @@ class VProp {
 
     // Update the text in case it changed
     this.gDataName.text(this.data.name.toUpperCase());
+
+    this.vBadge.Update(this);
 
     // preserve layout
     const x = this.gRoot.x();

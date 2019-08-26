@@ -67,8 +67,9 @@ const PKG = 'pmc-data:';
 let m_graph; // dagresjs/graphlib instance
 let a_props = []; // all properties (strings)
 let a_mechs = []; // all mechanisms (pathId strings)
+let a_commentThreads = []; // all prop and mech comments
 //
-let a_components = []; // top-level props with no parents
+let a_components = []; // top-level props with no parents, derived
 let h_children = new Map(); // children hash of each prop by id
 let h_outedges = new Map(); // outedges hash of each prop by id
 //
@@ -92,6 +93,17 @@ let a_evidence = []; /*/ An array of prop-related evidence links.
 
                           a_evidence.push({ eid: '1', propId: 'a', rsrcId: '1', note: 'fish need food' });
 
+                      /*/
+let h_evidenceByEvId = new Map(); /*/
+                          Hash table of an array of evidence links for
+                          look up by evId.
+
+                          Used by class-vprop when displaying
+                          the list of evidenceLink badges for each prop.
+
+                          {evId1: {evId1, propId, rsrcId, note},
+                           evId2: {evId, propId, rsrcId, note},
+                          ...}
                       /*/
 let h_evidenceByProp = new Map(); /*/
                           Hash table of an array of evidence links related
@@ -180,16 +192,24 @@ PMCData.LoadModel = (model, resources) => {
   // Load Evidence Links
   m.data.evidence = m.data.evidence || [];
   m.data.evidence.forEach(ev => {
-    let { evId, propId, mechId, rsrcId, note, comments } = ev;
+    let { evId, propId, mechId, rsrcId, number, rating, note, comments } = ev;
     comments = comments || []; // allow empty comments
     a_evidence.push({
       evId,
       propId,
       mechId,
       rsrcId,
+      number,
+      rating,
       note,
       comments
     });
+  });
+
+  // Comments
+  m.data.commentThreads = m.data.commentThreads || [];
+  m.data.commentThreads.forEach(cm => {
+    a_commentThreads.push(cm);
   });
 
   a_resources = resources || [];
@@ -239,6 +259,14 @@ PMCData.BuildModel = () => {
       arr.push(key.w);
     });
     h_outedges.set(n, arr);
+  });
+
+  /*/
+   *  Update h_evidenceByEvId table
+  /*/
+  h_evidenceByEvId = new Map();
+  a_evidence.forEach(ev => {
+    h_evidenceByEvId.set(ev.evId, ev);
   });
 
   /*/
@@ -576,142 +604,11 @@ PMCData.VM_VMechSet = (vmech, evo, ew) => {
   map_vmechs.set(pathId, vmech);
 };
 
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns an object containing added, updated, removed string arrays
- *  containing evIds.
- */
-PMCData.VM_GetVBadgeChanges = () => {
-  const added = [];
-  const updated = [];
-  const removed = [];
-  // removed
-  map_vbadges.forEach((val_badge, key_evId) => {
-    // if both propId and mechId are undefined, then this evidenceLink
-    // is not linking to any prop or mech, so delete the badge.
-    if (val_badge.propId === undefined && val_badge.mechId === undefined) {
-      removed.push(key_evId);
-      if (DBG) console.log('removed', key_evId);
-    }
-  });
-  // find what matches and what is new by pathid
-  a_evidence.forEach(evLink => {
-    const evId = evLink.evId;
-    if (map_vbadges.has(evId)) {
-      updated.push(evId);
-      if (DBG) console.log('updated', evId);
-    } else {
-      added.push(evId);
-      if (DBG) console.log('added', evId);
-    }
-  });
-  return { added, removed, updated };
-};
-
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns an object containing added, updated, removed string arrays
- *  containing evIds.
- */
-PMCData.VM_GetVBadgeChangesRefactor = () => {
-  /*\
-    is there something wrong with this detecting code?
-
-    * map_vbadges maps evId to vbadge
-    * a_evidence contains { evId, propId: undefined, rsrcId, note }
-    * resources and pmc elements are linked by evidence
-    * any change in a piece of evidence potentially changes the vbadge
-    * vbadges are associated with a vprop currently, holding a reference to its id
-
-    vbadge update: this is a rating change or a vpropid change
-    evidence deleted: vbadge should be removed
-    evidence added: vbadge should be added
-  \*/
-  const added = [];
-  const updated = [];
-  const removed = [];
-  // removed
-  map_vbadges.forEach((val_badge, key_evId) => {
-    // if both propId and mechId are undefined, then this evidenceLink
-    // is not linking to any prop or mech, so delete the badge.
-    if (val_badge.evlink.propId === undefined && val_badge.evlink.mechId === undefined) {
-      removed.push(key_evId);
-      if (DBG) console.log('removed', key_evId);
-    }
-  });
-  // find what matches and what is new by pathid
-  a_evidence.forEach(evLink => {
-    const evId = evLink.evId;
-    if (map_vbadges.has(evId)) {
-      updated.push(evId);
-      if (DBG) console.log('updated', evId);
-    } else {
-      added.push(evId);
-      if (DBG) console.log('added', evId);
-    }
-  });
-  return { added, removed, updated };
-};
-
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns the VBadge corresponding to evId if it exists
- *  @param {string} evId - the property with evId to retrieve
- *  @return {VBadge} - VBadge instance, if it exists
- */
-PMCData.VM_VBadge = evId => {
-  return map_vbadges.get(evId);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  deletes the VBadge corresponding to evId if it exists
- *  @param {string} evId - the property with evId to delete
- */
-PMCData.VM_VBadgeDelete = evId => {
-  map_vbadges.delete(evId);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  Marks the VBadge for deletion with the next update loop.
- *  We mark it by setting the propId and mechId to undefined,
- *  since that is the link from the EvidenceLink object to the
- *  prop/mech object.  In VM_GetVBadgeChanges, if it finds
- *  both propId and mechId are undefined, it marks the badge
- *  for removal.
- *  The actual deletion happens with class_vprop / class_vmech
- *  @param {string} evId - the property/mech with evId to delete
- */
-PMCData.VM_MarkBadgeForDeletion = evId => {
-  let badge = PMCData.VM_VBadge(evId);
-  if (badge) {
-    badge.propId = undefined;
-    badge.mechId = undefined;
-  }
-};
-
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  sets the vobj (either a vprop or a vmech) corresponding to the designated
- *  evidenceLink id
- *
- *  Unlike vmech and vprop, evidence badges are drawn directly on the source
- *
- *  map_vbadges
- *      key: evId
- *      value: vbadge
- *
- *  @param {string} evId - the property with evId to add to viewmodel
- *  @param {VBadge} vbadge - the VBadge instance
- */
-PMCData.VM_VBadgeSet = (evId, vbadge) => {
-  map_vbadges.set(evId, vbadge);
-};
-
 /// SELECTION MANAGER TEMPORARY HOME //////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function u_DumpSelection(prompt) {
   if (prompt) console.log(prompt);
-  console.table(PMCData.VM_SelectedProps());
+  console.table(PMCData.VM_SelectedPropsIds());
 }
 /** API.VIEWMODEL:
  * add the vprop to the selection set. The vprop will be
@@ -887,7 +784,7 @@ PMCData.VM_ToggleMech = vmech => {
  selection is
  @returns {string[]} propIds - array of string ids of properties
  */
-PMCData.VM_SelectedProps = () => {
+PMCData.VM_SelectedPropsIds = () => {
   return Array.from(selected_vprops.values());
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -966,9 +863,40 @@ PMCData.PMC_MechDelete = mechId => {
 PMCData.PMC_AddEvidenceLink = (rsrcId, note = '') => {
   // HACK!  FIXME!  Need to properly generate a unique ID.
   let evId = `ev${Math.trunc(Math.random() * 10000)}`;
-  a_evidence.push({ evId, propId: undefined, rsrcId, note });
+
+  // Construct number, e.g. "2c"
+  // 1. Ordinal value of resource in resource library, e.g. "2"
+  const prefix = PMCData.PMC_GetResourceIndex(rsrcId);
+  // 2. Ordinal value of evlink in evlink list, e.g. "c"
+  const evlinks = PMCData.GetEvLinksByResourceId(rsrcId);
+  const numberOfEvLinks = evlinks.length;
+  const count = String.fromCharCode(97 + numberOfEvLinks); // lower case for smaller footprint
+
+  const number = String(prefix) + count;
+  a_evidence.push({ evId, propId: undefined, rsrcId, number, note });
   PMCData.BuildModel();
   return evId;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** API.MODEL:
+ *  Returns the 1-based index of the resource in the resource list.
+ *  This is used for numbering evidence links, e.g. "2a"
+ */
+PMCData.PMC_GetResourceIndex = rsrcId => {
+  const index = a_resources.findIndex(r => r.rsrcId === rsrcId);
+  if (index === -1) console.error(PKG, 'PMC_GetResourceIndex could not find', rsrcId);
+  return index + 1;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** API.MODEL:
+ * @returns {string} EvId of the duplicated EvidenceLink object
+ */
+PMCData.PMC_DuplicateEvidenceLink = evId => {
+  // First get the old link
+  const oldlink = PMCData.EvidenceLinkByEvidenceId(evId);
+  // Create new evlink
+  let newEvId = PMCData.PMC_AddEvidenceLink(oldlink.rsrcId, oldlink.note);
+  return newEvId;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_DeleteEvidenceLink = evId => {
@@ -988,6 +916,7 @@ PMCData.PMC_DeleteEvidenceLink = evId => {
  *  Given the passed propid (prop data object), returns evidence linked to the prop object.
  *  e.g. { evidenceId: '1', note: 'fish food fish food' }
  *  @param {string|undefined} nodeId - if defined, nodeId string of the prop (aka `propId`)
+ *  @return [evlinks] evidenceLink objects
  */
 PMCData.PropEvidence = propid => {
   return h_evidenceByProp.get(propid);
@@ -999,10 +928,7 @@ PMCData.PropEvidence = propid => {
  *  @param {string|undefined} rsrcId - if defined, id string of the resource object
  */
 PMCData.EvidenceLinkByEvidenceId = evId => {
-  const evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
-  return evlink;
+  return h_evidenceByEvId.get(evId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Set propId to `undefined` to unlink
@@ -1043,6 +969,20 @@ PMCData.SetEvidenceLinkRating = (evId, rating) => {
   }
   throw Error(`no evidence link with evId '${evId}' exists`);
 };
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// STICKIES //////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** API.VIEWMODEL:
+ * @param {string} id - id of Property or Mechanism
+ * @return [array] Array of comment objects, or [] if none defined.
+ */
+PMCData.GetComments = id => {
+  const result = a_commentThreads.find(c => {
+    return c.id === id;
+  });
+  return result ? result.comments : [];
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
  *  Given the passed parentId and parentType, returns the matching data object
@@ -1066,9 +1006,6 @@ PMCData.GetParent = (parentId, parentType) => {
   return parent;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// STICKIES
-///
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
  *  Returns an empty sticky with the current student info
  *  @param {string} author - author's studentId
@@ -1088,19 +1025,42 @@ PMCData.NewComment = (author, sentenceStarter) => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
- *  Given the passed parentId and parentType, returns the matching data object
- *  e.g. a property, mechanism, or evidence link
+ *  Updates the respective data structure (a_commentThreads or a_evidence) with the
+ *  updated comment text.
  *  @param {string} parentId - if defined, id string of the resource object
  *  @param {string} parentType - if defined, type of the resource object
  *                  'evidence', 'property', 'mechanism'
+ *  @param [object] comments - Array of comment objects
  *
- *  This is primarily used by the Sticky Notes system to look up the parent
- *  components that sticky notes belong to.
+ *  This is primarily used by the Sticky Notes system to save chagnes to
+ *  comment text.
  */
 PMCData.UpdateComments = (parentId, parentType, comments) => {
-  let parent = PMCData.GetParent(parentId, parentType);
-  parent.comments = comments;
-  UR.Publish('STICKY:UPDATED');
+  let parent;
+  let index;
+  let comment;
+  switch (parentType) {
+    case 'evidence':
+      parent = PMCData.GetParent(parentId, parentType);
+      parent.comments = comments;
+      break;
+    case 'propmech':
+      // Update existing comment
+      index = a_commentThreads.findIndex(c => {
+        return c.id === parentId;
+      });
+      if (index > -1) {
+        comment = a_commentThreads[index];
+      } else {
+        comment = { id: parentId }; // new comment
+      }
+      comment.comments = comments;
+      a_commentThreads.splice(index, 1, comment);
+      break;
+    default:
+      console.error(PKG, 'UpdateComments could not match parent type', parentType);
+  }
+  UR.Publish('DATA_UPDATED');
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
@@ -1114,8 +1074,9 @@ PMCData.GetPropIdsByResourceId = rsrcId => {
 /** API.MODEL:
  *  Given the passed resource ID, returns array of prop ids linked to the resource object.
  *  @param {string|undefined} rsrcId - if defined, id string of the resource object
+ *  @return {array} Array of propery ids
  */
-PMCData.GetEvLinkByResourceId = rsrcId => {
+PMCData.GetEvLinksByResourceId = rsrcId => {
   return h_evlinkByResource.get(rsrcId);
 };
 
@@ -1173,9 +1134,6 @@ window.may1.OpenSticky = () => {
   });
 };
 
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- */
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.VM = { map_vprops, map_vmechs };

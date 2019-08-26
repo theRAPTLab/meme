@@ -1,13 +1,13 @@
+import { yellow, green, red } from '@material-ui/core/colors';
 import SVGJS from '@svgdotjs/svg.js/src/svg';
 import DATA from './pmc-data';
 import VProp from './class-vprop';
-import VBadge from './class-vbadge';
 import VMech from './class-vmech';
 import { cssinfo, cssalert, csstab, cssdraw } from './console-styles';
 import UR from '../../system/ursys';
 import DEFAULTS from './defaults';
 
-const { SVGDEFS, COLOR } = DEFAULTS;
+const { SVGDEFS, SVGSYMBOLS, COLOR } = DEFAULTS;
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -180,7 +180,67 @@ PMCView.DefineDefs = svg => {
  * @param {SVGJSinstance} svg - SVGJS instance to add DEFs to
  */
 PMCView.DefineSymbols = svg => {
-  console.log('no symbols to add to', svg);
+  const chatColor = yellow[800];
+  SVGSYMBOLS.set(
+    'chatIcon',
+    (() => {
+      const icon = svg.symbol();
+      // from https://material.io/resources/icons/?icon=chat&style=baseline
+      icon
+        .path(
+          'M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z'
+        )
+        .fill(chatColor);
+      icon.path('M0 0h24v24H0z').fill('none');
+      return icon;
+    })()
+  );
+  SVGSYMBOLS.set(
+    'chatBubble',
+    (() => {
+      const icon = svg.symbol();
+      // from https://material.io/resources/icons/static/icons/baseline-chat_bubble-24px.svg
+      icon
+        .path('M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z')
+        .fill(chatColor);
+      icon.path('M0 0h24v24H0z').fill('none');
+      return icon;
+    })()
+  );
+  SVGSYMBOLS.set(
+    'chatBubbleOutline',
+    (() => {
+      const icon = svg.symbol();
+      // from https://material.io/resources/icons/static/icons/baseline-chat_bubble_outline-24px.svg
+      icon.path('M0 0h24v24H0V0z').fill('none');
+      icon
+        .path(
+          'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z'
+        )
+        .fill(chatColor);
+      return icon;
+    })()
+  );
+  SVGSYMBOLS.set(
+    'ratingsPositive',
+    (() => {
+      const icon = svg.symbol();
+      // from https://fonts.gstatic.com/s/i/materialicons/add/v1/24px.svg
+      icon.path('M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z').fill(green[600]);
+      icon.path('M0 0h24v24H0z').fill('none');
+      return icon;
+    })()
+  );
+  SVGSYMBOLS.set(
+    'ratingsNegative',
+    (() => {
+      const icon = svg.symbol();
+      // from https://fonts.gstatic.com/s/i/materialicons/add/v1/24px.svg
+      icon.path('M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z').fill(red[600]);
+      icon.path('M0 0h24v24H0z').fill('none');
+      return icon;
+    })()
+  );
 };
 
 /// LIFECYCLE /////////////////////////////////////////////////////////////////
@@ -237,30 +297,6 @@ PMCView.SyncMechsFromGraphData = () => {
     if (removed.length) console.log(`%c:Removing ${removed.length} dead edgeObjs`, csstab);
     if (added.length) console.log(`%c:Adding ${added.length} new edgeObjs`, csstab);
     if (updated.length) console.log(`%c:Updating ${updated.length} edgeObjs`, csstab);
-  }
-  // if (DBG) console.groupEnd();
-};
-/**
- * LIFECYCLE: Syncs PMC property changes from model to the
- * viewmodel. In other words, the pure data (model) is processed and the data
- * structures that are used to *display* the data (viewmodel) is updated.
- */
-PMCView.SyncBadgesFromEvLinkData = () => {
-  // if (DBG) console.groupCollapsed(`%c:SyncBadgesFromEvLinkData()`, cssinfo);
-  const { added, removed, updated } = DATA.VM_GetVBadgeChangesRefactor();
-  removed.forEach(id => {
-    VBadge.Release(id);
-  });
-  added.forEach(id => {
-    VBadge.New(id, m_svgroot); // returns vbadge but not using
-  });
-  updated.forEach(id => {
-    VBadge.Update(id);
-  });
-  if (DBG) {
-    if (removed.length) console.log(`%c:Removing ${removed.length} dead badges`, csstab);
-    if (added.length) console.log(`%c:Adding ${added.length} new badges`, csstab);
-    if (updated.length) console.log(`%c:Updating ${updated.length} badges`, csstab);
   }
   // if (DBG) console.groupEnd();
 };

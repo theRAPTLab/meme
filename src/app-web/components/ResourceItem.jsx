@@ -5,19 +5,16 @@
 /// LIBRARIES /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import React from 'react';
+import PropTypes from 'prop-types';
 import ClassNames from 'classnames';
 // Material UI Elements
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import Chip from '@material-ui/core/Chip';
-import IconButton from '@material-ui/core/IconButton';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemAvatar from '@material-ui/core/ListItemAvatar';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
-import Paper from '@material-ui/core/Paper';
-import TextField from '@material-ui/core/TextField';
 import DescriptionIcon from '@material-ui/icons/Description';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ImageIcon from '@material-ui/icons/Image';
@@ -43,32 +40,33 @@ class ResourceItem extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      isExpanded: false
+      isExpanded: true
     };
 
-    this.handleEvidenceLinkOpen = this.handleEvidenceLinkOpen.bind(this);
-    this.handleDataUpdate = this.handleDataUpdate.bind(this);
-    this.handleResourceClick = this.handleResourceClick.bind(this);
-    this.handleCollapseAll = this.handleCollapseAll.bind(this);
-    this.toggleExpanded = this.toggleExpanded.bind(this);
+    this.DoToggleExpanded = this.DoToggleExpanded.bind(this);
+    this.DoEvidenceLinkOpen = this.DoEvidenceLinkOpen.bind(this);
+    this.DoDataUpdate = this.DoDataUpdate.bind(this);
+    this.OnResourceClick = this.OnResourceClick.bind(this);
+    this.OnCreateEvidence = this.OnCreateEvidence.bind(this);
+    this.DoCollapseAll = this.DoCollapseAll.bind(this);
 
-    UR.Sub('SHOW_EVIDENCE_LINK', this.handleEvidenceLinkOpen);
-    UR.Sub('DATA_UPDATED', this.handleDataUpdate);
-    UR.Sub('RESOURCES:COLLAPSE_ALL', this.handleCollapseAll);
+    UR.Sub('SHOW_EVIDENCE_LINK', this.DoEvidenceLinkOpen);
+    UR.Sub('DATA_UPDATED', this.DoDataUpdate);
+    UR.Sub('RESOURCES:COLLAPSE_ALL', this.DoCollapseAll);
     // FIXME: Resource is getting closed before selection, force it open again
-    UR.Sub('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.handleEvidenceLinkOpen);
+    UR.Sub('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.DoEvidenceLinkOpen);
   }
 
   componentDidMount() { }
 
   componentWillUnmount() {
-    UR.Unsub('SHOW_EVIDENCE_LINK', this.handleEvidenceLinkOpen);
-    UR.Unsub('DATA_UPDATED', this.handleDataUpdate);
-    UR.Unsub('RESOURCES:COLLAPSE_ALL', this.handleCollapseAll);
-    UR.Unsub('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.handleEvidenceLinkOpen);
+    UR.Unsub('SHOW_EVIDENCE_LINK', this.DoEvidenceLinkOpen);
+    UR.Unsub('DATA_UPDATED', this.DoDataUpdate);
+    UR.Unsub('RESOURCES:COLLAPSE_ALL', this.DoCollapseAll);
+    UR.Unsub('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.DoEvidenceLinkOpen);
   }
 
-  toggleExpanded() {
+  DoToggleExpanded() {
     if (DBG) console.log(PKG, 'expansion clicked');
     this.setState(prevState => {
       return {
@@ -77,11 +75,9 @@ class ResourceItem extends React.Component {
     });
   }
 
-  handleDataUpdate() {
-    // Reload
-  }
+  DoDataUpdate() {}
 
-  handleEvidenceLinkOpen(data) {
+  DoEvidenceLinkOpen(data) {
     if (this.props.resource.rsrcId === data.rsrcId) {
       if (DBG) console.log(PKG, 'OPENING Resource', data.rsrcId, ' data.evId is', data);
       this.setState(
@@ -96,12 +92,18 @@ class ResourceItem extends React.Component {
     }
   }
 
-  handleResourceClick(rsrcId) {
+  OnResourceClick(rsrcId) {
     if (DBG) console.log(PKG, 'Resource clicked', rsrcId);
     UR.Publish('SHOW_RESOURCE', { rsrcId });
   }
 
-  handleCollapseAll() {
+  OnCreateEvidence(rsrcId) {
+    if (DBG) console.log(PKG, 'create new evidence:', rsrcId);
+    let evId = DATA.PMC_AddEvidenceLink(rsrcId);
+    UR.Publish('SHOW_EVIDENCE_LINK', { evId, rsrcId });
+  }
+
+  DoCollapseAll() {
     // FIXME: Why is `this` undefined?!?
     if (this) {
       this.setState({ isExpanded: false });
@@ -123,11 +125,7 @@ class ResourceItem extends React.Component {
     }
     return (
       <div>
-        <ListItem
-          button
-          key={resource.id}
-          onClick={() => this.handleResourceClick(resource.rsrcId)}
-        >
+        <ListItem button key={resource.id} onClick={() => this.OnResourceClick(resource.rsrcId)}>
           <ListItemAvatar>
             <Avatar className={classes.resourceViewAvatar}>{resource.referenceLabel}</Avatar>
           </ListItemAvatar>
@@ -142,16 +140,47 @@ class ResourceItem extends React.Component {
           <ListItemSecondaryAction>
             {resource.type === 'simulation' ? <ImageIcon /> : <DescriptionIcon />}
             {evBadge}
-            <Button className={classes.resourceExpandButton} onClick={this.toggleExpanded}>
+            <Button className={classes.resourceExpandButton} onClick={this.DoToggleExpanded}>
               <ExpandMoreIcon className={isExpanded ? classes.iconExpanded : ''} />
             </Button>
           </ListItemSecondaryAction>
         </ListItem>
-        {isExpanded ? <EvidenceList rsrcId={resource.rsrcId} key={`${resource.rsrcId}ev`} /> : ''}
+        {isExpanded ? (
+          <div className={classes.resourceViewEvList}>
+            <EvidenceList rsrcId={resource.rsrcId} key={`${resource.rsrcId}ev`} />
+            <Button
+              size="small"
+              color="primary"
+              onClick={() => this.OnCreateEvidence(resource.rsrcId)}
+            >
+              Create Evidence
+            </Button>
+          </div>
+        ) : ''}
       </div>
     );
   }
 }
+
+ResourceItem.propTypes = {
+  // eslint-disable-next-line react/forbid-prop-types
+  classes: PropTypes.object,
+  // eslint-disable-next-line react/forbid-prop-types
+  resource: PropTypes.object
+};
+
+ResourceItem.defaultProps = {
+  classes: {},
+  resource: {
+    rsrcId: '',
+    referenceLabel: '',
+    label: '',
+    notes: '',
+    type: '',
+    url: '',
+    links: 0
+  }
+};
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

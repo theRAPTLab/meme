@@ -241,65 +241,44 @@ ADMData.Load = () => {
   ];
 
   // HACK IN TEMPORARY DATA
+  /*\ 
+
+    stickynotes "hold" the comments for a particular PMC or Evidence object
+    annotations are the academic terminology for talking about some model element (?)
+    stickynotes are a form of annotation
+    * StickyNoteButtons
+    * StickyNote
+    model connections are an assertion or hypothesis
+    evidence links are a supporting assertion or hypothesis
+
+    properties: [
+      { 
+        id, name, parent <optional>,
+        comments: [ commentObjects ]
+      }
+    ]
+    mechanisms: [
+      {
+        source,target,name},
+        comments: [ commentObjects ]
+      }
+    ]
+    evidence: [
+      { 
+        evId, propId, mechId, rsrcId, number, note,
+        comments: [ commentObjects ]
+      }
+    ]
+    def commentObject = { id, author, date, text, criteriaId, readBy }
+
+  \*/
+
   let model = ADMData.GetModelById('mo01');
   model.data = {
     // components is a 'component' or a 'property' (if it has a parent)
     properties: [
-      {
-        id: 'tank',
-        name: 'tank',
-        comments: [
-          {
-            id: 0,
-            time: 0,
-            author: 'Bob',
-            date: new Date(),
-            text: 'I like this',
-            criteriaId: 'cr01',
-            readBy: ['Bob', 'Bill']
-          },
-          {
-            id: 1,
-            time: 10,
-            author: 'Bill',
-            date: new Date(),
-            text: 'I DONT like this',
-            criteriaId: 'cr02',
-            readBy: []
-          },
-          {
-            id: 2,
-            time: 11,
-            author: 'Mary',
-            date: new Date(),
-            text: 'This is not mine!',
-            criteriaId: 'cr02',
-            readBy: []
-          }
-        ]
-      },
-      {
-        id: 'fish',
-        name: 'fish',
-        comments: [
-          {
-            id: 0,
-            author: 'Bessie',
-            date: new Date(),
-            text: 'What is this',
-            criteriaId: 'cr01',
-            readBy: ['Bob', 'Bill']
-          },
-          {
-            id: 1,
-            author: 'Bill',
-            date: new Date(),
-            text: 'I DONT like this',
-            criteriaId: 'cr02',
-            readBy: []
-          }
-        ]
-      },
+      { id: 'tank', name: 'tank' },
+      { id: 'fish', name: 'fish' },
       { id: 'food', name: 'food' },
       { id: 'ammonia', name: 'Ammonia' },
       { id: 'clean-water', name: 'clean water', parent: 'tank' },
@@ -317,7 +296,9 @@ ADMData.Load = () => {
         propId: 'fish',
         mechId: undefined,
         rsrcId: 'rs1',
-        note: 'fish need food',
+        number: '1a',
+        rating: 3,
+        note: 'ghoti ghoti gothi need food',
         comments: [
           {
             id: 0,
@@ -334,11 +315,180 @@ ADMData.Load = () => {
             text: 'I DONT like this',
             criteriaId: 'cr02',
             readBy: []
+          },
+          {
+            id: 3,
+            author: 'Mary',
+            date: new Date(),
+            text: 'Something from another group',
+            criteriaId: 'cr02',
+            readBy: []
           }
         ]
       },
-      { evId: 'ev2', propId: undefined, mechId: 'fish:food', rsrcId: 'rs1', note: 'fish need food' }
-    ]
+      {
+        evId: 'ev3',
+        propId: 'fish',
+        mechId: undefined,
+        rsrcId: 'rs2',
+        number: '2a',
+        rating: 2,
+        note: 'fish need food'
+      },
+      {
+        evId: 'ev2',
+        propId: 'fish',
+        mechId: undefined,
+        rsrcId: 'rs1',
+        number: '1b',
+        rating: -3,
+        note: 'fish need food'
+      },
+      {
+        evId: 'ev4',
+        propId: undefined,
+        mechId: 'fish:food',
+        rsrcId: 'rs1',
+        number: '1c',
+        rating: 3,
+        note: 'fish need food'
+      },
+      {
+        evId: 'ev5',
+        propId: 'food',
+        mechId: undefined,
+        rsrcId: 'rs2',
+        number: '2b',
+        rating: 2,
+        note: 'ammonia is bad'
+      },
+      {
+        evId: 'ev6',
+        propId: undefined,
+        mechId: 'fish:food',
+        rsrcId: 'rs2',
+        number: '2c',
+        rating: 1,
+        note: 'ammonia is bad'
+      },
+      {
+        evId: 'ev7',
+        propId: undefined,
+        mechId: 'fish:dirty-water-waste',
+        rsrcId: 'rs2',
+        number: '2d',
+        rating: 1,
+        note: 'ammonia is bad'
+      }
+    ],
+    model: [
+      {
+        title: '',
+        comments: []
+      }
+    ],
+    commentThreads: [
+      {
+        id: 'tank',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bob',
+            date: new Date(),
+            text: 'Tank you',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            time: 10,
+            author: 'Bill',
+            date: new Date(),
+            text: 'This tanks!',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      },
+      {
+        id: 'fish',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bob',
+            date: new Date(),
+            text: 'I like this fish',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            time: 10,
+            author: 'Bill',
+            date: new Date(),
+            text: 'I DONT like this fish',
+            criteriaId: 'cr02',
+            readBy: []
+          },
+          {
+            id: 2,
+            time: 11,
+            author: 'Mary',
+            date: new Date(),
+            text: 'This is not my fish!',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      },
+      {
+        id: 'fish:food',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bill',
+            date: new Date(),
+            text: 'Fish food fish food',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            time: 10,
+            author: 'Bill',
+            date: new Date(),
+            text: 'Food fish food fish',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      },
+      {
+        id: 'fish:dirty-water-waste',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bill',
+            date: new Date(),
+            text: 'Fish food fish poop',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            time: 10,
+            author: 'Bill',
+            date: new Date(),
+            text: 'Poop fish food fish',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      }]
   };
   let model2 = ADMData.GetModelById('mo02');
   model2.data = {

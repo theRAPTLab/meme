@@ -39,7 +39,7 @@ class EvidenceList extends React.Component {
 
   render() {
     const { classes, rsrcId } = this.props;
-    const evLinks = DATA.GetEvLinkByResourceId(rsrcId);
+    const evLinks = DATA.GetEvLinksByResourceId(rsrcId);
     /*/ evLinks
           is an array of evidence Link objects related to the resource, e.g.
           [
