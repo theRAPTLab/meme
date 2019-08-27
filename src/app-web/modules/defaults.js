@@ -14,6 +14,7 @@ const GAP = 15;
  * @property {number} PAD.MIN - minimum spacing used for vprops, vmechs
  * @property {number} PAD.MIN2 - double min spacing
  * @property {object} SVGDEFS - defs
+ * @property {object} SVGSYMBOLS - svg symbols
  * @property {object} UTIL - utility functions for debugging (availble from console)
  * @property {object} COLOR - colors
  * @property {string} COLOR.MECH - VMECH line color
@@ -34,6 +35,7 @@ const DEFAULTS = {
     MIN2: GAP * 2
   },
   SVGDEFS: new Map(),
+  SVGSYMBOLS: new Map(),
   UTIL: {
     DumpObj
   },

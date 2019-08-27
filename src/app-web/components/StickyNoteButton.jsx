@@ -55,7 +55,6 @@ class StickyNoteButton extends React.Component {
   constructor(props) {
     super(props);
     this.DoDataUpdate = this.DoDataUpdate.bind(this);
-    this.DoStickiesUpdate = this.DoStickiesUpdate.bind(this);
     this.OnCommentClick = this.OnCommentClick.bind(this);
 
     this.state = {
@@ -64,7 +63,6 @@ class StickyNoteButton extends React.Component {
     };
 
     UR.Sub('DATA_UPDATED', this.DoDataUpdate); // Update sticky button when model is first loaded
-    UR.Sub('STICKY:UPDATED', this.DoStickiesUpdate); // Broadcast when a group is added.
   }
 
   componentDidMount() {
@@ -73,18 +71,18 @@ class StickyNoteButton extends React.Component {
 
   componentWillUnmount() {
     UR.Unsub('DATA_UPDATED', this.DoDataUpdate);
-    UR.Unsub('STICKY:UPDATED', this.DoStickiesUpdate);
   }
 
   DoDataUpdate() {
     this.OnUpdateReadStatus();
   }
 
-  DoStickiesUpdate() {
-    // Update read status?
-    this.OnUpdateReadStatus();
-  }
-
+  /**
+   * When Stickynote data is updated, we take a look at comments and figure out
+   * if there are unread comments, new comments, or whatever, and set state of
+   * the button based on that information. Invoked from DATA_UPDATED or
+   * STICKY:UPDATED messages.
+   */
   OnUpdateReadStatus() {
     const parent = PMC.GetParent(this.props.parentId, this.props.parentType);
     const comments = parent.comments || [];
@@ -119,14 +117,14 @@ class StickyNoteButton extends React.Component {
     // Has comments, all read
     let icon = <ChatBubbleIcon className={classes.stickynoteIcon} />;
     if (hasNoComments) {
-      if (DBG) console.log(PKG,'setting icon to chat empty');
+      if (DBG) console.log(PKG, 'setting icon to chat empty');
       icon = <ChatBubbleOutlineIcon className={classes.stickynoteIcon} />;
     } else if (hasUnreadComments) {
-      if (DBG) console.log(PKG,'setting icon to chat + text');
+      if (DBG) console.log(PKG, 'setting icon to chat + text');
       icon = <ChatIcon className={classes.stickynoteIcon} />;
     } else {
       // eslint-disable-next-line no-lonely-if
-      if (DBG) console.log(PKG,'setting icon to chat cleared');
+      if (DBG) console.log(PKG, 'setting icon to chat cleared');
     }
 
     return <Button onClick={this.OnCommentClick}>{icon}</Button>;

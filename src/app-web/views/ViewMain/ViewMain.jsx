@@ -11,7 +11,6 @@ import PropTypes from 'prop-types';
 import ClassNames from 'classnames';
 import { Switch, Route } from 'react-router-dom';
 // Material UI Elements
-import Avatar from '@material-ui/core/Avatar';
 import Drawer from '@material-ui/core/Drawer';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import AppBar from '@material-ui/core/AppBar';
@@ -20,10 +19,7 @@ import List from '@material-ui/core/List';
 import Typography from '@material-ui/core/Typography';
 import Divider from '@material-ui/core/Divider';
 import Tooltip from '@material-ui/core/Tooltip';
-import Modal from '@material-ui/core/Modal';
 import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import Chip from '@material-ui/core/Chip';
 import Paper from '@material-ui/core/Paper';
 import Button from '@material-ui/core/Button';
 import Fab from '@material-ui/core/Fab';
@@ -35,14 +31,14 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 // Material UI Icons
 import AddIcon from '@material-ui/icons/Add';
+import ChatBubbleOutlineIcon from '@material-ui/icons/ChatBubbleOutline';
 import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
-import DescriptionIcon from '@material-ui/icons/Description';
 import EditIcon from '@material-ui/icons/Edit';
-import ImageIcon from '@material-ui/icons/Image';
 import InboxIcon from '@material-ui/icons/MoveToInbox';
 import MailIcon from '@material-ui/icons/Mail';
 // Material UI Theming
 import { withStyles } from '@material-ui/core/styles';
+import { yellow } from '@material-ui/core/colors';
 
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -51,11 +47,12 @@ import MEMEStyles from '../../components/MEMEStyles';
 import UR from '../../../system/ursys';
 import DATA from '../../modules/pmc-data';
 import ADM from '../../modules/adm-data';
-import EvidenceList from '../../components/EvidenceList';
 import Login from '../../components/Login';
 import ModelSelect from '../../components/ModelSelect';
+import ResourceView from '../../components/ResourceView';
 import ResourceItem from '../../components/ResourceItem';
-import StickyNote from '../../components/StickyNote';
+import RatingsDialog from '../../components/RatingsDialog';
+import StickyNoteCollection from '../../components/StickyNoteCollection';
 import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -84,6 +81,8 @@ class ViewMain extends React.Component {
     this.HandleAddEdgeDialogLabelChange = this.HandleAddEdgeDialogLabelChange.bind(this);
     this.HandlePropAdd = this.HandlePropAdd.bind(this);
     this.HandlePropDelete = this.HandlePropDelete.bind(this);
+    this.OnAddPropComment = this.OnAddPropComment.bind(this);
+    this.OnAddMechComment = this.OnAddMechComment.bind(this);
     this.HandleMechDelete = this.HandleMechDelete.bind(this);
     this.HandlePropEdit = this.HandlePropEdit.bind(this);
     this.HandleMechEdit = this.HandleMechEdit.bind(this);
@@ -93,18 +92,13 @@ class ViewMain extends React.Component {
     this.handleAddEdge = this.handleAddEdge.bind(this);
     this.handleAddEdgeCreate = this.handleAddEdgeCreate.bind(this);
     this.handleAddEdgeClose = this.handleAddEdgeClose.bind(this);
-    this.handleResourceClick = this.handleResourceClick.bind(this);
-    this.handleInformationViewClose = this.handleInformationViewClose.bind(this);
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.handleSelectionChange = this.handleSelectionChange.bind(this);
-    this.handleSnapshot = this.handleSnapshot.bind(this);
     UR.Sub('WINDOW:SIZE', this.UpdateDimensions);
     UR.Sub('DATA_UPDATED', this.HandleDataUpdate);
     UR.Sub('ADM_DATA_UPDATED', this.DoADMDataUpdate);
-    UR.Sub('SHOW_RESOURCE', this.handleResourceClick);
     UR.Sub('SELECTION_CHANGED', this.handleSelectionChange);
     UR.Sub('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
-    UR.Sub('STICKY:UPDATED', this.DoADMDataUpdate); // Broadcast when a group is added.
     this.state = {
       studentName: '',
       studentGroup: '',
@@ -117,18 +111,8 @@ class ViewMain extends React.Component {
       addEdgeLabel: '',
       addEdgeSource: '', // Add Mech Dialog
       addEdgeTarget: '', // Add Mech Dialog
-      resourceViewOpen: false,
       componentIsSelected: false, // A component or property has been selected by user.  Used for pro-centric actions.
-      mechIsSelected: false, // A mechanism is slected by user.  Used for mech-centric actions.
-      selectedResource: {
-        id: '',
-        evid: '',
-        label: 'Unselected',
-        notes: [],
-        type: '',
-        url: '',
-        links: -1
-      }
+      mechIsSelected: false // A mechanism is slected by user.  Used for mech-centric actions.
     };
 
     // FIXME
@@ -149,7 +133,6 @@ class ViewMain extends React.Component {
   componentWillUnmount() {
     UR.Unsub('WINDOW:SIZE', this.UpdateDimensions);
     UR.Unsub('DATA_UPDATED', this.HandleDataUpdate);
-    UR.Unsub('SHOW_RESOURCE', this.handleResourceClick);
     UR.Unsub('SELECTION_CHANGED', this.handleSelectionChange);
     UR.Unsub('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
   }
@@ -232,7 +215,7 @@ class ViewMain extends React.Component {
 
   // User selected component/prop and clicked on "(/) Edit Component / Property" button
   HandlePropEdit() {
-    let selectedPropIds = DATA.VM_SelectedProps();
+    let selectedPropIds = DATA.VM_SelectedPropsIds();
     if (selectedPropIds.length > 0) {
       let propId = selectedPropIds[0];
       let prop = DATA.Prop(propId);
@@ -247,7 +230,7 @@ class ViewMain extends React.Component {
 
   // User selected component/prop and clicked on "() Delete"
   HandlePropDelete() {
-    let selectedPropIds = DATA.VM_SelectedProps();
+    let selectedPropIds = DATA.VM_SelectedPropsIds();
     if (selectedPropIds.length > 0) {
       let propId = selectedPropIds[0];
       DATA.PMC_PropDelete(propId);
@@ -262,9 +245,37 @@ class ViewMain extends React.Component {
     });
   }
 
+  OnAddPropComment() {
+    let selectedPropIds = DATA.VM_SelectedPropsIds();
+    if (selectedPropIds.length > 0) {
+      let propId = selectedPropIds[0];
+      UR.Publish('STICKY:OPEN', {
+        parentId: propId,
+        parentType: 'propmech',
+        // FIXME: Set position according to parent prop?
+        x: 600, // stickynote hack moves it by -325
+        y: 100
+      });
+    }
+  }
+
+  OnAddMechComment() {
+    let selectedMechIds = DATA.VM_SelectedMechIds();
+    if (selectedMechIds.length > 0) {
+      let mechId = selectedMechIds[0];
+      UR.Publish('STICKY:OPEN', {
+        parentId: mechId,
+        parentType: 'propmech',
+        // FIXME: Set position according to parent prop?
+        x: 600, // stickynote hack moves it by -325
+        y: 100
+      });
+    }
+  }
+
   // User selected mechanism and clicked on "(/) Edit Mechanism" button
   HandleMechEdit() {
-    let selectedMechIds = DATA.VM_SelectedMechs();
+    let selectedMechIds = DATA.VM_SelectedMechIds();
     if (selectedMechIds.length > 0) {
       DATA.VM_DeselectAll(); // deselect so mech buttons disappear
       let mechId = selectedMechIds[0];
@@ -281,7 +292,7 @@ class ViewMain extends React.Component {
 
   // User selected component/prop and clicked on "() Delete"
   HandleMechDelete() {
-    let selectedMechIds = DATA.VM_SelectedMechs();
+    let selectedMechIds = DATA.VM_SelectedMechIds();
     if (selectedMechIds.length > 0) {
       let mechId = selectedMechIds[0];
       DATA.PMC_MechDelete(mechId);
@@ -300,7 +311,7 @@ class ViewMain extends React.Component {
     if (DBG) console.log('create prop');
     if (this.state.addPropIsProperty) {
       // Add a property to the selected component
-      let selectedPropIds = DATA.VM_SelectedProps();
+      let selectedPropIds = DATA.VM_SelectedPropsIds();
       if (selectedPropIds.length > 0) {
         let parentPropId = selectedPropIds[0];
         if (DBG) console.log('...setting parent of', this.state.addPropLabel, 'to', parentPropId);
@@ -346,24 +357,6 @@ class ViewMain extends React.Component {
     this.setState({ addEdgeOpen: false });
   }
 
-  handleResourceClick(urdata) {
-    if (DBG) console.log('ViewMain: clicked on ', urdata.rsrcId);
-    // Look up resource
-    let selectedResource = ADM.Resource(urdata.rsrcId);
-    if (selectedResource) {
-      this.setState({
-        resourceViewOpen: true,
-        selectedResource
-      });
-    } else {
-      console.error('ViewMain: Could not find selected resource id', urdata.rsrcId);
-    }
-  }
-
-  handleInformationViewClose() {
-    this.setState({ resourceViewOpen: false });
-  }
-
   /*/
    *  User wants to set the source on an EvidenceLink, so:
    *  1. Close the ResourceView if open,
@@ -379,7 +372,7 @@ class ViewMain extends React.Component {
   }
 
   handleSelectionChange() {
-    let selectedPropIds = DATA.VM_SelectedProps();
+    let selectedPropIds = DATA.VM_SelectedPropsIds();
     if (DBG) console.log('selection changed', selectedPropIds);
     let sourceId = '';
     let targetId = '';
@@ -400,7 +393,7 @@ class ViewMain extends React.Component {
     // If more than one mech is selected, hide the mech
     // editing buttons
     let mechIsSelected = false;
-    let selectedMechIds = DATA.VM_SelectedMechs();
+    let selectedMechIds = DATA.VM_SelectedMechIds();
     if (selectedMechIds.length === 1 && !this.state.addEdgeOpen) mechIsSelected = true;
 
     this.setState({
@@ -409,12 +402,6 @@ class ViewMain extends React.Component {
       componentIsSelected,
       mechIsSelected
     });
-  }
-
-  handleSnapshot(rsrcId) {
-    if (DBG) console.log(PKG, 'create new evidence:', rsrcId);
-    let evId = DATA.PMC_AddEvidenceLink(rsrcId);
-    UR.Publish('SHOW_EVIDENCE_LINK', { evId, rsrcId });
   }
 
   render() {
@@ -457,6 +444,7 @@ class ViewMain extends React.Component {
           </Toolbar>
         </AppBar>
 
+        {/* Left Tool Sidebar */}
         <Drawer
           className={classes.drawer}
           variant="permanent"
@@ -538,7 +526,8 @@ class ViewMain extends React.Component {
             </Switch>
           </div>
 
-          <StickyNote />
+          <StickyNoteCollection />
+          <RatingsDialog />
 
           {/* Add Edge Dialog */}
           <Card className={classes.edgeDialog} hidden={!this.state.addEdgeOpen}>
@@ -605,90 +594,7 @@ class ViewMain extends React.Component {
         </div>
 
         {/* Resource View */}
-        <Modal
-          className={classes.resourceView}
-          disableBackdropClick={false}
-          hideBackdrop={false}
-          open={this.state.resourceViewOpen}
-          onClose={this.handleInformationViewClose}
-        >
-          <Paper className={classes.resourceViewPaper}>
-            <div className={classes.resourceViewTitle}>
-              <div className={classes.resourceViewWindowLabel}>RESOURCE VIEW</div>
-              <Avatar className={classes.resourceViewAvatar}>
-                {this.state.selectedResource.referenceLabel}
-              </Avatar>
-              &nbsp;
-              <div style={{ flexGrow: 1 }}>{this.state.selectedResource.label}</div>
-              <Card className={classes.resourceViewCard}>
-                <CardContent className={classes.resourceViewCardContent}>
-                  <Typography variant="overline">Notes:&nbsp;</Typography>
-                  <Typography variant="body2">{this.state.selectedResource.notes}</Typography>
-                </CardContent>
-              </Card>
-              <Card className={classes.resourceViewCard}>
-                <CardContent className={classes.resourceViewCardContent}>
-                  <Typography variant="overline">Type:&nbsp;</Typography>
-                  <Typography variant="body2">
-                    {this.state.selectedResource.type}{' '}
-                    {this.state.selectedResource.type === 'simulation' ? (
-                      <ImageIcon />
-                    ) : (
-                      <DescriptionIcon />
-                    )}
-                  </Typography>
-                </CardContent>
-              </Card>
-              <Card className={classes.resourceViewCard}>
-                <CardContent className={classes.resourceViewCardContent}>
-                  <Typography variant="overline">Links:&nbsp;</Typography>
-                  <Chip
-                    className={classes.resourceViewLinksBadge}
-                    label={this.state.selectedResource.links}
-                    color="primary"
-                  />
-                </CardContent>
-              </Card>
-              <Button
-                className={classes.evidenceCloseBtn}
-                onClick={this.handleInformationViewClose}
-                color="primary"
-              >
-                Close
-              </Button>
-            </div>
-            <iframe
-              src={this.state.selectedResource.url}
-              width="1000"
-              height="90%"
-              title="resource"
-            />
-            <div className={classes.resourceViewSidebar}>
-              <TextField
-                id="informationNote"
-                label="Our Notes"
-                placeholder="We noticed..."
-                multiline
-                rows="5"
-                className={classes.resourceViewNote}
-                margin="normal"
-                variant="outlined"
-              />
-              <Typography variant="caption">OUR EVIDENCE LIST</Typography>
-              <div className={classes.resourceViewSidebarEvidenceList}>
-                <EvidenceList rsrcId={this.state.selectedResource.rsrcId} />
-              </div>
-              <Button
-                className={classes.resourceViewCreatebutton}
-                variant="contained"
-                onClick={() => this.handleSnapshot(this.state.selectedResource.rsrcId)}
-                color="primary"
-              >
-                Create Evidence
-              </Button>
-            </div>
-          </Paper>
-        </Modal>
+        <ResourceView />
 
         {/* Component/Mech label editing dialog */}
         <Dialog
@@ -720,36 +626,52 @@ class ViewMain extends React.Component {
         </Dialog>
 
         {/* Component/Mech add/edit/delete buttons */}
-        <Fab
-          hidden={!(componentIsSelected || mechIsSelected)}
-          onClick={componentIsSelected ? this.HandlePropDelete : this.HandleMechDelete}
-          className={classes.propertyDeleteButton}
-          color="secondary"
-          variant="extended"
-          size="small"
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-evenly',
+            position: 'absolute',
+            left: '100px',
+            right: '300px',
+            bottom: '20px'
+          }}
         >
-          <DeleteRoundedIcon />
-          &nbsp;&nbsp;Delete&nbsp;
-        </Fab>
-        <Fab
-          hidden={!(componentIsSelected || mechIsSelected)}
-          onClick={componentIsSelected ? this.HandlePropEdit : this.HandleMechEdit}
-          className={classes.propertyEditButton}
-          color="primary"
-          variant="extended"
-        >
-          <EditIcon />
-          &nbsp;&nbsp;Edit {componentIsSelected ? 'Component / Property' : 'Mechanism'}
-        </Fab>
-        <Fab
-          hidden={!componentIsSelected}
-          onClick={this.HandlePropAdd}
-          className={classes.propertyAddButton}
-          color="primary"
-          variant="extended"
-        >
-          <AddIcon /> Add property
-        </Fab>
+          <Fab
+            hidden={!(componentIsSelected || mechIsSelected)}
+            onClick={componentIsSelected ? this.HandlePropDelete : this.HandleMechDelete}
+            color="secondary"
+            variant="extended"
+            size="small"
+          >
+            <DeleteRoundedIcon />
+            &nbsp;&nbsp;Delete&nbsp;
+          </Fab>
+          <Fab
+            hidden={!(componentIsSelected || mechIsSelected)}
+            onClick={componentIsSelected ? this.HandlePropEdit : this.HandleMechEdit}
+            color="primary"
+            variant="extended"
+          >
+            <EditIcon />
+            &nbsp;&nbsp;Edit {componentIsSelected ? 'Component / Property' : 'Mechanism'}
+          </Fab>
+          <Fab
+            hidden={!componentIsSelected}
+            onClick={this.HandlePropAdd}
+            color="primary"
+            variant="extended"
+          >
+            <AddIcon /> Add property
+          </Fab>
+          <Fab
+            hidden={!(componentIsSelected || mechIsSelected)}
+            onClick={componentIsSelected ? this.OnAddPropComment : this.OnAddMechComment}
+            variant="extended"
+          >
+            <ChatBubbleOutlineIcon htmlColor={yellow[800]} />
+            &nbsp;&nbsp;Add Comment
+          </Fab>
+        </div>
       </div>
     );
   }

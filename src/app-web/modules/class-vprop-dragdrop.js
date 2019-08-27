@@ -133,7 +133,8 @@ const AddDragDropHandlers = vprop => {
 
   // handle end of drag
   vprop.gRoot.on('dragend.propmove', event => {
-    event.stopPropagation();
+    event.detail.event.preventDefault();
+    event.detail.event.stopPropagation();
 
     vprop.gRoot.attr('pointer-events', 'all');
     SaveEventCoordsToBox(event, vprop._extend.dragdrop.endPt);
@@ -143,11 +144,24 @@ const AddDragDropHandlers = vprop => {
     const vpropId = vprop.Id();
 
     // see if the prop moved by a minimum amount (5 pixels)
+    // if it didn't move much, then it's a click
     if (d < 10) {
-      // if it didn't move much, then it's a click so select
-      DATA.VM_ToggleProp(vprop);
-      vprop.Move(DragState(vprop).gRootXY);
       if (DBG) console.log(`[${vpropId}] didn't move enough, so snapping back`);
+
+      // check children
+      // and pass click to children
+      const gBadges = vprop.vBadge.gBadges;
+      const mouseEvent = event.detail.event; // mouseEvent has clientX and clientY
+      const { offsetX, offsetY } = mouseEvent;
+      if (gBadges.inside(offsetX, offsetY)) {
+        // Handle as click and pass to VBadge
+        gBadges.fire('click', { event: mouseEvent });
+      } else {
+        // Handle as selection
+        DATA.VM_ToggleProp(vprop);
+        vprop.Move(DragState(vprop).gRootXY);
+      }
+
       return;
     }
 

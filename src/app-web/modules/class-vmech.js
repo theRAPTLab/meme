@@ -4,6 +4,7 @@ import { cssinfo, cssdraw, csstab, csstab2, cssblue, cssdata } from './console-s
 import UR from '../../system/ursys';
 import DEFAULTS from './defaults';
 import { VisualState } from './classes-visual';
+import VBadge from './class-vbadge';
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -63,18 +64,35 @@ class VMech {
     this.dataDisplayMode = {}; // how to display data, what data to show/hide
     this.connectionPoints = []; // array of points available for mechanism connections
     this.highlightMode = {}; // how to display selection, subselection, hover
-    this.path = svgRoot
+
+    // Adding support for VBadge -- Put path/text in a group so that
+    // we can attach badges to it.  (Originally no group)
+    this.gRoot = svgRoot.group(); // main reference group
+    this.path = this.gRoot
       .path()
       .back()
       .fill('none')
       .stroke({ width: 4, color: COLOR.MECH, dasharray: '4 2' });
 
+    // This is the original path text.
+    // For VBadges, the new horizText replaces this label.
+    // However, we need to place the label for positioning.
+    // We're hacking it for VBadge mostly to get a position for the
+    // new label (horizText) and VBadges.
     this.pathLabel = svgRoot.text(add => {
-      add.tspan(this.data.name);
+      add.tspan('.'); // Before VBadge was add.tspan(this.data.name);
     });
     this.pathLabel.fill(COLOR.MECH).attr('dy', -6);
     this.pathLabel.attr('text-anchor', 'end');
     this.textpath = this.pathLabel.path(this.path).attr('startOffset', this.path.length() - m_blen);
+
+    // For VBadge display, hack in a "normal" text label that will not rotate/follow the path
+    // The VBadges will appear next to this text label.
+    this.horizText = this.gRoot.text(add => {
+      add.tspan(this.data.name);
+    });
+    this.horizText.fill(COLOR.MECH);
+
     // shared modes
     this.visualState = new VisualState(this.id);
     this.displayMode = {};
@@ -82,6 +100,9 @@ class VMech {
     this.HandleSelect = this.HandleSelect.bind(this);
     this.path.click(this.HandleSelect);
     this.pathLabel.click(this.HandleSelect);
+
+    // add VBadge group
+    this.vBadge = VBadge.New(this);
   }
 
   /**
@@ -97,6 +118,7 @@ class VMech {
    */
   Release() {
     if (this.path) this.path.remove();
+    this.vBadge.Release();
   }
 
   /**
@@ -127,7 +149,10 @@ class VMech {
       // FIXME May 1 Hack
       // Display evidence badge as a text update for now
       // Update text label to show evidence
-      this.pathLabel.children()[0].text(this.data.name + evString);
+
+      // this.pathLabel.children()[0].text(this.data.name + evString);
+      // Update the VBadge horizText instead of the pathLabel
+      this.vBadge.Update(this);
 
       // no change in srcId or tgtId so return
       return;
@@ -144,7 +169,10 @@ class VMech {
       // FIXME May 1 Hack
       // Display evidence badge as a text update for now
       // Update text label to show evidence
-      this.pathLabel.children()[0].text(this.data.name + evString);
+
+      // this.pathLabel.children()[0].text(this.data.name + evString);
+      // Update the VBadge horizText instead of the pathLabel
+      this.vBadge.Update(this);
 
       // update visual paths
       const srcVProp = DATA.VM_VProp(srcId);
@@ -168,6 +196,11 @@ class VMech {
           this.pathLabel.attr('text-anchor', 'start');
           this.textpath.attr('startOffset', m_blen);
         }
+
+        // VBadge hack position of horizText
+        this.horizText.x(this.pathLabel.x());
+        this.horizText.y(this.pathLabel.y());
+
         return;
       }
       // no srcPt or tgtPt, so hide path if it exists
@@ -192,6 +225,14 @@ class VMech {
       this.path.stroke({ width: 4, color: COLOR.MECH, dasharray: '4 2' });
       this.pathLabel.fill(COLOR.MECH);
     }
+    this.vBadge.Draw(this);
+  }
+
+  DrawBadge() {
+    // VMech doesn't seem to call `Draw()`very often,
+    // but it does call DrawEdges.
+    // Add this DrawBadge() command for use with DrawEdges.
+    this.vBadge.Draw(this);
   }
 }
 
@@ -275,7 +316,11 @@ VMech.DrawEdges = () => {
     const { v, w } = edgeObj;
     const vmech = DATA.VM_VMech(edgeObj);
     vmech.Update(v, w);
+
+    // force draw, otherwise Draw is never called
+    vmech.DrawBadge();
   });
+
   // console.groupEnd();
 };
 

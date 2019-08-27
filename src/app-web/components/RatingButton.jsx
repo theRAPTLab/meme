@@ -33,13 +33,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from '@material-ui/core/Button';
 // Material UI Icons
-import StarRate from '@material-ui/icons/StarRate';
+import PositiveIcon from '@material-ui/icons/Add';
+import NegativeIcon from '@material-ui/icons/Clear';
 // Material UI Theming
 import { withStyles } from '@material-ui/core/styles';
 
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
+import ADM from '../modules/adm-data';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -47,56 +49,69 @@ import MEMEStyles from './MEMEStyles';
 class RatingButton extends React.Component {
   constructor(props) {
     super(props);
-    this.HandleClick = this.HandleClick.bind(this);
+    this.OnClick = this.OnClick.bind(this);
+
+    this.state = {
+      ratingsDef: ADM.GetRatingsDefintion()
+    };
   }
 
-  componentDidMount() {}
+  componentDidMount() { }
 
-  componentWillUnmount() {}
+  componentWillUnmount() { }
 
-  HandleClick(rating, e) {
+  OnClick(e) {
+    e.preventDefault();
     e.stopPropagation();
-    this.props.UpdateRating(rating);
+    this.props.OnRatingButtonClick();
   }
 
   render() {
-    const { max, rating, isExpanded } = this.props;
-    const { classes } = this.props;
-    let icons = [];
-    for (let i = 1; i <= max; i++) {
-      let icon = (
-        <Button
-          onClick={e => this.HandleClick(i, e)}
-          size="small"
-          className={isExpanded ? classes.ratingButtonLarge : classes.ratingButtonSmall}
-          key={i}
-        >
-          <StarRate
-            fontSize={isExpanded ? 'large' : 'small'}
-            className={i <= rating ? classes.ratingIconSelected : classes.ratingIconUnselected}
-          />
-        </Button>
-      );
-      icons.push(icon);
+    const { rating, isExpanded, classes } = this.props;
+
+    const count = Math.abs(rating);
+    const icons = [];
+    for (let i = 0; i < count; i++) {
+      if (rating < 0) {
+        icons.push(
+          <NegativeIcon className={classes.ratingIconNegative} key={i} fontSize="small" />
+        );
+      } else if (rating > 0) {
+        icons.push(
+          <PositiveIcon className={classes.ratingIconPositive} key={i} fontSize="small" />
+        );
+      } else {
+        // leave blank
+      }
     }
-    return <div style={{ display: 'flex' }}>{icons}</div>;
+
+    const ratingObject = this.state.ratingsDef.find(ro => ro.rating === rating);
+    const label = ratingObject ? ratingObject.label : 'Label not found';
+
+    return (
+      <Button onClick={this.OnClick}>
+        {icons}&nbsp;
+        {isExpanded ? label : ''}
+      </Button>
+    );
   }
 }
 
 RatingButton.propTypes = {
-  UpdateRating: PropTypes.func,
-  max: PropTypes.number,
+  // eslint-disable-next-line react/forbid-prop-types
+  classes: PropTypes.object,
   rating: PropTypes.number,
-  isExpanded: PropTypes.bool
+  isExpanded: PropTypes.bool,
+  OnRatingButtonClick: PropTypes.func
 };
 
 RatingButton.defaultProps = {
-  UpdateRating: () => {
-    console.error('Missing UpdateRating Handler!');
-  },
-  max: 3,
+  classes: {},
   rating: 0,
-  isExpanded: false
+  isExpanded: false,
+  OnRatingButtonClick: () => {
+    console.error('Missing OnRatingButtonClick Handler!');
+  }
 };
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////

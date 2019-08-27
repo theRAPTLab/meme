@@ -2,80 +2,36 @@
 
 Sticky Note
 
-state
-    parent      We don't update the parent object directly, 
-                we call PMC to do the update.
-                The parent object is just used to rretrive comments
-                and the parentId.
-    parentType  These are set when STICKY:OPEN is received.
-                parentType let's us know how to update the
-                parent object.
-
+    For documentation, see boilerplate/src/app-web/components/StickyNote.jsx
+    
 props
-    classes     MEMEStyles MaterialUI styles implementation.
-    
-    
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    comment           Comment data passed from the parent StickyNote
+    
+    onStartEdit       prop func called by StickyNoteCard when user clicks "Edit"
+    
+    onUpdateComment   prop func called by STickyNoteCard when user is
+                      finished editing and ready to save.
+    
+state
 
-ABOUT THE STICKY NOTE SYSTEM
-
-    There are three components to the Sticky Note System:
+    isBeingEdited     User is editing card, show input field, hide Edit button
     
-    1. StickyNoteButton
-    2. StickyNote
-    3. StickyNotecard
+    allowedToEdit     User is the comment author or in the same group so allowed
+                      to edit the comment.
     
-StickyNoteButton
+    allowedToDelete   User is the comment author, so allowed to delete the
+                      comment.  NOTE: We might want to restrict this to
+                      teachers only.
     
-    StickyNoteButtons serve two functions:
-    1. Display the read/unread/blank status of a sticky note
-    2. Clicking on the button will open up the sticky note display
+    showEditButtons   Boolean flag to show edit and delete buttons for the card.
     
-    StickyNoteButtons are designed to be attachable to any object (though 
-    currently they only attach to EvidenceLinks).
+    criteria          The menu for selecting criteria
+    selectedCriteriaId
     
-    They retain only a minimal amount of data: parentId and parentType and
-    retrieve status updates directly from PMCData.
-    
-    When they open a StickyNote, they use an URSYS.Publish call.
-    
-StickyNote
-    
-    A StickyNote is the container component for StickyNoteCards.
-    Each StickyNote can contain any number of StickyNoteCards.
-    StickyNoteCards display individual comments from different authors.
-    
-    There is only a single StickyNote object in ViewMain.  It gets 
-    repurposed for each note that is opened.
-    
-    StickNotes are opened via an URSYS.Publish('STICKY:Open') call.
-    
-    StickyNotes handle all the data for the StickyNoteCards, passing
-    individual comments as props: onStartEdit, onUpdateComment.
-    
-    Updates to the comment data are sent directly to PMCData via a
-    PMC.UpdateComments() call.
-    
-StickyNoteCard
-
-    StickyNoteCards display individual comments from different authors.
-
-    props
-      
-      onStartEdit -- This is called whenever the user clicks on the edit button. 
-      This is passed to StickyNote so that StickyNote can hide buttons that
-      shouldn't be shown during edit (e.g. Reply)
-      
-      onUpdateComment -- This is called when the user is finished editing and
-      ready to close the sticky.  Calling update only when the user is finsihed
-      allows us to implement a local undo, if necessary (though it hasn't 
-      been implemented).
-
-    
-
-
-
+    comment           A local state copy of the comment text.
+                      This is updated/read on the intial construction from 
+                      this.props.comment.
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * /////////////////////////////////////*/
 
@@ -83,28 +39,23 @@ StickyNoteCard
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import React from 'react';
 import PropTypes from 'prop-types';
-// Material UI components
-import Button from '@material-ui/core/Button';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
+import Grid from '@material-ui/core/Grid';
 import IconButton from '@material-ui/core/IconButton';
+import FilledInput from '@material-ui/core/FilledInput';
+import InputLabel from '@material-ui/core/InputLabel';
 import Paper from '@material-ui/core/Paper';
+import Typography from '@material-ui/core/Typography';
 // Material UI Icons
-import CloseIcon from '@material-ui/icons/Close';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
 // Material UI Theming
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
-import UR from '../../system/ursys';
 import ADM from '../modules/adm-data';
-import PMC from '../modules/pmc-data';
-import StickyNoteCard from './StickyNoteCard';
-
-/// CONSTANTS /////////////////////////////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = false;
-const PKG = 'StickyNote:';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -113,192 +64,290 @@ class StickyNote extends React.Component {
   constructor(props) {
     super(props);
 
+    // Handle Focus
+    // create a ref to store the textInput DOM element
+    this.textInput = React.createRef();
+
     this.DoOpenSticky = this.DoOpenSticky.bind(this);
-    this.DoStickyUpdate = this.DoStickyUpdate.bind(this);
-    this.DoAddComment = this.DoAddComment.bind(this);
-    this.DoCloseSticky = this.DoCloseSticky.bind(this);
-    this.OnReplyClick = this.OnReplyClick.bind(this);
-    this.OnStartEdit = this.OnStartEdit.bind(this);
-    this.OnUpdateComment = this.OnUpdateComment.bind(this);
-    this.OnCloseClick = this.OnCloseClick.bind(this);
+    this.OnEditClick = this.OnEditClick.bind(this);
+    this.DoEditStart = this.DoEditStart.bind(this);
+    this.FocusTextInput = this.FocusTextInput.bind(this);
+    this.OnEditFinished = this.OnEditFinished.bind(this);
+    this.OnDeleteClick = this.OnDeleteClick.bind(this);
+    this.OnCriteriaSelect = this.OnCriteriaSelect.bind(this);
+    this.OnCommentTextChange = this.OnCommentTextChange.bind(this);
+    this.OnShowEditButtons = this.OnShowEditButtons.bind(this);
+    this.OnHideEditButtons = this.OnHideEditButtons.bind(this);
     this.OnClickAway = this.OnClickAway.bind(this);
 
     this.state = {
-      isHidden: true,
       isBeingEdited: false,
-      comments: [],
-      top: 0,
-      left: 0,
-      parentId: '',
-      parentType: ''
+      allowedToEdit: false,
+      allowedToDelete: false,
+      showEditButtons: false,
+      criteria: [],
+      selectedCriteriaId: '',
+      comment: this.props.comment
     };
-
-    UR.Sub('STICKY:OPEN', this.DoOpenSticky);
-    UR.Sub('STICKY:UPDATED', this.DoStickyUpdate);
   }
 
-  componentDidMount() {}
+  componentDidMount() {
+    this.DoOpenSticky();
+  }
 
-  componentWillUnmount() {}
+  componentWillUnmount() {
+    // Save data just in case?
+    this.OnEditFinished();
+  }
 
-  DoOpenSticky(data) {
-    let { parentId, parentType, x, y } = data;
-    const parent = PMC.GetParent(parentId, parentType);
-    let comments = parent.comments;
-    let isBeingEdited = false;
-    // if no comments yet, add an empty comment automatically
-    if (comments === undefined || comments.length === 0) {
-      const author = ADM.GetSelectedStudentId();
-      const starter = ADM.GetSentenceStartersByClassroom().sentences;
-      comments = [PMC.NewComment(author, starter)];
-      isBeingEdited = true;
+  DoOpenSticky() {
+    const criteria = ADM.GetCriteriaByClassroom();
+    const currentGroup = ADM.GetGroupByStudent();
+    const authorGroup = ADM.GetGroupByStudent(this.props.comment.author);
+    const isAuthor = currentGroup === authorGroup;
+    this.setState({
+      criteria,
+      selectedCriteriaId: this.props.comment.criteriaId,
+      allowedToEdit: isAuthor,
+      allowedToDelete: isAuthor // REVIEW: Only teachers are allowed to delete?
+    });
+    if (this.props.comment.text === '') {
+      // automatically turn on editing if this is a new empty comment
+      this.DoEditStart();
     }
-    this.setState({
-      isHidden: false,
-      isBeingEdited,
-      comments,
-      top: y,
-      left: x - 325, // width of stickyonotecard HACK!!!
-      parentId,
-      parentType
-    });
   }
 
-  DoAddComment() {
-    const author = ADM.GetSelectedStudentId();
-    const starter = ADM.GetSentenceStartersByClassroom().sentences;
-    let comment = PMC.NewComment(author, starter);
-    this.setState(state => {
-      return { comments: state.comments.concat([comment]) };
-    });
-  }
-
-  // PMC has upadted sticky data, usually unread status
-  // Update our existing data directly from PMC.
-  DoStickyUpdate() {
-    const { parentId, parentType } = this.state;
-    let parent = PMC.GetParent(parentId, parentType);
-    if (DBG) console.log(PKG, 'DoStickyUpdate with comments', parent.comments);
-    if (DBG) console.table(parent.comments);
-    this.setState({
-      comments: parent.comments
-    });
-  }
-
-  DoCloseSticky() {
-    // Mark all comments read, then update comments
-    this.setState(state => {
-      const author = ADM.GetSelectedStudentId();
-      let comments = state.comments;
-      comments.forEach(comment => {
-        if (comment.readBy.includes(author)) return;
-        comment.readBy.push(author);
-      });
-      if (DBG) console.log(PKG,'DoCloseSticky: comments should be:');
-      if (DBG) console.table(comments);
-      return {
-        comments,
-        isHidden: true
-      };
-    }, this.OnUpdateComment);
-  }
-
-  OnReplyClick(e) {
-    e.preventDefault();
+  DoEditStart() {
     this.setState({ isBeingEdited: true }, () => {
-      this.DoAddComment();
+      this.FocusTextInput();
+      this.props.onStartEdit();
     });
   }
 
-  OnStartEdit() {
-    this.setState({
-      isBeingEdited: true
-    });
+  OnEditClick(e) {
+    e.preventDefault();
+    this.DoEditStart();
   }
 
-  OnUpdateComment() {
-    // Comments were passed byRef from us to StickyNoteCard component.
-    // So when StickyNoteCard is finished editing, our state.comments should
-    // point to the updated text.
-    // However, our parent object (e.g. property, mechanism, evidence link) is
-    // passed via the URSYS call, so we have to update that explicitly.
-    if (DBG) console.log(PKG,'OnUpdateComment: comments');
-    if (DBG) console.table(this.state.comments);
-    const { parentId, parentType, comments } = this.state;
-    PMC.UpdateComments(parentId, parentType, comments);
+  FocusTextInput() {
+    // Explicitly focus the text input using the raw DOM API
+    // Note: we're accessing "current" to get the DOM node
+    // https://reactjs.org/docs/refs-and-the-dom.html#adding-a-ref-to-a-dom-element
+    // https://stackoverflow.com/questions/52222988/how-to-focus-a-material-ui-textfield-on-button-click/52223078
+    this.textInput.current.focus();
+    // Set cursor to end of text.
+    const pos = this.textInput.current.value.length;
+    this.textInput.current.setSelectionRange(pos, pos);
+  }
+
+  OnEditFinished() {
+    // Automatically mark read by author
+    const author = ADM.GetSelectedStudentId();
+    let comment = this.props.comment;
+    if (!comment.readBy.includes(author)) {
+      comment.readBy.push(author);
+    }
+    this.props.onUpdateComment();
+    // stop editing and close
     this.setState({
       isBeingEdited: false
     });
   }
 
-  OnCloseClick() {
-    this.DoCloseSticky();
+  OnDeleteClick() {}
+
+  OnCriteriaSelect(e) {
+    let criteriaId = e.target.value;
+    this.setState(state => {
+      let comment = state.comment;
+      comment.criteriaId = criteriaId;
+      return {
+        selectedCriteriaId: criteriaId,
+        comment
+      };
+    });
+  }
+
+  OnCommentTextChange(e) {
+    // This updates the comment text in the StickyNoteCollection directly
+    // since it was passed by reference.
+    this.props.comment.text = e.target.value;
+
+    // Tell StickyNoteCollection to save to pmc-data
+    this.props.onUpdateComment();
+  }
+
+  OnShowEditButtons() {
+    this.setState({
+      showEditButtons: true
+    });
+  }
+
+  OnHideEditButtons() {
+    this.setState({
+      showEditButtons: false
+    });
   }
 
   OnClickAway() {
-    if (!this.state.isHidden && !this.state.isBeingEdited) {
-      this.DoCloseSticky();
-    } else {
-      // don't do anything if the user is still editing comment
-    }
+    if (this.state.isBeingEdited) this.OnEditFinished();
   }
 
   render() {
-    const { classes } = this.props;
-    const { comments, isHidden, isBeingEdited, top, left } = this.state;
+    // theme overrides
+    // See https://github.com/mui-org/material-ui/issues/14905 for details
+    const theme = createMuiTheme();
+    theme.overrides = {
+      MuiFilledInput: {
+        root: {
+          backgroundColor: 'rgba(250,255,178,0.3)',
+          paddingTop: '3px',
+          '&:hover': {
+            backgroundColor: 'rgba(255,255,255,0.5)'
+          },
+          '&$focused': {
+            backgroundColor: '#fff'
+          }
+        },
+        multiline: {
+          padding: '0'
+        }
+      }
+    };
+
+    const {
+      isBeingEdited,
+      allowedToEdit,
+      allowedToDelete,
+      showEditButtons,
+      criteria,
+      selectedCriteriaId
+    } = this.state;
+    const { classes, comment } = this.props;
+    const hasBeenRead = this.props.comment.readBy
+      ? this.props.comment.readBy.includes(ADM.GetSelectedStudentId())
+      : false;
+    const date = new Date(comment.date);
+    const timestring = date.toLocaleTimeString('en-Us', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    const datestring = date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+
+    let showCriteria = isBeingEdited || selectedCriteriaId !== '';
+    let criteriaDisplay = ADM.GetCriteriaLabel(selectedCriteriaId);
+    if (isBeingEdited) {
+      criteriaDisplay = (
+        <select value={comment.criteriaId} onChange={this.OnCriteriaSelect}>
+          <option value="" key="empty">
+            Select one...
+          </option>
+          {criteria.map(crit => (
+            <option value={crit.id} key={crit.id} className={classes.criteriaSelectorMenu}>
+              {crit.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
 
     return (
-      <div>
-        <ClickAwayListener onClickAway={this.OnClickAway}>
-          <Paper className={classes.stickynotePaper} hidden={isHidden} style={{ top, left }}>
-            <IconButton
-              size="small"
-              style={{ position: 'absolute', right: '-25px', top: '-25px' }}
-              onClick={this.OnCloseClick}
-            >
-              <CloseIcon />
-            </IconButton>
-            {comments.map(comment => {
-              return (
-                <StickyNoteCard
-                  comment={comment}
-                  key={comment.id}
-                  onStartEdit={this.OnStartEdit}
-                  onUpdateComment={this.OnUpdateComment}
+      <ClickAwayListener onClickAway={this.OnClickAway}>
+        <Paper
+          className={hasBeenRead ? classes.stickynoteCardRead : classes.stickynoteCard}
+          onMouseEnter={this.OnShowEditButtons}
+          onMouseLeave={this.OnHideEditButtons}
+        >
+          <Grid container>
+            <Grid item xs={3}>
+              <Typography variant="subtitle2" className={classes.stickynoteCardAuthor}>
+                {`${comment.author} ${ADM.GetGroupNameByStudent(comment.author)}`}
+              </Typography>
+              <Typography variant="caption" className={classes.stickynoteCardLabel}>
+                {`${timestring}`}
+                <br />
+                {`${datestring}`}
+              </Typography>
+            </Grid>
+            <Grid item xs={9}>
+              <div hidden={!showCriteria}>
+                <InputLabel className={classes.stickynoteCardLabel}>CRITERIA:&nbsp;</InputLabel>
+                <div className={classes.stickynoteCardCriteria}>{criteriaDisplay}</div>
+              </div>
+              <MuiThemeProvider theme={theme}>
+                <FilledInput
+                  className={classes.stickynoteCardInput}
+                  value={comment.text}
+                  placeholder={comment.placeholder}
+                  onChange={this.OnCommentTextChange}
+                  variant="filled"
+                  rowsMax="4"
+                  multiline
+                  disableUnderline
+                  inputProps={{
+                    readOnly: !(allowedToEdit && isBeingEdited),
+                    disabled: !(allowedToEdit && isBeingEdited)
+                  }}
+                  inputRef={this.textInput}
                 />
-              );
-            })}
-            <Button
-              size="small"
-              style={{ margin: '5px' }}
-              variant="outlined"
-              hidden={isBeingEdited}
-              onClick={this.OnReplyClick}
-            >
-              Reply
-            </Button>
-            <Button
-              size="small"
-              style={{ float: 'right', margin: '5px' }}
-              variant="outlined"
-              onClick={this.OnCloseClick}
-            >
-              <CloseIcon /> Close
-            </Button>
-          </Paper>
-        </ClickAwayListener>
-      </div>
+              </MuiThemeProvider>
+            </Grid>
+          </Grid>
+          <Grid container style={{ alignItems: 'flex-end', marginTop: '3px', height: '20px' }}>
+            <Grid item style={{ flexGrow: '1' }}>
+              <IconButton
+                size="small"
+                hidden={!showEditButtons || !allowedToDelete}
+                onClick={this.OnDeleteClick}
+                className={classes.stickynoteCardEditBtn}
+              >
+                <DeleteIcon fontSize="small" className={classes.stickynoteCardAuthor} />
+              </IconButton>
+            </Grid>
+            <Grid item xs={1}>
+              <IconButton
+                size="small"
+                hidden={!showEditButtons || (!allowedToEdit || isBeingEdited)}
+                onClick={this.OnEditClick}
+                className={classes.stickynoteCardEditBtn}
+              >
+                <EditIcon fontSize="small" className={classes.stickynoteCardAuthor} />
+              </IconButton>
+            </Grid>
+          </Grid>
+        </Paper>
+      </ClickAwayListener>
     );
   }
 }
 
 StickyNote.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  // eslint-disable-next-line react/forbid-prop-types
+  comment: PropTypes.object,
+  onStartEdit: PropTypes.func,
+  onUpdateComment: PropTypes.func
 };
 
 StickyNote.defaultProps = {
-  classes: {}
+  classes: {},
+  comment: {
+    id: -1,
+    author: '',
+    date: new Date(),
+    text: '',
+    criteriaId: ''
+  },
+  onStartEdit: () => {
+    console.error('StickyNote: onStartEdit prop was not defined!');
+  },
+  onUpdateComment: () => {
+    console.error('StickyNote: onUpdateComment prop was not defined!');
+  }
 };
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
