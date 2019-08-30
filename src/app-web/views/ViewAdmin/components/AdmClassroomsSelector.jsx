@@ -48,8 +48,8 @@ class ClassroomsSelector extends React.Component {
     this.OnAddClasssroomName = this.OnAddClasssroomName.bind(this);
     this.OnAddClassroomDialogClose = this.OnAddClassroomDialogClose.bind(this);
 
-    UR.Sub('TEACHER_SELECT', this.DoTeacherSelect);
-    UR.Sub('CLASSROOM_SELECT', this.DoClassroomSelect);
+    UR.Subscribe('TEACHER_SELECT', this.DoTeacherSelect);
+    UR.Subscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
 
     this.state = {
       classrooms: [],

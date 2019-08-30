@@ -43,8 +43,8 @@ class ResourcesList extends React.Component {
       classroomId: ''
     };
 
-    UR.Sub('CLASSROOM_SELECT', this.DoClassroomSelect);
-    UR.Sub('ADM_DATA_UPDATED', this.DoADMDataUpdate); // Broadcast when a resource is updated.
+    UR.Subscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
+    UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate); // Broadcast when a resource is updated.
   }
 
   componentDidMount() { }

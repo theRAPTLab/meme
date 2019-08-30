@@ -21,7 +21,7 @@ const PROMPTS = require('../system/util/prompts');
 
 const { TERM_DB: CLR, TR } = PROMPTS;
 const PR = `${CLR}${PROMPTS.Pad('UR_DB')}${TR}`;
-const RUNTIMEPATH = './runtime/';
+const RUNTIMEPATH = PATH.join(__dirname, '../../runtime');
 
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -37,12 +37,13 @@ let TEMPLATE;
 
 /// API METHODS ///////////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-const DB_CONFIG = {};
+const DB_CONFIG = {
+  dataset: 'meme'
+}; //
 const DB = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ API: Initialize the database
-    dataset
-/*/
+/** Initialize database, creating blank DB file if necessary.
+ */
 DB.InitializeDatabase = (options = {}) => {
   let dataset = DB_CONFIG.dataset || 'test';
   let db_file = m_GetValidDBFilePath(dataset);
@@ -50,7 +51,10 @@ DB.InitializeDatabase = (options = {}) => {
   if (!FS.existsSync(db_file)) {
     console.log(PR, `NO EXISTING DATABASE ${db_file}, so creating BLANK DATABASE...`);
   }
+
+  // initialize database with given options
   console.log(PR, `loading database ${db_file}`);
+
   let ropt = {
     autoload: true,
     autoloadCallback: f_DatabaseInitialize,
@@ -58,6 +62,7 @@ DB.InitializeDatabase = (options = {}) => {
     autosaveCallback: f_AutosaveStatus,
     autosaveInterval: 4000 // save every four seconds
   };
+
   ropt = Object.assign(ropt, options);
   m_db = new Loki(db_file, ropt);
   m_options = ropt;
@@ -90,12 +95,13 @@ DB.InitializeDatabase = (options = {}) => {
     let edgeCount = EDGES.count();
     console.log(PR, `AUTOSAVING! ${nodeCount} NODES / ${edgeCount} EDGES <3`);
   }
-}; // InitializeDatabase()
+};
+
+/// INITIALIZE DATABASE ///////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ API: load database
-    note: InitializeDatabase() was already called on system initialization
-    to populate the NODES and EDGES structures.
-/*/
+/** API: load database
+ * Package the database and related templatesinto the provided pkt object.
+ */
 DB.PKT_GetDatabase = pkt => {
   let nodes = NODES.chain().data({ removeMeta: true });
   let edges = EDGES.chain().data({ removeMeta: true });
@@ -105,11 +111,462 @@ DB.PKT_GetDatabase = pkt => {
       `PKT_GetDatabase ${pkt.Info()} (loaded ${nodes.length} nodes, ${edges.length} edges)`
     );
   LOGGER.Write(pkt.Info(), `getdatabase`);
-  return { d3data: { nodes, edges }, template: TEMPLATE };
+  const adm_db = {};
+  // SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS
+  adm_db.a_teachers = [
+    { id: 'brown', name: 'Ms Brown' },
+    { id: 'smith', name: 'Mr Smith' },
+    { id: 'gordon', name: 'Ms Gordon' }
+  ];
+  // SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS
+  adm_db.a_classrooms = [
+    { id: 'cl01', name: 'Period 1', teacherId: 'brown' },
+    { id: 'cl02', name: 'Period 3', teacherId: 'brown' },
+    { id: 'cl03', name: 'Period 2', teacherId: 'smith' },
+    { id: 'cl04', name: 'Period 3', teacherId: 'smith' }
+  ];
+  // SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS
+  adm_db.a_groups = [
+    { id: 'gr01', name: 'Blue', students: ['Bob', 'Bessie', 'Bill'], classroomId: 'cl01' },
+    { id: 'gr02', name: 'Green', students: ['Ginger', 'Gail', 'Greg'], classroomId: 'cl01' },
+    { id: 'gr03', name: 'Red', students: ['Rob', 'Reese', 'Randy'], classroomId: 'cl01' },
+    { id: 'gr04', name: 'Purple', students: ['Peter', 'Paul', 'Penelope'], classroomId: 'cl01' },
+    { id: 'gr05', name: 'Mackerel', students: ['Mary', 'Mavis', 'Maddy'], classroomId: 'cl02' }
+  ];
+  // LIST SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS AND STUDENTS
+  // ids here are relevant to PMCData / SVGView operation
+  adm_db.a_models = [
+    { id: 'mo01', title: 'Fish Sim', groupId: 'gr01', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo02', title: 'Tank Sim', groupId: 'gr01', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo03', title: 'Ammonia', groupId: 'gr01', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo04', title: 'Fish Sim', groupId: 'gr02', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo05', title: 'Tank Sim', groupId: 'gr02', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo06', title: 'Fish Sim', groupId: 'gr04', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo07', title: 'No Sim', groupId: 'gr04', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo08', title: 'Fish Sim', groupId: 'gr04', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo09', title: 'Tank Sim', groupId: 'gr04', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo10', title: 'Fish Sim', groupId: 'gr04', dateCreated: '', dateModified: '', data: '' },
+    { id: 'mo11', title: 'No Sim', groupId: 'gr05', dateCreated: '', dateModified: '', data: '' }
+  ];
+  // SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS
+  // ViewMain will eventually show a link that shows criteria
+  adm_db.a_criteria = [
+    {
+      id: 'cr01',
+      label: 'Clarity',
+      description: 'How clear is the explanation?',
+      classroomId: 'cl01'
+    },
+    {
+      id: 'cr02',
+      label: 'Visuals',
+      description: 'Does the layout make sense?',
+      classroomId: 'cl01'
+    },
+    {
+      id: 'cr03',
+      label: 'Clarity',
+      description: 'How clear is the evidence link?',
+      classroomId: 'cl02'
+    },
+    {
+      id: 'cr04',
+      label: 'Layout',
+      description: 'Does the layout make sense?',
+      classroomId: 'cl02'
+    }
+  ];
+  // SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS
+  adm_db.a_sentenceStarters = [
+    {
+      id: 'ss01',
+      classroomId: 'cl01',
+      sentences: 'I noticed...\nI think...'
+    },
+    {
+      id: 'ss02',
+      classroomId: 'cl02',
+      sentences: 'We noticed...'
+    },
+    {
+      id: 'ss03',
+      classroomId: 'cl03',
+      sentences: 'We believe...'
+    }
+  ];
+  // SAVED IN ELECTRON/LOKI, (EVENTUALLY) EDITABLE BY TEACHERS
+  adm_db.a_ratingsDefinitions = [
+    { label: 'Really disagrees!', rating: -3 },
+    { label: 'Kinda disagrees!', rating: -2 },
+    { label: 'Disagrees a little', rating: -1 },
+    { label: 'Not rated / Irrelevant', rating: 0 },
+    { label: 'Weak support', rating: 1 },
+    { label: 'Medium support', rating: 2 },
+    { label: 'Rocks!!', rating: 3 }
+  ];
+  // SAVED IN ELECTRON/LOKI, EDITABLE BY TEACHERS
+  adm_db.a_classroomResources = [
+    { classroomId: 'cl01', resources: ['rs1', 'rs2'] }, // PMCData Rsources
+    { classroomId: 'cl02', resources: ['rs2', 'rs3'] },
+    { classroomId: 'cl03', resources: ['rs4', 'rs5'] },
+    { classroomId: 'cl04', resources: ['rs6', 'rs7'] }
+  ];
+
+  /*/
+     *    Resources
+     *
+     *    Currently resources use a placeholder screenshot as the default image.
+     *    (Screenshot-creation and saving have not been implemented yet).
+     *
+    /*/
+  adm_db.a_resources = [
+    {
+      rsrcId: 'rs1',
+      referenceLabel: '1',
+      label: 'Fish in a Tank Simulation',
+      notes: 'water quality and fish deaths over time',
+      type: 'simulation',
+      url: '../static/dlc/FishinaTank.html',
+      links: 0
+    },
+    {
+      rsrcId: 'rs2',
+      referenceLabel: '2',
+      label: "Raj's forum post.",
+      notes: 'Forum post about fish deaths',
+      type: 'report',
+      url: '../static/dlc/RajForumPost.pdf',
+      links: 0
+    },
+    {
+      rsrcId: 'rs3',
+      referenceLabel: '3',
+      label: 'Autopsy Report',
+      notes: 'Fighting?',
+      type: 'report',
+      url: '../static/dlc/VetReport.pdf',
+      links: 0
+    },
+    {
+      rsrcId: 'rs4',
+      referenceLabel: '4',
+      label: 'Fish Starving Simulation',
+      notes: 'food and fish population',
+      type: 'simulation',
+      url: '../static/dlc/FishStarving.html',
+      links: 0
+    },
+    {
+      rsrcId: 'rs5',
+      referenceLabel: '5',
+      label: 'Ammonia Testing',
+      notes: 'Ammonia Testing and Water Quality',
+      type: 'report',
+      url: '../static/dlc/AmmoniaTesting.pdf',
+      links: 0
+    },
+    {
+      rsrcId: 'rs6',
+      referenceLabel: '6',
+      label: 'Fish Fighting Simulation',
+      notes: 'fighting, fish death',
+      type: 'simulation',
+      url: '../static/dlc/FishFighting.html',
+      links: 0
+    },
+    {
+      rsrcId: 'rs7',
+      referenceLabel: '7',
+      label: 'Food Rot Simulation',
+      notes: 'rotting, waste, fish death',
+      type: 'simulation',
+      url: '../static/dlc/FoodRot.html',
+      links: 0
+    },
+    {
+      rsrcId: 'rs8',
+      referenceLabel: '8',
+      label: 'Ammonia in Tanks Report',
+      notes: 'Ammonia, Research',
+      type: 'report',
+      url: '../static/dlc/AmmoniaInTanks.pdf',
+      links: 0
+    },
+    {
+      rsrcId: 'rs9',
+      referenceLabel: '9',
+      label: 'Fish Simulation With All Variables',
+      notes: 'ammonia, waste, death, food, rotting, aggression, filter',
+      type: 'simulation',
+      url: '../static/dlc/FishAllVariables.html',
+      links: 0
+    }
+  ];
+
+  // HACK IN TEMPORARY DATA
+  /*\
+
+    stickynotes "hold" the comments for a particular PMC or Evidence object
+    annotations are the academic terminology for talking about some model element (?)
+    stickynotes are a form of annotation
+    * StickyNoteButtons
+    * StickyNote
+    model connections are an assertion or hypothesis
+    evidence links are a supporting assertion or hypothesis
+
+    properties: [
+      {
+        id, name, parent <optional>,
+        comments: [ commentObjects ]
+      }
+    ]
+    mechanisms: [
+      {
+        source,target,name},
+        comments: [ commentObjects ]
+      }
+    ]
+    evidence: [
+      {
+        evId, propId, mechId, rsrcId, number, note,
+        comments: [ commentObjects ]
+      }
+    ]
+    def commentObject = { id, author, date, text, criteriaId, readBy }
+
+  \*/
+
+  let model = adm_db.a_models.find(model => model.id === 'mo01');
+  model.data = {
+    // components is a 'component' or a 'property' (if it has a parent)
+    properties: [
+      { id: 'tank', name: 'tank' },
+      { id: 'fish', name: 'fish' },
+      { id: 'food', name: 'food' },
+      { id: 'ammonia', name: 'Ammonia' },
+      { id: 'clean-water', name: 'clean water', parent: 'tank' },
+      { id: 'dirty-water-waste', name: 'waste', parent: 'tank' },
+      { id: 'poop', name: 'poop', parent: 'dirty-water-waste' }
+    ],
+    mechanisms: [
+      { source: 'fish', target: 'tank', name: 'live in' },
+      { source: 'fish', target: 'food', name: 'eat' },
+      { source: 'fish', target: 'dirty-water-waste', name: 'produce' }
+    ],
+    evidence: [
+      {
+        evId: 'ev1',
+        propId: 'fish',
+        mechId: undefined,
+        rsrcId: 'rs1',
+        number: '1a',
+        rating: 3,
+        note: 'ghoti ghoti gothi need food',
+        comments: [
+          {
+            id: 0,
+            author: 'Bessie',
+            date: new Date(),
+            text: 'What is this',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            author: 'Bill',
+            date: new Date(),
+            text: 'I DONT like this',
+            criteriaId: 'cr02',
+            readBy: []
+          },
+          {
+            id: 3,
+            author: 'Mary',
+            date: new Date(),
+            text: 'Something from another group',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      },
+      {
+        evId: 'ev3',
+        propId: 'fish',
+        mechId: undefined,
+        rsrcId: 'rs2',
+        number: '2a',
+        rating: 2,
+        note: 'fish need food'
+      },
+      {
+        evId: 'ev2',
+        propId: 'fish',
+        mechId: undefined,
+        rsrcId: 'rs1',
+        number: '1b',
+        rating: -3,
+        note: 'fish need food'
+      },
+      {
+        evId: 'ev4',
+        propId: undefined,
+        mechId: 'fish:food',
+        rsrcId: 'rs1',
+        number: '1c',
+        rating: 3,
+        note: 'fish need food'
+      },
+      {
+        evId: 'ev5',
+        propId: 'food',
+        mechId: undefined,
+        rsrcId: 'rs2',
+        number: '2b',
+        rating: 2,
+        note: 'ammonia is bad'
+      },
+      {
+        evId: 'ev6',
+        propId: undefined,
+        mechId: 'fish:food',
+        rsrcId: 'rs2',
+        number: '2c',
+        rating: 1,
+        note: 'ammonia is bad'
+      },
+      {
+        evId: 'ev7',
+        propId: undefined,
+        mechId: 'fish:dirty-water-waste',
+        rsrcId: 'rs2',
+        number: '2d',
+        rating: 1,
+        note: 'ammonia is bad'
+      }
+    ],
+    model: [
+      {
+        title: '',
+        comments: []
+      }
+    ],
+    commentThreads: [
+      {
+        id: 'tank',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bob',
+            date: new Date(),
+            text: 'Tank you',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            time: 10,
+            author: 'Bill',
+            date: new Date(),
+            text: 'This tanks!',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      },
+      {
+        id: 'fish',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bob',
+            date: new Date(),
+            text: 'I like this fish',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            time: 10,
+            author: 'Bill',
+            date: new Date(),
+            text: 'I DONT like this fish',
+            criteriaId: 'cr02',
+            readBy: []
+          },
+          {
+            id: 2,
+            time: 11,
+            author: 'Mary',
+            date: new Date(),
+            text: 'This is not my fish!',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      },
+      {
+        id: 'fish:food',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bill',
+            date: new Date(),
+            text: 'Fish food fish food',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            time: 10,
+            author: 'Bill',
+            date: new Date(),
+            text: 'Food fish food fish',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      },
+      {
+        id: 'fish:dirty-water-waste',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bill',
+            date: new Date(),
+            text: 'Fish food fish poop',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          },
+          {
+            id: 1,
+            time: 10,
+            author: 'Bill',
+            date: new Date(),
+            text: 'Poop fish food fish',
+            criteriaId: 'cr02',
+            readBy: []
+          }
+        ]
+      }
+    ]
+  };
+
+  model = adm_db.a_models.find(model => model.id === 'mo02');
+  model.data = {
+    // components is a 'component' or a 'property' (if it has a parent)
+    properties: [{ id: 'tank', name: 'tank' }, { id: 'fish', name: 'fish' }]
+  };
+
+  // return { d3data: { nodes, edges }, template: TEMPLATE };
+  return adm_db;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ API: reset database from scratch
-/*/
+/** API: reset database from passed nodes, edges array
+ */
 DB.PKT_SetDatabase = pkt => {
   if (DBG) console.log(PR, `PKT_SetDatabase`);
   let { nodes = [], edges = [] } = pkt.Data();
@@ -122,13 +579,14 @@ DB.PKT_SetDatabase = pkt => {
   EDGES.clear();
   EDGES.insert(edges);
   console.log(PR, `PKT_SetDatabase complete. Data available on next get.`);
-  m_db.close();
-  DB.InitializeDatabase();
-  LOGGER.Write(pkt.Info(), `setdatabase`);
+  m_db.close(() => {
+    DB.InitializeDatabase();
+    LOGGER.Write(pkt.Info(), `setdatabase`);
+  });
   return { OK: true };
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-DB.PKT_GetNewNodeID = function(pkt) {
+DB.PKT_GetNewNodeID = pkt => {
   m_max_nodeID += 1;
   if (DBG) console.log(PR, `PKT_GetNewNodeID ${pkt.Info()} nodeID ${m_max_nodeID}`);
   return { nodeID: m_max_nodeID };
@@ -179,6 +637,7 @@ function m_IsInvalidNode(nodeID) {
   // no retval is no error!
   return undefined;
 }
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function m_MakeLockError(info) {
   return { NOP: `ERR`, INFO: info };
 }
@@ -237,135 +696,142 @@ DB.PKT_RequestUnlockAll = pkt => {
   return { unlocked: true };
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * data packet contains items that will be updated. either an individual node, edge,
+ * or a nodeID with a replacement nodeID
+ */
 DB.PKT_Update = pkt => {
-  let { node, edge, nodeID, replacementNodeID, edgeID } = pkt.Data();
-  let retval = {};
+  let { node, edge, nodeID, edgeID } = pkt.Data();
   // PROCESS NODE INSERT/UPDATE
-  if (node) {
-    m_CleanObjID(`${pkt.Info()} node.id`, node);
-    let matches = NODES.find({ id: node.id });
-    if (matches.length === 0) {
-      // if there was no node, then this is an insert new operation
-      if (DBG) console.log(PR, `PKT_Update ${pkt.Info()} INSERT nodeID ${JSON.stringify(node)}`);
-      LOGGER.Write(pkt.Info(), `insert node`, node.id, JSON.stringify(node));
-      DB.AppendNodeLog(node, pkt); // log GroupId to node stored in database
-      NODES.insert(node);
-      retval = { op: 'insert', node };
-    } else if (matches.length === 1) {
-      // there was one match to update
-      NODES.findAndUpdate({ id: node.id }, n => {
-        if (DBG)
-          console.log(
-            PR,
-            `PKT_Update ${pkt.Info()} UPDATE nodeID ${node.id} ${JSON.stringify(node)}`
-          );
-        LOGGER.Write(pkt.Info(), `update node`, node.id, JSON.stringify(node));
-        DB.AppendNodeLog(n, pkt); // log GroupId to node stored in database
-        Object.assign(n, node);
-      });
-      retval = { op: 'update', node };
-    } else {
-      if (DBG) console.log(PR, `WARNING: multiple nodeID ${node.id} x${matches.length}`);
-      LOGGER.Write(pkt.Info(), `ERROR`, node.id, 'duplicate node id');
-      retval = { op: 'error-multinodeid' };
-    }
-    return retval;
-  } // if node
-
-  // PROCESS EDGE INSERT/UPDATE
-  if (edge) {
-    m_CleanObjID(`${pkt.Info()} edge.id`, edge);
-    let matches = EDGES.find({ id: edge.id });
-    if (matches.length === 0) {
-      // this is a new edge
-      if (DBG)
-        console.log(
-          PR,
-          `PKT_Update ${pkt.Info()} INSERT edgeID ${edge.id} ${JSON.stringify(edge)}`
-        );
-      LOGGER.Write(pkt.Info(), `insert edge`, edge.id, JSON.stringify(edge));
-      DB.AppendEdgeLog(edge, pkt); // log GroupId to edge stored in database
-      EDGES.insert(edge);
-      retval = { op: 'insert', edge };
-    } else if (matches.length === 1) {
-      // update this edge
-      EDGES.findAndUpdate({ id: edge.id }, e => {
-        if (DBG)
-          console.log(
-            PR,
-            `PKT_Update ${pkt.SourceGroupID()} UPDATE edgeID ${edge.id} ${JSON.stringify(edge)}`
-          );
-        LOGGER.Write(pkt.Info(), `update edge`, edge.id, JSON.stringify(edge));
-        DB.AppendEdgeLog(e, pkt); // log GroupId to edge stored in database
-        Object.assign(e, edge);
-      });
-      retval = { op: 'update', edge };
-    } else {
-      console.log(PR, `WARNING: multiple edgeID ${edge.id} x${matches.length}`);
-      LOGGER.Write(pkt.Info(), `ERROR`, node.id, 'duplicate edge id');
-      retval = { op: 'error-multiedgeid' };
-    }
-    return retval;
-  } // if edge
-
-  // DELETE NODE
-  if (nodeID !== undefined) {
-    nodeID = m_CleanID(`${pkt.Info()} nodeID`, nodeID);
-    if (DBG) console.log(PR, `PKT_Update ${pkt.Info()} DELETE nodeID ${nodeID}`);
-    // Log first so it's apparent what is triggering the edge changes
-    LOGGER.Write(pkt.Info(), `delete node`, nodeID);
-
-    // handle edges
-    let edgesToProcess = EDGES.where(e => {
-      return e.source === nodeID || e.target === nodeID;
-    });
-
-    // handle linked nodes
-    replacementNodeID = m_CleanID(`${pkt.Info()} replacementNodeID`, replacementNodeID);
-    if (replacementNodeID !== -1) {
-      // re-link edges to replacementNodeID...
-      EDGES.findAndUpdate({ source: nodeID }, e => {
-        LOGGER.Write(pkt.Info(), `relinking edge`, e.id, `to`, replacementNodeID);
-        e.source = replacementNodeID;
-      });
-      EDGES.findAndUpdate({ target: nodeID }, e => {
-        LOGGER.Write(pkt.Info(), `relinking edge`, e.id, `to`, replacementNodeID);
-        e.target = replacementNodeID;
-      });
-    } else {
-      // ... or delete edges completely
-      let sourceEdges = EDGES.find({ source: nodeID });
-      EDGES.findAndRemove({ source: nodeID });
-      if (sourceEdges.length)
-        LOGGER.Write(pkt.Info(), `deleting ${sourceEdges.length} sources matching ${nodeID}`);
-      let targetEdges = EDGES.find({ target: nodeID });
-      EDGES.findAndRemove({ target: nodeID });
-      if (targetEdges.length)
-        LOGGER.Write(pkt.Info(), `deleting ${targetEdges.length} targets matching ${nodeID}`);
-    }
-    // ...finally remove the node itself
-    NODES.findAndRemove({ id: nodeID });
-    return { op: 'delete', nodeID, replacementNodeID };
-  }
-
-  // DELETE EDGES
-  if (edgeID !== undefined) {
-    edgeID = m_CleanID(`${pkt.Info()} edgeID`, edgeID);
-    if (DBG) console.log(PR, `PKT_Update ${pkt.Info()} DELETE edgeID ${edgeID}`);
-    LOGGER.Write(pkt.Info(), `delete edge`, edgeID);
-    EDGES.findAndRemove({ id: edgeID });
-    return { op: 'delete', edgeID };
-  }
-
+  if (node) return m_UpdateNode(node, pkt);
+  if (edge) return m_UpdateEdge(edge, pkt);
+  if (nodeID !== undefined) return m_DeleteNode(nodeID, pkt);
+  if (edgeID !== undefined) return m_DeleteEdge(edgeID, pkt);
   // return update value
   return { op: 'error-noaction' };
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function m_UpdateNode(node, pkt) {
+  let retval = {};
+
+  m_CleanObjID(`${pkt.Info()} node.id`, node);
+  let matches = NODES.find({ id: node.id });
+  if (matches.length === 0) {
+    // if there was no node, then this is an insert new operation
+    if (DBG) console.log(PR, `PKT_Update ${pkt.Info()} INSERT nodeID ${JSON.stringify(node)}`);
+    LOGGER.Write(pkt.Info(), `insert node`, node.id, JSON.stringify(node));
+    DB.AppendNodeLog(node, pkt); // log GroupId to node stored in database
+    NODES.insert(node);
+    retval = { op: 'insert', node };
+  } else if (matches.length === 1) {
+    // there was one match to update
+    NODES.findAndUpdate({ id: node.id }, n => {
+      if (DBG)
+        console.log(
+          PR,
+          `PKT_Update ${pkt.Info()} UPDATE nodeID ${node.id} ${JSON.stringify(node)}`
+        );
+      LOGGER.Write(pkt.Info(), `update node`, node.id, JSON.stringify(node));
+      DB.AppendNodeLog(n, pkt); // log GroupId to node stored in database
+      Object.assign(n, node);
+    });
+    retval = { op: 'update', node };
+  } else {
+    if (DBG) console.log(PR, `WARNING: multiple nodeID ${node.id} x${matches.length}`);
+    LOGGER.Write(pkt.Info(), `ERROR`, node.id, 'duplicate node id');
+    retval = { op: 'error-multinodeid' };
+  }
+  return retval;
+} // updatenode
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function m_UpdateEdge(edge, pkt) {
+  let retval = {};
+  // PROCESS EDGE INSERT/UPDATE
+  m_CleanObjID(`${pkt.Info()} edge.id`, edge);
+  let matches = EDGES.find({ id: edge.id });
+  if (matches.length === 0) {
+    // this is a new edge
+    if (DBG)
+      console.log(PR, `PKT_Update ${pkt.Info()} INSERT edgeID ${edge.id} ${JSON.stringify(edge)}`);
+    LOGGER.Write(pkt.Info(), `insert edge`, edge.id, JSON.stringify(edge));
+    DB.AppendEdgeLog(edge, pkt); // log GroupId to edge stored in database
+    EDGES.insert(edge);
+    retval = { op: 'insert', edge };
+  } else if (matches.length === 1) {
+    // update this edge
+    EDGES.findAndUpdate({ id: edge.id }, e => {
+      if (DBG)
+        console.log(
+          PR,
+          `PKT_Update ${pkt.SourceGroupID()} UPDATE edgeID ${edge.id} ${JSON.stringify(edge)}`
+        );
+      LOGGER.Write(pkt.Info(), `update edge`, edge.id, JSON.stringify(edge));
+      DB.AppendEdgeLog(e, pkt); // log GroupId to edge stored in database
+      Object.assign(e, edge);
+    });
+    retval = { op: 'update', edge };
+  } else {
+    console.log(PR, `WARNING: multiple edgeID ${edge.id} x${matches.length}`);
+    LOGGER.Write(pkt.Info(), `ERROR`, edge.id, 'duplicate edge id');
+    retval = { op: 'error-multiedgeid' };
+  }
+  return retval;
+} // update edge
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function m_DeleteNode(nodeID, pkt) {
+  // DELETE NODE
+  nodeID = m_CleanID(`${pkt.Info()} nodeID`, nodeID);
+  if (DBG) console.log(PR, `PKT_Update ${pkt.Info()} DELETE nodeID ${nodeID}`);
+  // Log first so it's apparent what is triggering the edge changes
+  LOGGER.Write(pkt.Info(), `delete node`, nodeID);
+
+  // handle edges
+  let edgesToProcess = EDGES.where(e => {
+    return e.source === nodeID || e.target === nodeID;
+  });
+
+  // handle linked nodes
+  let { replacementNodeID } = pkt.Data();
+  replacementNodeID = m_CleanID(`${pkt.Info()} replacementNodeID`, replacementNodeID);
+  if (replacementNodeID !== -1) {
+    // re-link edges to replacementNodeID...
+    EDGES.findAndUpdate({ source: nodeID }, e => {
+      LOGGER.Write(pkt.Info(), `relinking edge`, e.id, `to`, replacementNodeID);
+      e.source = replacementNodeID;
+    });
+    EDGES.findAndUpdate({ target: nodeID }, e => {
+      LOGGER.Write(pkt.Info(), `relinking edge`, e.id, `to`, replacementNodeID);
+      e.target = replacementNodeID;
+    });
+  } else {
+    // ... or delete edges completely
+    let sourceEdges = EDGES.find({ source: nodeID });
+    EDGES.findAndRemove({ source: nodeID });
+    if (sourceEdges.length)
+      LOGGER.Write(pkt.Info(), `deleting ${sourceEdges.length} sources matching ${nodeID}`);
+    let targetEdges = EDGES.find({ target: nodeID });
+    EDGES.findAndRemove({ target: nodeID });
+    if (targetEdges.length)
+      LOGGER.Write(pkt.Info(), `deleting ${targetEdges.length} targets matching ${nodeID}`);
+  }
+  // ...finally remove the node itself
+  NODES.findAndRemove({ id: nodeID });
+  return { op: 'delete', nodeID, replacementNodeID };
+}
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function m_DeleteEdge(edgeID, pkt) {
+  edgeID = m_CleanID(`${pkt.Info()} edgeID`, edgeID);
+  if (DBG) console.log(PR, `PKT_Update ${pkt.Info()} DELETE edgeID ${edgeID}`);
+  LOGGER.Write(pkt.Info(), `delete edge`, edgeID);
+  EDGES.findAndRemove({ id: edgeID });
+  return { op: 'delete', edgeID };
+}
 
 /// NODE ANNOTATION ///////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ write/remove packet SourceGroupID() information into the node before writing
-    the first entry is the insert, subsequent operations are updates
-/*/
+/** write/remove packet SourceGroupID() information into the node before writing
+  the first entry is the insert, subsequent operations are updates
+ */
 DB.AppendNodeLog = (node, pkt) => {
   if (!node._nlog) node._nlog = [];
   let gid = pkt.SourceGroupID() || pkt.SourceAddress();
@@ -378,6 +844,8 @@ DB.AppendNodeLog = (node, pkt) => {
     console.log(PR, 'nodelog', out);
   }
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** */
 DB.FilterNodeLog = node => {
   let newNode = Object.assign({}, node);
   Reflect.deleteProperty(newNode, '_nlog');
@@ -385,9 +853,9 @@ DB.FilterNodeLog = node => {
 };
 /// EDGE ANNOTATION ///////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ write/remove packet SourceGroupID() information into the node before writing
-    the first entry is the insert, subsequent operations are updates
-/*/
+/** write/remove packet SourceGroupID() information into the node before writing
+ * the first entry is the insert, subsequent operations are updates
+ */
 DB.AppendEdgeLog = (edge, pkt) => {
   if (!edge._elog) edge._elog = [];
   let gid = pkt.SourceGroupID() || pkt.SourceAddress();
@@ -400,6 +868,10 @@ DB.AppendEdgeLog = (edge, pkt) => {
     console.log(PR, 'edgelog', out);
   }
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *
+ */
 DB.FilterEdgeLog = edge => {
   let newEdge = Object.assign({}, edge);
   Reflect.deleteProperty(newEdge, '_elog');
@@ -408,9 +880,9 @@ DB.FilterEdgeLog = edge => {
 
 /// JSON EXPORT ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ called by brunch to generate an up-to-date JSON file to path.
-    creates the path if it doesn't exist
-/*/
+/** called by brunch to generate an up - to - date JSON file to path.
+ * creates the path if it doesn't exist
+ */
 DB.WriteDbJSON = filePath => {
   let dataset = DB_CONFIG.dataset;
 
@@ -444,9 +916,9 @@ DB.WriteDbJSON = filePath => {
   });
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ called by brunch to generate an up-to-date Template file to path.
-    creates the path if it doesn't exist
-/*/
+/** called by brunch to generate an up - to - date Template file to path.
+ * creates the path if it doesn't exist
+ */
 DB.WriteTemplateJSON = filePath => {
   let templatePath = `${RUNTIMEPATH + DB_CONFIG.dataset}.template`;
   FS.ensureDirSync(PATH.dirname(templatePath));
@@ -491,7 +963,10 @@ function m_CleanID(prompt, id) {
   return id;
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// utility function for getting a valid file path
+/** Given a root word, create a full pathname to .loki file in the runtime path.
+ * Makes sure that the passed pathname allows only alphanumeric characters with
+ * some special characters
+ */
 function m_GetValidDBFilePath(dataset) {
   // validate dataset name
   let regex = /^([A-z0-9-_+./])*$/; // Allow _ - + . /, so nested pathways are allowed
@@ -499,7 +974,7 @@ function m_GetValidDBFilePath(dataset) {
     console.error(PR, `Trying to initialize database with bad dataset name: ${dataset}`);
   }
 
-  return `${RUNTIMEPATH + dataset}.loki`;
+  return `${RUNTIMEPATH}/dataset.loki`;
 }
 
 /// EXPORT MODULE DEFINITION //////////////////////////////////////////////////

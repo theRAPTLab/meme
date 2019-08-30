@@ -1,7 +1,7 @@
 /*//////////////////////////////// ABOUT \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
   NetMessage objects are sent between the browser and server as part of the
-  UNISYS messaging system. NetMessages do not need addresses.
+  URSYS messaging system. NetMessages do not need addresses.
 
   This NetMessage declaration is SHARED in both node and browser javascript
   codebases.
@@ -20,7 +20,7 @@ const PROMPTS = require('./util/prompts');
 
 /// DEBUG MESSAGES ////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = { send: false, transact: false };
+const DBG = { send: false, transact: false, setup: false };
 
 const PR = PROMPTS.Pad('PKT');
 const ERR = ':ERR:';
@@ -64,7 +64,7 @@ const TRANSACTION_MODE = [
   'res' // packet in returned 'response' mode
 ];
 
-/// UNISYS NETMESSAGE CLASS ///////////////////////////////////////////////////
+/// URSYS NETMESSAGE CLASS ////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** Class NetMessage
  * Container for messages that can be sent across the network to the URSYS
@@ -130,7 +130,7 @@ class NetMessage {
     // addressing support
     this.s_uaddr = NetMessage.SocketUADDR() || null; // first originating uaddr set by SocketSend()
     this.s_group = null; // session groupid is set by external module once validated
-    this.s_uid = null; // first originating UDATA srcUID
+    this.s_uid = null; // first originating ULINK srcUID
     // filtering support
   } // constructor
 
@@ -167,6 +167,21 @@ class NetMessage {
   }
 
   /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /** NetMessage.Is() returns truthy value (this.data) if the passed msgstr
+   *  matches the message associated with this NetMessage
+   */
+  Is(msgstr) {
+    return msgstr === this.msg ? this.data : undefined;
+  }
+
+  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /** NetMessage.IsServerMessage() is a convenience function return true if
+   * server message */
+  IsServerMessage() {
+    return this.msg.startsWith('SRV_');
+  }
+
+  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /** NetMessage.SetMessage() sets the message field
    */
   SetMessage(msgstr) {
@@ -196,21 +211,6 @@ class NetMessage {
       return;
     }
     throw ERR_BAD_PROP;
-  }
-
-  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /** NetMessage.Is() returns truthy value (this.data) if the passed msgstr
-   *  matches the message associated with this NetMessage
-   */
-  Is(msgstr) {
-    return msgstr === this.msg ? this.data : undefined;
-  }
-
-  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /** NetMessage.IsServerMessage() is a convenience function return true if
-   * server message */
-  IsServerMessage() {
-    return this.msg.startsWith('SRV_');
   }
 
   /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -459,13 +459,14 @@ class NetMessage {
  * @param {Object} [config.uaddr] - URSYS browser address
  */
 NetMessage.GlobalSetup = (config = {}) => {
-  let { uaddr, netsocket } = config;
+  let { uaddr, netsocket, peers } = config;
   if (uaddr) NetMessage.UADDR = uaddr;
+  if (peers) NetMessage.PEERS = peers;
   if (netsocket) {
     // NOTE: m_netsocket is set only on clients since on server, there are
     // multiple sockets
     if (typeof netsocket.send !== 'function') throw ERR_BAD_SOCKET;
-    console.log(PR, 'GlobalSetup: netsocket set, mode online');
+    if (DBG.setup) console.log(PR, 'GlobalSetup: netsocket set, mode online');
     m_netsocket = netsocket;
     m_mode = M_ONLINE;
   }
@@ -481,7 +482,7 @@ NetMessage.UADDR = 'UNASSIGNED';
  */
 NetMessage.GlobalCleanup = () => {
   if (m_netsocket) {
-    console.log(PR, 'GlobalCleanup: deallocating netsocket, mode closed');
+    if (DBG.setup) console.log(PR, 'GlobalCleanup: deallocating netsocket, mode closed');
     m_netsocket = null;
     m_mode = M_CLOSED;
   }
@@ -513,6 +514,9 @@ NetMessage.GlobalOfflineMode = () => {
  */
 NetMessage.SocketUADDR = () => {
   return NetMessage.UADDR;
+};
+NetMessage.Peers = () => {
+  return NetMessage.PEERS;
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

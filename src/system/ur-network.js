@@ -12,7 +12,7 @@ import CENTRAL from './ur-central';
 import NetMessage from './common-netmessage';
 import PROMPTS from './util/prompts';
 
-const DBG = { connect: true, handle: false };
+const DBG = { connect: false, handle: false };
 
 /// DECLARATIONS /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -21,7 +21,7 @@ const PR = PROMPTS.Pad('NETWORK');
 const WARN = PROMPTS.Pad('!!!');
 const ERR_NM_REQ = 'arg1 must be NetMessage instance';
 const ERR_NO_SOCKET = 'Network socket has not been established yet';
-const ERR_BAD_UDATA = "An instance of 'client-datalink-class' is required";
+const ERR_BAD_ULINK = "An instance of 'URLink' is required";
 
 /// GLOBAL NETWORK INFO (INJECTED ON INDEX) ///////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -42,7 +42,25 @@ let m_options = {};
 /// API METHODS ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const NETWORK = {};
-let UDATA = null; // assigned during NETWORK.Connect()
+let ULINK = null; // assigned during NETWORK.Connect()
+
+/// NETWORK LISTENERS /////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NETWORK.AddListener = (event, handlerFunction) => {
+  if (NETSOCK.ws instanceof WebSocket) {
+    NETSOCK.ws.addEventListener(event, handlerFunction);
+  } else {
+    throw Error(ERR_NO_SOCKET);
+  }
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NETWORK.RemoveListener = (event, handlerFunction) => {
+  if (NETSOCK.ws instanceof WebSocket) {
+    NETSOCK.ws.removeEventListener(event, handlerFunction);
+  } else {
+    throw Error(ERR_NO_SOCKET);
+  }
+};
 
 /// CONNECT ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -72,15 +90,15 @@ NETWORK.Connect = (datalink, opt) => {
   m_status = M1_CONNECTING;
 
   // check and save parms
-  if (datalink.constructor.name !== 'URDataLink') {
-    throw Error(ERR_BAD_UDATA);
+  if (datalink.constructor.name !== 'URLink') {
+    throw Error(ERR_BAD_ULINK);
   }
-  if (!UDATA) UDATA = datalink;
+  if (!ULINK) ULINK = datalink;
   m_options = opt || {};
 
   // create websocket
   // uses values that were embedded in index.ejs on load
-  const { USRV_Host, USRV_MsgPort } = CENTRAL.GetVal('ur-session');
+  const { USRV_Host, USRV_MsgPort } = CENTRAL.GetVal('ur_session');
   let wsURI = `ws://${USRV_Host}:${USRV_MsgPort}`;
   NETSOCK.ws = new WebSocket(wsURI);
   if (DBG.connect) console.log(PR, 'OPEN SOCKET TO', wsURI);
@@ -135,7 +153,7 @@ NETWORK.Connect = (datalink, opt) => {
 /*/
 function m_HandleRegistrationMessage(msgEvent) {
   let regData = JSON.parse(msgEvent.data);
-  let { HELLO, UADDR, SERVER_UADDR } = regData;
+  let { HELLO, UADDR, SERVER_UADDR, PEERS } = regData;
   // (1) after receiving the initial message, switch over to regular
   // message handler
   NETWORK.RemoveListener('message', m_HandleRegistrationMessage);
@@ -143,7 +161,12 @@ function m_HandleRegistrationMessage(msgEvent) {
   // (2) initialize global settings for netmessage
   if (DBG.connect) console.log(PR, `'${HELLO}'`);
   NETSOCK.ws.UADDR = NetMessage.DefaultServerUADDR();
-  NetMessage.GlobalSetup({ uaddr: UADDR, netsocket: NETSOCK.ws, server_uaddr: SERVER_UADDR });
+  NetMessage.GlobalSetup({
+    uaddr: UADDR,
+    netsocket: NETSOCK.ws,
+    server_uaddr: SERVER_UADDR,
+    peers: PEERS
+  });
   // (3) connect regular message handler
   NETWORK.AddListener('message', m_HandleMessage);
   m_status = M4_READY;
@@ -151,6 +174,10 @@ function m_HandleRegistrationMessage(msgEvent) {
   if (typeof m_options.success === 'function') m_options.success();
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * Dispatch incoming event object
+ * @param {SocketEvent} msgEvent -incoming event object from websocket
+ */
 function m_HandleMessage(msgEvent) {
   let pkt = new NetMessage(msgEvent.data);
   let msg = pkt.Message();
@@ -165,9 +192,11 @@ function m_HandleMessage(msgEvent) {
   /// otherwise, incoming invocation from network
   switch (type) {
     case 'state':
+      // unimplemented netstate
       if (dbgout) console.log(PR, 'received state change', msg);
       break;
     case 'msig':
+      // network signal to raise
       if (dbgout) {
         console.warn(
           PR,
@@ -175,10 +204,11 @@ function m_HandleMessage(msgEvent) {
           data
         );
       }
-      UDATA.LocalSignal(msg, data);
+      ULINK.LocalSignal(msg, data, { fromNet: true });
       pkt.ReturnTransaction();
       break;
     case 'msend':
+      // network message received
       if (dbgout) {
         console.warn(
           PR,
@@ -186,17 +216,18 @@ function m_HandleMessage(msgEvent) {
           data
         );
       }
-      UDATA.LocalSend(msg, data);
+      ULINK.LocalSend(msg, data, { fromNet: true });
       pkt.ReturnTransaction();
       break;
     case 'mcall':
+      // network call received
       if (dbgout) {
         console.warn(
           PR,
           `ME_${NetMessage.SocketUADDR()} received mcall '${msg}' from ${pkt.SourceAddress()}`
         );
       }
-      UDATA.LocalCall(msg, data).then(result => {
+      ULINK.LocalCall(msg, data, { fromNet: true }).then(result => {
         if (dbgout) {
           console.log(
             `ME_${NetMessage.SocketUADDR()} forwarded '${msg}', returning ${JSON.stringify(result)}`
@@ -211,56 +242,13 @@ function m_HandleMessage(msgEvent) {
       throw Error('unknown packet type', type);
   }
 }
-
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ Send a packet on socket connection, assuming it is valid
-/*/
-NETWORK.Send = pkt => {
-  if (!(pkt instanceof NetMessage)) throw Error(ERR_NM_REQ);
-  if (NETSOCK.ws.readyState === 1) {
-    let json = pkt.JSON();
-    if (DBG) console.log('SENDING', pkt.Message(), pkt.Data(), pkt.SeqNum());
-    NETSOCK.ws.send(json);
-  } else {
-    console.log('Socket not ReadyState 1, is', NETSOCK.ws.readyState);
-  }
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ Send a packet on socket connection, return Promise
-/*/
-NETWORK.Call = pkt => {
-  if (!(pkt instanceof NetMessage)) throw Error(ERR_NM_REQ);
-  if (NETSOCK.ws.readyState === 1) {
-    let json = pkt.JSON();
-    if (DBG) console.log('CALLING', pkt.Message(), json);
-    NETSOCK.ws.send(json);
-  } else {
-    console.log('Socket not ReadyState 1, is', NETSOCK.ws.readyState);
-  }
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ Force close of connection, for example if UNISYS.AppReady() fails
+/*/ Force close of connection, for example if URSYS.AppReady() fails
 /*/
 NETWORK.Close = (code, reason) => {
   code = code || 1000;
-  reason = reason || 'unisys forced close';
+  reason = reason || 'URSYS forced close';
   NETSOCK.ws.close(code, reason);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NETWORK.AddListener = (event, handlerFunction) => {
-  if (NETSOCK.ws instanceof WebSocket) {
-    NETSOCK.ws.addEventListener(event, handlerFunction);
-  } else {
-    throw Error(ERR_NO_SOCKET);
-  }
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NETWORK.RemoveListener = (event, handlerFunction) => {
-  if (NETSOCK.ws instanceof WebSocket) {
-    NETSOCK.ws.removeEventListener(event, handlerFunction);
-  } else {
-    throw Error(ERR_NO_SOCKET);
-  }
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NETWORK.SocketUADDR = () => {

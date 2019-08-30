@@ -42,8 +42,8 @@ class TeacherSelector extends React.Component {
     this.OnAddTeacherDialogClose = this.OnAddTeacherDialogClose.bind(this);
     this.OnAddTeacherName = this.OnAddTeacherName.bind(this);
 
-    UR.Sub('ADM_DATA_UPDATED', this.DoADMDataUpdate);
-    UR.Sub('TEACHER_SELECT', this.DoTeacherSelect);
+    UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
+    UR.Subscribe('TEACHER_SELECT', this.DoTeacherSelect);
 
     this.state = {
       teachers: [],

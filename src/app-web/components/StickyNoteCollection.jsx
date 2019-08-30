@@ -152,8 +152,8 @@ class StickyNoteCollection extends React.Component {
       parentType: ''
     };
 
-    UR.Sub('STICKY:OPEN', this.DoOpenSticky);
-    UR.Sub('DATA_UPDATED', this.DoStickyUpdate);
+    UR.Subscribe('STICKY:OPEN', this.DoOpenSticky);
+    UR.Subscribe('DATA_UPDATED', this.DoStickyUpdate);
   }
 
   componentDidMount() {}

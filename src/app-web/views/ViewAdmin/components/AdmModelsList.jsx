@@ -37,7 +37,7 @@ class ModelsList extends React.Component {
 
     this.state = { models: [] };
 
-    UR.Sub('CLASSROOM_SELECT', this.DoClassroomSelect);
+    UR.Subscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
   }
 
   componentDidMount() { }

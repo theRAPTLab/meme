@@ -10,6 +10,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ClassNames from 'classnames';
 import { Switch, Route } from 'react-router-dom';
+// Material UI Theming
+import { withStyles } from '@material-ui/core/styles';
+import { yellow } from '@material-ui/core/colors';
+
+/// COMPONENTS ////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Material UI Elements
 import Drawer from '@material-ui/core/Drawer';
 import CssBaseline from '@material-ui/core/CssBaseline';
@@ -36,23 +42,19 @@ import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
 import EditIcon from '@material-ui/icons/Edit';
 import InboxIcon from '@material-ui/icons/MoveToInbox';
 import MailIcon from '@material-ui/icons/Mail';
-// Material UI Theming
-import { withStyles } from '@material-ui/core/styles';
-import { yellow } from '@material-ui/core/colors';
-
-/// COMPONENTS ////////////////////////////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-import RoutedView from './RoutedView';
-import MEMEStyles from '../../components/MEMEStyles';
-import UR from '../../../system/ursys';
-import DATA from '../../modules/pmc-data';
-import ADM from '../../modules/adm-data';
+// MEME App Components
 import Login from '../../components/Login';
 import ModelSelect from '../../components/ModelSelect';
 import ResourceView from '../../components/ResourceView';
 import ResourceItem from '../../components/ResourceItem';
 import RatingsDialog from '../../components/RatingsDialog';
 import StickyNoteCollection from '../../components/StickyNoteCollection';
+// MEME Modules and Utils
+import MEMEStyles from '../../components/MEMEStyles';
+import UR from '../../../system/ursys';
+import RoutedView from './RoutedView';
+import DATA from '../../modules/pmc-data';
+import ADM from '../../modules/adm-data';
 import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -66,7 +68,7 @@ class ViewMain extends React.Component {
   // constructor
   constructor(props) {
     super(props);
-    UR.ReloadOnViewChange();
+    UR.ReactPreflight(ViewMain, module);
 
     this.displayName = this.constructor.name;
     this.refMain = React.createRef();
@@ -94,11 +96,11 @@ class ViewMain extends React.Component {
     this.handleAddEdgeClose = this.handleAddEdgeClose.bind(this);
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.handleSelectionChange = this.handleSelectionChange.bind(this);
-    UR.Sub('WINDOW:SIZE', this.UpdateDimensions);
-    UR.Sub('DATA_UPDATED', this.HandleDataUpdate);
-    UR.Sub('ADM_DATA_UPDATED', this.DoADMDataUpdate);
-    UR.Sub('SELECTION_CHANGED', this.handleSelectionChange);
-    UR.Sub('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
+    UR.Subscribe('WINDOW:SIZE', this.UpdateDimensions);
+    UR.Subscribe('DATA_UPDATED', this.HandleDataUpdate);
+    UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
+    UR.Subscribe('SELECTION_CHANGED', this.handleSelectionChange);
+    UR.Subscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
     this.state = {
       studentName: '',
       studentGroup: '',
@@ -121,7 +123,7 @@ class ViewMain extends React.Component {
   }
 
   componentDidMount() {
-    console.log(`%ccomponentDidMount()`, cssreact);
+    // console.log(`%ccomponentDidMount()`, cssreact);
     //
     // child components need to know the dimensions
     // of this component, but they are invalid until
@@ -131,10 +133,10 @@ class ViewMain extends React.Component {
   }
 
   componentWillUnmount() {
-    UR.Unsub('WINDOW:SIZE', this.UpdateDimensions);
-    UR.Unsub('DATA_UPDATED', this.HandleDataUpdate);
-    UR.Unsub('SELECTION_CHANGED', this.handleSelectionChange);
-    UR.Unsub('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
+    UR.Unsubscribe('WINDOW:SIZE', this.UpdateDimensions);
+    UR.Unsubscribe('DATA_UPDATED', this.HandleDataUpdate);
+    UR.Unsubscribe('SELECTION_CHANGED', this.handleSelectionChange);
+    UR.Unsubscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
   }
 
   // CODE REVIEW: THIS IS VESTIGIAL CODE
@@ -539,10 +541,10 @@ class ViewMain extends React.Component {
                     {DATA.Prop(this.state.addEdgeSource).name}
                   </div>
                 ) : (
-                  <div className={classes.evidenceLinkSourceAvatarWaiting}>
-                    1. Click on a source...
+                    <div className={classes.evidenceLinkSourceAvatarWaiting}>
+                      1. Click on a source...
                   </div>
-                )}
+                  )}
                 &nbsp;
                 <TextField
                   autoFocus
@@ -560,10 +562,10 @@ class ViewMain extends React.Component {
                     {DATA.Prop(this.state.addEdgeTarget).name}
                   </div>
                 ) : (
-                  <div className={classes.evidenceLinkSourceAvatarWaiting}>
-                    2. Click on a target...
+                    <div className={classes.evidenceLinkSourceAvatarWaiting}>
+                      2. Click on a target...
                   </div>
-                )}
+                  )}
                 <div style={{ flexGrow: '1' }} />
                 <Button onClick={this.handleAddEdgeClose} color="primary">
                   Cancel
@@ -690,15 +692,9 @@ ViewMain.propTypes = {
   classes: PropTypes.shape({})
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// required for UR EXEC phase filtering by view path
-ViewMain.URMOD = __dirname;
-UR.EXEC.Hook(
-  'INITIALIZE',
-  () => {
-    console.log(`ViewMain UR.EXEC.Hook('INITIALIZE')`);
-  },
-  __dirname
-);
+/// requirement for UR MODULES and COMPONENTS
+ViewMain.MOD_ID = __dirname;
+
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// include MaterialUI styles

@@ -2,15 +2,7 @@
 /* eslint-disable no-restricted-syntax */
 /*//////////////////////////////// ABOUT \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
-  WebSocketServer and Network Management for UNISYS
-  WORK IN PROGRESS
-
-  [x] - socket listener
-  [ ] - socket dictionary
-  [ ] - socket metadata for UNISYS defined, stored in sockets
-  [ ] - message dictionary
-  [ ] - message dispatching
-  [ ] - system message declaration
+  WebSocketServer and Network Management for URSYS
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * //////////////////////////////////////*/
 
@@ -103,12 +95,12 @@ UNET.StartNetwork = () => {
 }; // end StartNetwork()
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** HandleMessage() is used to register SERVER-side message handlers that are
+/** NetSubscribe() is used to register SERVER-side message handlers that are
  * reachable from remote clients. Server-side handlers use their own map.
  * @param {string} mesgName message to register a handler for
  * @param {function} handlerFunc function receiving 'data' object
  */
-UNET.HandleMessage = (mesgName, handlerFunc) => {
+UNET.NetSubscribe = (mesgName, handlerFunc) => {
   if (typeof handlerFunc !== 'function') {
     throw Error('arg2 must be a function');
   }
@@ -118,15 +110,15 @@ UNET.HandleMessage = (mesgName, handlerFunc) => {
     m_server_handlers.set(mesgName, handlers);
   }
   handlers.add(handlerFunc);
-}; // end HandleMessage()
+}; // end NetSubscribe()
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** UnhandleMessage() unsubscribes a handler function from a registered message.
+/** NetUnsubscribe() revokes a handler function from a registered message.
  * The handler function object must be the same one used to register it.
  * @param {string} mesgName message to unregister a handler for
  * @param {function} handlerFunc function originally registered
  */
-UNET.UnhandleMessage = (mesgName, handlerFunc) => {
+UNET.NetUnsubscribe = (mesgName, handlerFunc) => {
   if (mesgName === undefined) {
     m_server_handlers.clear();
   } else if (handlerFunc === undefined) {
@@ -138,7 +130,7 @@ UNET.UnhandleMessage = (mesgName, handlerFunc) => {
     }
   }
   return this;
-}; // end UnhandleMessage()
+}; // end NetUnsubscribe()
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** NetCall() is the server-side method for invoking a remote message. It
@@ -159,28 +151,28 @@ UNET.NetCall = async (mesgName, data) => {
   return results; // array of data objects
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** NetSend() is the server-side method for sending a remote message. It fires
+/** NetPublish() is the server-side method for sending a remote message. It fires
  * the messages but doesn't do anything with the returned promises. Use for
  * notifying remote message handlers.
  * @param {string} mesgName message to unregister a handler for
  * @param {function} handlerFunc function originally registered
  */
-UNET.NetSend = (mesgName, data) => {
+UNET.NetPublish = (mesgName, data) => {
   let pkt = new NetMessage(mesgName, data);
   let promises = m_PromiseRemoteHandlers(pkt);
   // we don't care about waiting for the promise to complete
   if (DBG) console.log(PR, `${pkt.Info()} NETSEND ${pkt.Message()} to ${promises.length} remotes`);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** NetSignal() is an alias for NetSend(), kept for conceptual symmetry to the
+/** NetRaise() is an alias for NetPublish(), kept for conceptual symmetry to the
  * client-side URSYS interface. It is not needed because the server never
- * mirrors NetSend to itself for signaling purposes.
+ * mirrors NetPublish to itself for signaling purposes.
  * @param {string} mesgName message to unregister a handler for
  * @param {function} handlerFunc function originally registered
  */
-UNET.NetSignal = (mesgName, data) => {
-  console.warn(PR, 'NOTE: Use NetSend(), not NetSignal() since the server doesnt care.');
-  UNET.NetSend(mesgName, data);
+UNET.NetRaise = (mesgName, data) => {
+  console.warn(PR, 'NOTE: Use NetPublish(), not NetRaise() since the server doesnt care.');
+  UNET.NetPublish(mesgName, data);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** RegisterRemoteHandlers() is a special initialize method that handles URSYS REGISTRATION PACKETS
@@ -203,7 +195,7 @@ UNET.RegisterRemoteHandlers = pkt => {
       entry = new Set();
       m_remote_handlers.set(msg, entry);
     }
-    if (DBG) console.log(PR, `${uaddr} registered handler '${msg}'`);
+    if (DBG) console.log(PR, `${uaddr} netreg '${msg}'`);
     entry.add(uaddr);
     regd.push(msg);
   });
@@ -248,10 +240,12 @@ function m_GetNewUADDR(prefix = 'UADDR') {
  * @param {Object} socket connecting socket
  */
 function m_SocketClientAck(socket) {
+  let PEERS = { count: mu_sockets.size };
   let data = {
     HELLO: `Welcome to URSYS, ${socket.UADDR}`,
     UADDR: socket.UADDR,
-    SERVER_UADDR
+    SERVER_UADDR,
+    PEERS
   };
   socket.send(JSON.stringify(data));
 } // end m_SocketClientAck()
@@ -328,11 +322,12 @@ async function m_HandleMessage(socket, pkt) {
   // UADDR targets, possibly because the sources are not allowed to call itself
   // except in the case of the SIGNAL type
   if (promises.length === 0) {
-    const out = `${pkt.SourceAddress()} called unregistered message '${pkt.Message()}'`;
+    const out = `${pkt.SourceAddress()} cannot resolve call '${pkt.Message()}'`;
     console.log(PR, out);
     // return transaction to resolve callee
     pkt.SetData({
-      URserver: `info: ${out}`
+      URserver: `info: ${out}`,
+      error: 'message not found'
     });
     if (pkt.IsType('mcall')) pkt.ReturnTransaction(socket);
     return;
@@ -492,7 +487,8 @@ function console_ListSockets(change) {
   let values = mu_sockets.values();
   let count = 1;
   for (let socket of values) {
-    console.log(PR, `${count} - ${socket.UADDR}`);
+    console.log(PR, `  ${count} = ${socket.UADDR}`);
+    count++;
   }
 }
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

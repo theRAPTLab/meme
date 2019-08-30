@@ -156,16 +156,16 @@ PMCData.Graph = () => {
 /**
  *  Loads a graph from model data and saves a local copy.  Replaces PMCData.LoadGraph.
  *  This will self repair bad data, but model.id and model.groupID MUST be defined.
- *  This should be only be called by ADMData.LoadModel. Never call this direcly.
+ *  This should be only be called by ADMData.InitializeModel. Never call this direcly.
  */
-PMCData.LoadModel = (model, resources) => {
+PMCData.InitializeModel = (model, resources) => {
   const g = new Graph({ directed: true, compound: true, multigraph: true });
 
   // Self repair bad data
   let m = model;
   if (m.id === undefined || m.groupId === undefined) {
     console.error(
-      `PMCData.LoadModel called with either bad id (${m.id})or bad groupId (${m.groupId})`
+      `PMCData.InitializeModel called with either bad id (${m.id})or bad groupId (${m.groupId})`
     );
   }
   m.data = model.data || {};

@@ -46,7 +46,7 @@ class SentenceStarters extends React.Component {
       classroomId: ''
     };
 
-    UR.Sub('CLASSROOM_SELECT', this.DoClassroomSelect);
+    UR.Subscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
   }
 
   componentDidMount() { }

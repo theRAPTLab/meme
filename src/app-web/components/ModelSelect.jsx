@@ -41,7 +41,7 @@ class ModelSelect extends React.Component {
     this.OnModelView = this.OnModelView.bind(this);
     this.OnLogout = this.OnLogout.bind(this);
 
-    UR.Sub('ADM_DATA_UPDATED', this.DoADMDataUpdate);
+    UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
 
     this.state = {
       modelId: '',

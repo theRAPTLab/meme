@@ -19,6 +19,7 @@ import debounce from 'debounce';
 import SystemRoutes from './SystemRoutes';
 import SystemShell from './SystemShell';
 import UR from '../../system/ursys';
+import EXEC from '../../system/ur-exec';
 import { cssreset, cssur, cssuri } from '../modules/console-styles';
 
 /// DEBUG CONTROL /////////////////////////////////////////////////////////////
@@ -51,15 +52,15 @@ function Init() {
     // determine current scope of running app based on path
     // so URSYS will not execute lifecycle phases in any module
     // that exists outside those key directories
-    UR.EXEC.SetScopeFromRoutes(SystemRoutes);
+    UR.RoutePreflight(SystemRoutes);
     // asynchronous code startup
     (async () => {
-      await UR.EXEC.JoinNet(); // URSYS socket connection (that is all)
-      await UR.EXEC.EnterApp(); // TEST_CONF, INITIALIZE, LOADASSETS, CONFIGURE
+      await EXEC.JoinNet(); // URSYS socket connection (that is all)
+      await EXEC.EnterApp(); // TEST_CONF, INITIALIZE, LOAD_ASSETS, CONFIGURE
       await m_PromiseRenderApp(); // compose React view
       await m_BrokenPromiseWindowResize();
-      await UR.EXEC.SetupDOM(); // DOM_READY
-      await UR.EXEC.SetupRun(); // RESET, START, REG_MESSAGE, APP_READY, RUN
+      await EXEC.SetupDOM(); // DOM_READY
+      await EXEC.SetupRun(); // RESET, START, REG_MESSAGE, APP_READY, RUN
       /* everything is done, system is running */
       if (DBG)
         console.log('%cINIT %cURSYS Lifecycle Initialization Complete', 'color:blue', 'color:auto');
@@ -88,7 +89,6 @@ function m_PromiseRenderApp() {
     } catch (e) {
       const err = `System Initialization Error in React URSYS`;
       console.error(err);
-      reject(Error(err));
     }
   }); // promise
 }

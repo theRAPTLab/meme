@@ -118,14 +118,8 @@ ViewAdmin.propTypes = {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path
-ViewAdmin.URMOD = __dirname;
-UR.EXEC.Hook(
-  'INITIALIZE',
-  () => {
-    console.log('ViewAdmin Init');
-  },
-  __dirname
-);
+ViewAdmin.MOD_ID = __dirname;
+
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 export default withStyles(styles)(ViewAdmin);

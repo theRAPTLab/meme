@@ -15,18 +15,18 @@ let RELOAD_TIMER = null;
 /// PUBLIC METHODS ////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /*/ Force Reload if another module was navigated to and we want to ensure the
-    entire browser was refreshed so only one set of app modules is loaded
+    entire browser was refreshed so only one set of app modules is loaded.
+    This counts on a simple counter...if it's called more than once
+    (as would be the case with a secibd root view being mounted), it will
+    reload.
 /*/
 const ReloadOnViewChange = () => {
   RELOAD_CHECK++;
   if (RELOAD_CHECK > 1) {
-    console.warn(`SETTINGS: ReloadOnViewChange active. Reloading!`);
     if (RELOAD_TIMER) clearTimeout(RELOAD_TIMER);
     RELOAD_TIMER = setTimeout(() => {
       window.location.reload();
     }, 250);
-  } else {
-    console.warn(`SETTINGS: ReloadOnViewChange check OK`);
   }
 };
 

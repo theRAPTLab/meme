@@ -1,5 +1,5 @@
 import DATA from './pmc-data';
-import { cssinfo, cssblue, cssred, cssmark } from './console-styles';
+import { cssinfo, cssblue, cssred, cssmark, cssreset } from './console-styles';
 import DEFAULTS from './defaults';
 import { AddDragDropHandlers } from './class-vprop-dragdrop';
 import { VisualState } from './classes-visual';
@@ -24,7 +24,8 @@ const DIM_RADIUS = 3;
 const DBG = {
   edges: false,
   layout: false,
-  hierarchy: false
+  hierarchy: false,
+  plugin: false
 };
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
@@ -552,7 +553,7 @@ VProp.StaticMethod = (method, methodName) => {
 
   /* IF WE GOT THIS FAR LET'S DO IT */
   VProp[methodName] = method;
-  console.log(`extension: %cVProp.${methodName}()`, cssinfo);
+  if (DBG.plugin) console.log(`%cVPropPlugin%c ${methodName}`, cssinfo, cssreset);
 };
 
 /// LINK EXTENSIONS ///////////////////////////////////////////////////////////

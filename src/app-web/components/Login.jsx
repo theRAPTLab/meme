@@ -40,7 +40,7 @@ class Login extends React.Component {
       this.memo = <p style={{ color: 'maroon' }}>{props.memo}</p>;
     }
 
-    UR.Sub('ADM_DATA_UPDATED', this.DoADMDataUpdate);
+    UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
 
     this.state = {
       loginId: '',

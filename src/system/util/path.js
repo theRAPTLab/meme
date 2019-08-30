@@ -40,4 +40,4 @@ const StripExt = str => {
 
 /// EXPORT MODULE DEFINITION //////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-export { Parse, Dirname, Basename, StripExt };
+export default { Parse, Dirname, Basename, StripExt };

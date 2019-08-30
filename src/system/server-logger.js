@@ -40,22 +40,28 @@ let fs_log = null;
 // enums for outputing dates
 const e_weekday = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// initialize event logger
-let dir = PATH.resolve(PATH.join(__dirname, LOG_DIR));
-FSE.ensureDir(dir, err => {
-  if (err) throw new Error(`could not make ${dir} directory`);
-  let logname = `${str_TimeDatedFilename('log')}.txt`;
-  let pathname = `${dir}/${logname}`;
-  fs_log = FSE.createWriteStream(pathname);
-  LogLine(`NETCREATE APPSERVER SESSION LOG for ${str_DateStamp()} ${str_TimeStamp()}`);
-  LogLine('---');
-});
+function StartLogging() {
+  // initialize event logger
+  let dir = PATH.resolve(PATH.join(__dirname, LOG_DIR));
+  try {
+    console.log(`*** logging to ${dir}`);
+    FSE.ensureDirSync(dir);
+    let logname = `${str_TimeDatedFilename('log')}.txt`;
+    let pathname = `${dir}/${logname}`;
+    fs_log = FSE.createWriteStream(pathname);
+    LogLine(`MEME APPSERVER SESSION LOG for ${str_DateStamp()} ${str_TimeStamp()}`);
+    LogLine('---');
+  } catch (err) {
+    if (err) throw new Error(`could not make ${dir} directory`);
+  }
+}
 
 /**	LOGGING FUNCTIONS ******************************************************/
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /*/	Log a standard system log message
-/*/ function LogLine(...args) {
-  if (!fs_log) return;
+/*/
+function LogLine(...args) {
+  if (!fs_log) StartLogging();
 
   let out = `${str_TimeStamp()} `;
   let c = args.length;
@@ -121,7 +127,8 @@ LOG.PKT_LogEvent = pkt => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /*/ API: Write to log as delimited arguments
-/*/ LOG.Write = LogLine;
+/*/
+LOG.Write = LogLine;
 
 /// EXPORT MODULE DEFINITION //////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

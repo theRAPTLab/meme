@@ -48,13 +48,13 @@ class RatingsDialog extends React.Component {
       ratingsDef: ADM.GetRatingsDefintion()
     };
 
-    UR.Sub('RATING:OPEN', this.DoOpen);
+    UR.Subscribe('RATING:OPEN', this.DoOpen);
   }
 
   componentDidMount() { }
 
   componentWillUnmount() {
-    UR.Unsub('SHOW_RESOURCE', this.OnOpen);
+    UR.Unsubscribe('SHOW_RESOURCE', this.OnOpen);
   }
 
   DoOpen(data) {

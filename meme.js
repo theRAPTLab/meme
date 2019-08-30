@@ -203,8 +203,8 @@ function f_DocServe() {
 }
 
 function f_Clean(opt) {
-  console.log(PR, `removing dist/ and built/ directories...`);
-  shell.rm('-rf', 'dist', 'built');
+  console.log(PR, `removing dist/, runtime/ and built/ directories...`);
+  shell.rm('-rf', 'dist', 'built', 'runtime');
   console.log(PR, `directories removed!`);
   if (opt.all) {
     console.log(PR, `also removing node_modules/`);

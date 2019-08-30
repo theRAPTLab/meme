@@ -98,12 +98,12 @@ class ViewMain extends React.Component {
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.handleSelectionChange = this.handleSelectionChange.bind(this);
     this.handleSnapshot = this.handleSnapshot.bind(this);
-    UR.Sub('WINDOW:SIZE', this.UpdateDimensions);
-    UR.Sub('DATA_UPDATED', this.HandleDataUpdate);
-    UR.Sub('ADM_DATA_UPDATED', this.DoADMDataUpdate);
-    UR.Sub('SHOW_RESOURCE', this.handleResourceClick);
-    UR.Sub('SELECTION_CHANGED', this.handleSelectionChange);
-    UR.Sub('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
+    UR.Subscribe('WINDOW:SIZE', this.UpdateDimensions);
+    UR.Subscribe('DATA_UPDATED', this.HandleDataUpdate);
+    UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
+    UR.Subscribe('SHOW_RESOURCE', this.handleResourceClick);
+    UR.Subscribe('SELECTION_CHANGED', this.handleSelectionChange);
+    UR.Subscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
     this.state = {
       studentName: '',
       studentGroup: '',
@@ -153,11 +153,11 @@ class ViewMain extends React.Component {
   }
 
   componentWillUnmount() {
-    UR.Unsub('WINDOW:SIZE', this.UpdateDimensions);
-    UR.Unsub('DATA_UPDATED', this.HandleDataUpdate);
-    UR.Unsub('SHOW_RESOURCE', this.handleResourceClick);
-    UR.Unsub('SELECTION_CHANGED', this.handleSelectionChange);
-    UR.Unsub('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
+    UR.Unsubscribe('WINDOW:SIZE', this.UpdateDimensions);
+    UR.Unsubscribe('DATA_UPDATED', this.HandleDataUpdate);
+    UR.Unsubscribe('SHOW_RESOURCE', this.handleResourceClick);
+    UR.Unsubscribe('SELECTION_CHANGED', this.handleSelectionChange);
+    UR.Unsubscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
   }
 
   // CODE REVIEW: THIS IS VESTIGIAL CODE
@@ -438,11 +438,11 @@ class ViewMain extends React.Component {
     const LoginStuff = mode ? (
       <React.Fragment />
     ) : (
-      <React.Fragment>
-        <Login memo="[ViewMainDev]" />
-        <ModelSelect />
-      </React.Fragment>
-    );
+        <React.Fragment>
+          <Login memo="[ViewMainDev]" />
+          <ModelSelect />
+        </React.Fragment>
+      );
 
     const resources = ADM.AllResources();
     return (
@@ -572,10 +572,10 @@ class ViewMain extends React.Component {
                     {DATA.Prop(this.state.addEdgeSource).name}
                   </div>
                 ) : (
-                  <div className={classes.evidenceLinkSourceAvatarWaiting}>
-                    1. Click on a source...
+                    <div className={classes.evidenceLinkSourceAvatarWaiting}>
+                      1. Click on a source...
                   </div>
-                )}
+                  )}
                 &nbsp;
                 <TextField
                   autoFocus
@@ -593,10 +593,10 @@ class ViewMain extends React.Component {
                     {DATA.Prop(this.state.addEdgeTarget).name}
                   </div>
                 ) : (
-                  <div className={classes.evidenceLinkSourceAvatarWaiting}>
-                    2. Click on a target...
+                    <div className={classes.evidenceLinkSourceAvatarWaiting}>
+                      2. Click on a target...
                   </div>
-                )}
+                  )}
                 <div style={{ flexGrow: '1' }} />
                 <Button onClick={this.handleAddEdgeClose} color="primary">
                   Cancel
@@ -656,8 +656,8 @@ class ViewMain extends React.Component {
                     {this.state.selectedResource.type === 'simulation' ? (
                       <ImageIcon />
                     ) : (
-                      <DescriptionIcon />
-                    )}
+                        <DescriptionIcon />
+                      )}
                   </Typography>
                 </CardContent>
               </Card>
@@ -792,13 +792,7 @@ ViewMain.propTypes = {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path
 ViewMain.URMOD = __dirname;
-UR.EXEC.Hook(
-  'INITIALIZE',
-  () => {
-    console.log('ViewMain Init');
-  },
-  ViewMain.URMOD
-);
+
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// include MaterialUI styles

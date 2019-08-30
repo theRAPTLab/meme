@@ -50,20 +50,20 @@ class ResourceItem extends React.Component {
     this.OnCreateEvidence = this.OnCreateEvidence.bind(this);
     this.DoCollapseAll = this.DoCollapseAll.bind(this);
 
-    UR.Sub('SHOW_EVIDENCE_LINK', this.DoEvidenceLinkOpen);
-    UR.Sub('DATA_UPDATED', this.DoDataUpdate);
-    UR.Sub('RESOURCES:COLLAPSE_ALL', this.DoCollapseAll);
+    UR.Subscribe('SHOW_EVIDENCE_LINK', this.DoEvidenceLinkOpen);
+    UR.Subscribe('DATA_UPDATED', this.DoDataUpdate);
+    UR.Subscribe('RESOURCES:COLLAPSE_ALL', this.DoCollapseAll);
     // FIXME: Resource is getting closed before selection, force it open again
-    UR.Sub('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.DoEvidenceLinkOpen);
+    UR.Subscribe('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.DoEvidenceLinkOpen);
   }
 
   componentDidMount() { }
 
   componentWillUnmount() {
-    UR.Unsub('SHOW_EVIDENCE_LINK', this.DoEvidenceLinkOpen);
-    UR.Unsub('DATA_UPDATED', this.DoDataUpdate);
-    UR.Unsub('RESOURCES:COLLAPSE_ALL', this.DoCollapseAll);
-    UR.Unsub('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.DoEvidenceLinkOpen);
+    UR.Unsubscribe('SHOW_EVIDENCE_LINK', this.DoEvidenceLinkOpen);
+    UR.Unsubscribe('DATA_UPDATED', this.DoDataUpdate);
+    UR.Unsubscribe('RESOURCES:COLLAPSE_ALL', this.DoCollapseAll);
+    UR.Unsubscribe('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.DoEvidenceLinkOpen);
   }
 
   DoToggleExpanded() {
@@ -75,7 +75,7 @@ class ResourceItem extends React.Component {
     });
   }
 
-  DoDataUpdate() {}
+  DoDataUpdate() { }
 
   DoEvidenceLinkOpen(data) {
     if (this.props.resource.rsrcId === data.rsrcId) {

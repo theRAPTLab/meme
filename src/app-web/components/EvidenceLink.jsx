@@ -75,19 +75,19 @@ class EvidenceLink extends React.Component {
     this.DoToggleExpanded = this.DoToggleExpanded.bind(this);
     this.OnRatingButtonClick = this.OnRatingButtonClick.bind(this);
 
-    UR.Sub('DATA_UPDATED', this.DoDataUpdate);
-    UR.Sub('SHOW_EVIDENCE_LINK_SECONDARY', this.DoEvidenceLinkOpen);
-    UR.Sub('EVLINK:ENABLE_SOURCE_SELECT', this.DoEnableSourceSelect);
-    UR.Sub('SELECTION_CHANGED', this.DoSelectionChange);
+    UR.Subscribe('DATA_UPDATED', this.DoDataUpdate);
+    UR.Subscribe('SHOW_EVIDENCE_LINK_SECONDARY', this.DoEvidenceLinkOpen);
+    UR.Subscribe('EVLINK:ENABLE_SOURCE_SELECT', this.DoEnableSourceSelect);
+    UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
   }
 
-  componentDidMount() {}
+  componentDidMount() { }
 
   componentWillUnmount() {
-    UR.Unsub('DATA_UPDATED', this.DoDataUpdate);
-    UR.Unsub('SHOW_EVIDENCE_LINK_SECONDARY', this.DoEvidenceLinkOpen);
-    UR.Unsub('EVLINK:ENABLE_SOURCE_SELECT', this.DoEnableSourceSelect);
-    UR.Unsub('SELECTION_CHANGED', this.DoSelectionChange);
+    UR.Unsubscribe('DATA_UPDATED', this.DoDataUpdate);
+    UR.Unsubscribe('SHOW_EVIDENCE_LINK_SECONDARY', this.DoEvidenceLinkOpen);
+    UR.Unsubscribe('EVLINK:ENABLE_SOURCE_SELECT', this.DoEnableSourceSelect);
+    UR.Unsubscribe('SELECTION_CHANGED', this.DoSelectionChange);
   }
 
   DoDataUpdate() {
@@ -380,8 +380,8 @@ class EvidenceLink extends React.Component {
                     inputRef={this.textInput}
                   />
                 ) : (
-                  <div className={classes.evidenceLabelField}>{note}</div>
-                )}
+                    <div className={classes.evidenceLabelField}>{note}</div>
+                  )}
               </Grid>
             </Grid>
 

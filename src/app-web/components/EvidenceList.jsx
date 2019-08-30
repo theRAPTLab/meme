@@ -23,13 +23,13 @@ class EvidenceList extends React.Component {
   constructor(props) {
     super(props);
     this.HandleDataUpdate = this.HandleDataUpdate.bind(this);
-    UR.Sub('DATA_UPDATED', this.HandleDataUpdate);
+    UR.Subscribe('DATA_UPDATED', this.HandleDataUpdate);
   }
 
-  componentDidMount() {}
+  componentDidMount() { }
 
   componentWillUnmount() {
-    UR.Unsub('DATA_UPDATED', this.HandleDataUpdate);
+    UR.Unsubscribe('DATA_UPDATED', this.HandleDataUpdate);
   }
 
   HandleDataUpdate() {
