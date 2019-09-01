@@ -9,6 +9,8 @@
 ///	LOAD LIBRARIES ////////////////////////////////////////////////////////////
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const WSS = require('ws').Server;
+const FS = require('fs');
+const https = require('https');
 const NetMessage = require('./common-netmessage');
 /** @typedef {Object} NetMessage */
 const LOGGER = require('./server-logger');
@@ -30,6 +32,12 @@ const ERR_UNKNOWN_PKT = 'unrecognized netmessage packet type';
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DEFAULT_NET_PORT = 2929;
 const SERVER_UADDR = NetMessage.DefaultServerUADDR(); // is 'SVR_01'
+const KEY = FS.readFileSync(__dirname + '/certs/selfsigned.key');
+const CERT = FS.readFileSync(__dirname + '/certs/selfsigned.crt');
+const HTTPS_OPTIONS = {
+  key: KEY,
+  cert: CERT
+};
 
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

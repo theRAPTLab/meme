@@ -112,7 +112,13 @@ async function StartCapture(displayMediaOptions) {
   let captureStream = null;
 
   try {
-    captureStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+    // for compatibility see
+    // https://blog.mozilla.org/webrtc/getdisplaymedia-now-available-in-adapter-js/
+    if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+      captureStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+    } else {
+      console.log('invalid navigator', window.navigator);
+    }
   } catch (err) {
     console.error('Error: ' + err);
   }

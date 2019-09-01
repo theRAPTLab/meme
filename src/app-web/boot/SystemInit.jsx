@@ -31,6 +31,7 @@ const DBG = false;
 /// These are loaded in init to make sure they are available globally!
 /// You do not need to copy these extensions to your own module files
 require('babel-polyfill'); // enables regenerators for async/await
+require('webrtc-adapter'); // shim webrtc
 
 /// URSYS STARTUP /////////////////////////////////////////////////////////////
 /*/

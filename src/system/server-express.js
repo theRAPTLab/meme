@@ -10,8 +10,11 @@ const wpack = require('webpack');
 const wpack_mid = require('webpack-dev-middleware'); //webpack hot reloading middleware
 const wpack_hot = require('webpack-hot-middleware');
 const express = require('express'); //your original BE server
+const https = require('https');
+const http = require('http');
 const path = require('path');
 const IP = require('ip');
+const FS = require('fs');
 const cookiep = require('cookie-parser');
 //
 const configWebApp = require('../config/webpack.webapp.config');
@@ -22,11 +25,20 @@ const PROMPTS = require('../system/util/prompts');
 const { TERM_EXP: CLR, TERM_WPACK, TR } = PROMPTS;
 const PORT = 3000;
 const PR = `${CLR}${PROMPTS.Pad('UR_EXPRESS')}${TR}`;
+// generate certs:
+// https://github.com/sagardere/set-up-SSL-in-nodejs
+const KEY = FS.readFileSync(__dirname + '/certs/selfsigned.key');
+const CERT = FS.readFileSync(__dirname + '/certs/selfsigned.crt');
+const HTTPS_OPTIONS = {
+  key: KEY,
+  cert: CERT
+};
 
 /// SERVER DECLARATIONS ///////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const app = express();
-let server; // server object returned by app.listen()
+let server_http; // server object returned by app.listen()
+let server_https;
 let DOCROOT; // docroot (changes based on dev or standalone mode)
 
 // server runtime information
@@ -43,8 +55,12 @@ function Start() {
     // webpack to bundle the webapp on-the-fly.
     DOCROOT = path.resolve(__dirname, '../web');
     console.log(PR, `SERVING PRECOMPILED WEB BUNDLE FROM VIRTUAL DIRECTORY`);
-    server = app.listen(PORT, () => {
+    server_http = http.createServer(app).listen(PORT, () => {
       console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT}`);
+      console.log(PR, `SERVING '${DOCROOT}'`);
+    });
+    server_https = https.createServer(HTTPS_OPTIONS, app).listen(PORT + 443, () => {
+      console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT + 443}`);
       console.log(PR, `SERVING '${DOCROOT}'`);
     });
     promise = Promise.resolve();
@@ -74,11 +90,17 @@ function Start() {
     // we'll start the server after webpack bundling is complete
     // but we still have some configuration to do
     compiler.hooks.afterCompile.tap('StartServer', () => {
-      if (!server) {
-        server = app.listen(PORT, () => {
+      if (!server_http) {
+        server_http = http.createServer(app).listen(PORT, () => {
           console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT}`);
           console.log(PR, `SERVING '${DOCROOT}'`);
           console.log(PR, `LIVE RELOAD ENABLED`);
+        });
+      }
+      if (!server_https) {
+        server_https = https.createServer(HTTPS_OPTIONS, app).listen(PORT + 443, () => {
+          console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT + 443}`);
+          console.log(PR, `SERVING '${DOCROOT}'`);
         });
       }
     });
@@ -106,7 +128,7 @@ function Start() {
         if (!COMPILE_RESOLVED) {
           console.log(PR, `... webpack done`);
           clearInterval(INTERVAL);
-            resolve();
+          resolve();
           COMPILE_RESOLVED = true;
         } else {
           console.log(PR, `RECOMPILED SOURCE CODE and RELOADING`);
