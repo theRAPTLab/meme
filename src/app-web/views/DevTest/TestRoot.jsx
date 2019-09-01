@@ -13,6 +13,7 @@ import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
 import UR from '../../../system/ursys';
 import NETTEST from './network-tests';
+import SCREENCAP from './screencap-tests';
 import { cssinfo, cssalert } from '../../modules/console-styles';
 
 /// CSS IMPORTS ///////////////////////////////////////////////////////////////
@@ -35,7 +36,7 @@ const styles = theme => ({
   }
 });
 
-/// MODULE HOOKS //////////////////////////////////////////////////////////////
+/// URSYS HOOKS ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 UR.Hook(__dirname, 'INITIALIZE', function () {
   console.log('TestRoot Initialized');
@@ -67,9 +68,7 @@ class ViewTest extends React.Component {
   }
 
   componentDidMount() {
-    console.log(`<${this.cstrName}> mounted`);
     this._mounted = true;
-    this.AddTestResult("componentDidMount");
     this.Test();
   }
 
@@ -97,6 +96,9 @@ class ViewTest extends React.Component {
     switch (this.feature) {
       case 'ur':
         NETTEST.DoMountTests(this);
+        break;
+      case 'screencap':
+        SCREENCAP.DoTest(this);
         break;
       default:
         console.log('no matching test run for', this.feature);
@@ -162,6 +164,7 @@ class ViewTest extends React.Component {
             )
           })}
         </Grid>
+        <div id="testout"></div>
       </div>
     );
   }
