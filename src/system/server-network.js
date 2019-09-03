@@ -32,12 +32,18 @@ const ERR_UNKNOWN_PKT = 'unrecognized netmessage packet type';
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DEFAULT_NET_PORT = 2929;
 const SERVER_UADDR = NetMessage.DefaultServerUADDR(); // is 'SVR_01'
-const KEY = FS.readFileSync(__dirname + '/certs/selfsigned.key');
-const CERT = FS.readFileSync(__dirname + '/certs/selfsigned.crt');
-const HTTPS_OPTIONS = {
-  key: KEY,
-  cert: CERT
-};
+// generate certs:
+// https://github.com/sagardere/set-up-SSL-in-nodejs
+// try {
+//   const KEY = FS.readFileSync(__dirname + '/certs/selfsigned.key');
+//   const CERT = FS.readFileSync(__dirname + '/certs/selfsigned.crt');
+//   const HTTPS_OPTIONS = {
+//     key: KEY,
+//     cert: CERT
+//   };
+// } catch (err) {
+//   console.log(PR, `could not load ${__dirname}/certs/selfsigned.key or .crt`);
+// }
 
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -27,12 +27,16 @@ const PORT = 3000;
 const PR = `${CLR}${PROMPTS.Pad('UR_EXPRESS')}${TR}`;
 // generate certs:
 // https://github.com/sagardere/set-up-SSL-in-nodejs
-const KEY = FS.readFileSync(__dirname + '/certs/selfsigned.key');
-const CERT = FS.readFileSync(__dirname + '/certs/selfsigned.crt');
-const HTTPS_OPTIONS = {
-  key: KEY,
-  cert: CERT
-};
+try {
+  const KEY = FS.readFileSync(__dirname + '/certs/selfsigned.key');
+  const CERT = FS.readFileSync(__dirname + '/certs/selfsigned.crt');
+  const HTTPS_OPTIONS = {
+    key: KEY,
+    cert: CERT
+  };
+} catch (err) {
+  console.log(PR, `could not load ${__dirname}/certs/selfsigned.key or .crt`);
+}
 
 /// SERVER DECLARATIONS ///////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -97,12 +101,12 @@ function Start() {
           console.log(PR, `LIVE RELOAD ENABLED`);
         });
       }
-      if (!server_https) {
-        server_https = https.createServer(HTTPS_OPTIONS, app).listen(PORT + 443, () => {
-          console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT + 443}`);
-          console.log(PR, `SERVING '${DOCROOT}'`);
-        });
-      }
+      // if (HTTPS_OPTIONS && !server_https) {
+      //   server_https = https.createServer(HTTPS_OPTIONS, app).listen(PORT + 443, () => {
+      //     console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT + 443}`);
+      //     console.log(PR, `SERVING '${DOCROOT}'`);
+      //   });
+      // }
     });
 
     // return promise when server starts
