@@ -10,11 +10,6 @@ props
                 e.g. if the parent object is an evidence link, this
                 points to the evId.
 
-    parentType  Sticky Notes need to tknow the type of parentId
-                that is being passed.  We (StickyNoteButton) don't use
-                this information directly but it is passed to StickyNote
-                when we publish the STICKIES:OPEN event.
-
 state
 
     parent      We need to load and keep a local copy of the parent object
@@ -85,11 +80,7 @@ class StickyNoteButton extends React.Component {
    */
   OnUpdateReadStatus() {
     let comments;
-    if (this.props.parentType === 'evidence') {
-      comments = PMC.GetCommentsByParentId(this.props.parentId, this.props.parentType);
-    } else {
-      comments = PMC.GetComments(this.props.parentId);
-    }
+    comments = PMC.GetComments(this.props.parentId);
     const author = ADM.GetSelectedStudentId();
     this.setState({
       hasNoComments: comments ? comments.length < 1 : true,
@@ -105,7 +96,6 @@ class StickyNoteButton extends React.Component {
 
     UR.Publish('STICKY:OPEN', {
       parentId: this.props.parentId,
-      parentType: this.props.parentType,
       x: e.clientX,
       y: e.clientY
       // windowWidth: e.view.window.innerWidth, // not used
@@ -138,14 +128,12 @@ class StickyNoteButton extends React.Component {
 StickyNoteButton.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
   classes: PropTypes.object,
-  parentId: PropTypes.string,
-  parentType: PropTypes.string
+  parentId: PropTypes.string
 };
 
 StickyNoteButton.defaultProps = {
   classes: {},
-  parentId: '',
-  parentType: ''
+  parentId: ''
 };
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////

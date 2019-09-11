@@ -67,7 +67,7 @@ class RatingsDialog extends React.Component {
   componentDidMount() { }
 
   componentWillUnmount() {
-    UR.Unsubscribe('SHOW_RESOURCE', this.OnOpen);
+    UR.Unsubscribe('RESOURCEVIEW:OPEN', this.OnOpen);
   }
 
   DoOpen(data) {

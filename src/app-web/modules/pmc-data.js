@@ -158,7 +158,6 @@ PMCData.Graph = () => {
  *  Clears all model data in preparation for loading a new model
  */
 PMCData.ClearModel = () => {
-  console.error('clearing model...')
   a_props = [];
   a_mechs = [];
   a_commentThreads = [];
@@ -910,7 +909,7 @@ PMCData.PMC_MechUpdate = (origMech, newMech) => {
     }
     // 2b. Move comments over
     const comments = PMCData.GetComments(origMechId);
-    PMCData.UpdateComments(newMechId, 'propmech', comments);
+    PMCData.UpdateComments(newMechId, comments);
 
     // 2c. Remove the old mech
     PMCData.PMC_MechDelete(origMechId);
@@ -1081,27 +1080,6 @@ PMCData.GetComments = id => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
- *  Given the passed parentId and parentType, returns the comments from the 
- *  matching data object, e.g. a property, mechanism, or evidence link
- *  @param {string} parentId - if defined, id string of the resource object
- *  @param {string} parentType - if defined, type of the resource object
- *                  'evidence', 'property', 'mechanism'
- *  @return [comments] - An array of comment objects, or [] if no comments.
- *  This is primarily used by the Sticky Notes system to look up comments
- */
-PMCData.GetCommentsByParentId = (parentId, parentType) => {
-  let parent = {};
-  switch (parentType) {
-    case 'evidence':
-      parent = PMCData.PMC_GetEvLinkByEvId(parentId);
-      break;
-    default:
-      console.error(PKG, 'GetCommentsByParentId parentType', parentType, 'not found');
-  }
-  return parent ? parent.comments : [];
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.MODEL:
  *  Returns an empty sticky with the current student info
  *  @param {string} author - author's studentId
  *  @param {string} sentenceStarter - placeholder text for a new comment
@@ -1124,38 +1102,28 @@ PMCData.NewComment = (author, sentenceStarter) => {
  *  updated comment text.
  *  @param {string} parentId - if defined, id string of the resource object
  *                  propId, mechId, or evId
- *  @param {string} parentType - if defined, type of the resource object
- *                  'evidence', 'property', 'mechanism'
  *  @param [object] comments - Array of comment objects
  *
  *  This is primarily used by the Sticky Notes system to save chagnes to
  *  comment text.
  */
-PMCData.UpdateComments = (parentId, parentType, comments) => {
-  let parent;
+PMCData.UpdateComments = (parentId, comments) => {
   let index;
-  let comment;
-  switch (parentType) {
-    case 'evidence':
-      comments = PMCData.GetCommentsByParentId(parentId, parentType);
-      break;
-    case 'propmech':
-      index = a_commentThreads.findIndex(c => {
-        return c.id === parentId;
-      });
-      if (index > -1) {
-        // existing comment
-        comment = a_commentThreads[index];
-        comment.comments = comments;
-        a_commentThreads.splice(index, 1, comment);
-      } else {
-        // new comment
-        comment = { id: parentId, comments };
-        a_commentThreads.push(comment);
-      }
-      break;
-    default:
-      console.error(PKG, 'UpdateComments could not match parent type', parentType);
+  let commentThread;
+  index = a_commentThreads.findIndex(c => {
+    return c.id === parentId;
+  });
+  if (index > -1) {
+    // existing comment
+    commentThread = a_commentThreads[index];
+    commentThread.comments = comments;
+    a_commentThreads.splice(index, 1, commentThread);
+  } else {
+    // new comment
+    commentThread = { id: parentId, comments };
+    console.error('adding new commentThread',commentThread)
+    a_commentThreads.push(commentThread);
+    console.table(a_commentThreads);
   }
   UR.Publish('DATA_UPDATED');
 };

@@ -8,9 +8,11 @@ props
 
     comment           Comment data passed from the parent StickyNote
     
-    onStartEdit       prop func called by StickyNoteCard when user clicks "Edit"
+    OnStartEdit       prop func called by StickyNote when user clicks "Edit"
+                      This sets isBeingEdited mode on the StickyNoteCollection
+                      paren, which hides the "Comment" button.
     
-    onUpdateComment   prop func called by STickyNoteCard when user is
+    OnUpdateComment   prop func called by StickyNote when user is
                       finished editing and ready to save.
     
 state
@@ -27,7 +29,6 @@ state
     showEditButtons   Boolean flag to show edit and delete buttons for the card.
     
     criteria          The menu for selecting criteria
-    selectedCriteriaId
     
     comment           A local state copy of the comment text.
                       This is updated/read on the intial construction from 
@@ -55,6 +56,7 @@ import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
+import UR from '../../system/ursys';
 import ADM from '../modules/adm-data';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
@@ -76,8 +78,8 @@ class StickyNote extends React.Component {
     this.OnDeleteClick = this.OnDeleteClick.bind(this);
     this.OnCriteriaSelect = this.OnCriteriaSelect.bind(this);
     this.OnCommentTextChange = this.OnCommentTextChange.bind(this);
-    this.OnShowEditButtons = this.OnShowEditButtons.bind(this);
-    this.OnHideEditButtons = this.OnHideEditButtons.bind(this);
+    this.OnMouseEnter = this.OnMouseEnter.bind(this);
+    this.OnMouseLeave = this.OnMouseLeave.bind(this);
     this.OnClickAway = this.OnClickAway.bind(this);
 
     this.state = {
@@ -86,8 +88,7 @@ class StickyNote extends React.Component {
       allowedToDelete: false,
       showEditButtons: false,
       criteria: [],
-      selectedCriteriaId: '',
-      comment: this.props.comment
+      comment: {}
     };
   }
 
@@ -97,21 +98,23 @@ class StickyNote extends React.Component {
 
   componentWillUnmount() {
     // Save data just in case?
-    this.OnEditFinished();
+    if (this.state.isBeingEdited) this.OnEditFinished();
   }
 
   DoOpenSticky() {
+    const { comment } = this.props;
     const criteria = ADM.GetCriteriaByClassroom();
     const currentGroup = ADM.GetGroupByStudent();
-    const authorGroup = ADM.GetGroupByStudent(this.props.comment.author);
+    const authorGroup = ADM.GetGroupByStudent(comment.author);
     const isAuthor = currentGroup === authorGroup;
     this.setState({
       criteria,
-      selectedCriteriaId: this.props.comment.criteriaId,
+      comment,
+      // selectedCriteriaId: this.props.comment.criteriaId,
       allowedToEdit: isAuthor,
       allowedToDelete: isAuthor // REVIEW: Only teachers are allowed to delete?
     });
-    if (this.props.comment.text === '') {
+    if (comment.text === '') {
       // automatically turn on editing if this is a new empty comment
       this.DoEditStart();
     }
@@ -120,7 +123,7 @@ class StickyNote extends React.Component {
   DoEditStart() {
     this.setState({ isBeingEdited: true }, () => {
       this.FocusTextInput();
-      this.props.onStartEdit();
+      this.props.OnStartEdit();
     });
   }
 
@@ -143,11 +146,11 @@ class StickyNote extends React.Component {
   OnEditFinished() {
     // Automatically mark read by author
     const author = ADM.GetSelectedStudentId();
-    let comment = this.props.comment;
+    let comment = this.state.comment;
     if (!comment.readBy.includes(author)) {
       comment.readBy.push(author);
     }
-    this.props.onUpdateComment();
+    this.props.OnUpdateComment({ comment });
     // stop editing and close
     this.setState({
       isBeingEdited: false
@@ -155,14 +158,14 @@ class StickyNote extends React.Component {
   }
 
   OnDeleteClick() {
-    this.props.onUpdateComment({
+    this.props.OnUpdateComment({
       action: 'delete',
-      commentId: this.state.comment.id
+      comment: this.state.comment
     });
     // stop editing and close
     this.setState({
       isBeingEdited: false
-    });    
+    });
   }
 
   OnCriteriaSelect(e) {
@@ -170,29 +173,27 @@ class StickyNote extends React.Component {
     this.setState(state => {
       let comment = state.comment;
       comment.criteriaId = criteriaId;
-      return {
-        selectedCriteriaId: criteriaId,
-        comment
-      };
+      return { comment };
     });
   }
 
-  OnCommentTextChange(e) {
-    // This updates the comment text in the StickyNoteCollection directly
-    // since it was passed by reference.
-    this.props.comment.text = e.target.value;
-
-    // Tell StickyNoteCollection to save to pmc-data
-    this.props.onUpdateComment();
+  OnCommentTextChange(text) {
+    this.setState(state => {
+      const comment = state.comment;
+      comment.text = text;
+      return { comment };
+    });
   }
 
-  OnShowEditButtons() {
+  OnMouseEnter() {
+    // Show Edit Buttons
     this.setState({
       showEditButtons: true
     });
   }
 
-  OnHideEditButtons() {
+  OnMouseLeave() {
+    // Hide Edit Buttons
     this.setState({
       showEditButtons: false
     });
@@ -230,9 +231,9 @@ class StickyNote extends React.Component {
       allowedToDelete,
       showEditButtons,
       criteria,
-      selectedCriteriaId
+      comment
     } = this.state;
-    const { classes, comment } = this.props;
+    const { classes } = this.props;
     const hasBeenRead = this.props.comment.readBy
       ? this.props.comment.readBy.includes(ADM.GetSelectedStudentId())
       : false;
@@ -246,8 +247,8 @@ class StickyNote extends React.Component {
       day: 'numeric'
     });
 
-    let showCriteria = isBeingEdited || selectedCriteriaId !== '';
-    let criteriaDisplay = ADM.GetCriteriaLabel(selectedCriteriaId);
+    let showCriteria = isBeingEdited || comment.criteriaId !== '';
+    let criteriaDisplay = ADM.GetCriteriaLabel(comment.criteriaId);
     if (isBeingEdited) {
       criteriaDisplay = (
         <select value={comment.criteriaId} onChange={this.OnCriteriaSelect}>
@@ -267,8 +268,8 @@ class StickyNote extends React.Component {
       <ClickAwayListener onClickAway={this.OnClickAway}>
         <Paper
           className={hasBeenRead ? classes.stickynoteCardRead : classes.stickynoteCard}
-          onMouseEnter={this.OnShowEditButtons}
-          onMouseLeave={this.OnHideEditButtons}
+          onMouseEnter={this.OnMouseEnter}
+          onMouseLeave={this.OnMouseLeave}
         >
           <Grid container>
             <Grid item xs={3}>
@@ -291,7 +292,7 @@ class StickyNote extends React.Component {
                   className={classes.stickynoteCardInput}
                   value={comment.text}
                   placeholder={comment.placeholder}
-                  onChange={this.OnCommentTextChange}
+                  onChange={e => this.OnCommentTextChange(e.target.value)}
                   variant="filled"
                   rowsMax="4"
                   multiline
@@ -338,8 +339,8 @@ StickyNote.propTypes = {
   classes: PropTypes.object,
   // eslint-disable-next-line react/forbid-prop-types
   comment: PropTypes.object,
-  onStartEdit: PropTypes.func,
-  onUpdateComment: PropTypes.func
+  OnStartEdit: PropTypes.func,
+  OnUpdateComment: PropTypes.func
 };
 
 StickyNote.defaultProps = {
@@ -351,11 +352,11 @@ StickyNote.defaultProps = {
     text: '',
     criteriaId: ''
   },
-  onStartEdit: () => {
-    console.error('StickyNote: onStartEdit prop was not defined!');
+  OnStartEdit: () => {
+    console.error('StickyNote: OnStartEdit prop was not defined!');
   },
-  onUpdateComment: () => {
-    console.error('StickyNote: onUpdateComment prop was not defined!');
+  OnUpdateComment: () => {
+    console.error('StickyNote: OnUpdateComment prop was not defined!');
   }
 };
 

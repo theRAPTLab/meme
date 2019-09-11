@@ -51,13 +51,15 @@ class ResourceView extends React.Component {
       resource: {}
     };
 
-    UR.Subscribe('SHOW_RESOURCE', this.OnOpen);
+    UR.Subscribe('RESOURCEVIEW:OPEN', this.OnOpen);
+    UR.Subscribe('RESOURCEVIEW:CLOSE', this.OnClose);
   }
 
   componentDidMount() {}
 
   componentWillUnmount() {
-    UR.Unsubscribe('SHOW_RESOURCE', this.OnOpen);
+    UR.Unsubscribe('RESOURCEVIEW:OPEN', this.OnOpen);
+    UR.Unsubscribe('RESOURCEVIEW:CLOSE', this.OnClose);
   }
 
   OnOpen(data) {

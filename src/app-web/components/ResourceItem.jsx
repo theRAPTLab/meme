@@ -95,7 +95,7 @@ class ResourceItem extends React.Component {
 
   OnResourceClick(rsrcId) {
     if (DBG) console.log(PKG, 'Resource clicked', rsrcId);
-    UR.Publish('SHOW_RESOURCE', { rsrcId });
+    UR.Publish('RESOURCEVIEW:OPEN', { rsrcId });
   }
 
   OnCreateEvidence(rsrcId) {

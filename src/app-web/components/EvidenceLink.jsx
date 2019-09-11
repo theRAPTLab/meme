@@ -75,7 +75,6 @@ class EvidenceLink extends React.Component {
     this.DoEvidenceLinkOpen = this.DoEvidenceLinkOpen.bind(this);
     this.OnScreenShotClick = this.OnScreenShotClick.bind(this)
     this.OnNoteChange = this.OnNoteChange.bind(this);
-    this.OnSourceSelectClick = this.OnSourceSelectClick.bind(this);
     this.OnLinkButtonClick = this.OnLinkButtonClick.bind(this);
     this.DoEnableSourceSelect = this.DoEnableSourceSelect.bind(this);
     this.DoSelectionChange = this.DoSelectionChange.bind(this);
@@ -221,20 +220,6 @@ class EvidenceLink extends React.Component {
      user can see the components for selection) and opening up
      the evLink
   */
-  OnSourceSelectClick(evId, rsrcId) {
-    // Deselect the prop first, otherwise the deleted prop will remain selected
-    DATA.VM_DeselectAll();
-    UR.Publish('SELECTION_CHANGED');
-    // Remove any existing evidence links
-    DATA.SetEvidenceLinkPropId(evId, undefined);
-    DATA.SetEvidenceLinkMechId(evId, undefined);
-    DATA.BuildModel();
-    // Then trigger editing
-    if (this.state.isBeingEdited) {
-      UR.Publish('REQUEST_SELECT_EVLINK_SOURCE', { evId, rsrcId });
-    }
-  }
-
   OnLinkButtonClick(e) {
     let evlink = this.props.evlink;
     // Deselect the prop first, otherwise the deleted prop will remain selected
@@ -363,7 +348,7 @@ class EvidenceLink extends React.Component {
             {/* Number / Comment */}
             <Grid item xs={isExpanded ? 12 : 2}>
               <div style={{ position: 'absolute', right: '0px' }}>
-                <StickyNoteButton parentId={evId} parentType="evidence" />
+                <StickyNoteButton parentId={evId} />
               </div>
               <Avatar className={classes.evidenceBodyNumber}>{evlink.number}</Avatar>
             </Grid>

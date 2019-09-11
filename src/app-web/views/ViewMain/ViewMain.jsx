@@ -272,7 +272,6 @@ class ViewMain extends React.Component {
       let propId = selectedPropIds[0];
       UR.Publish('STICKY:OPEN', {
         parentId: propId,
-        parentType: 'propmech',
         // FIXME: Set position according to parent prop?
         x: 600, // stickynote hack moves it by -325
         y: 100
@@ -286,7 +285,6 @@ class ViewMain extends React.Component {
       let mechId = selectedMechIds[0];
       UR.Publish('STICKY:OPEN', {
         parentId: mechId,
-        parentType: 'propmech',
         // FIXME: Set position according to parent prop?
         x: 600, // stickynote hack moves it by -325
         y: 100
@@ -383,6 +381,7 @@ class ViewMain extends React.Component {
   /*/
   handleEvLinkSourceSelectRequest(urdata) {
     this.setState({ resourceViewOpen: false }, () => {
+      UR.Publish('RESOURCEVIEW:CLOSE');
       UR.Publish('RESOURCES:COLLAPSE_ALL');
       UR.Publish('SHOW_EVIDENCE_LINK', { evId: urdata.evId, rsrcId: urdata.rsrcId });
       UR.Publish('EVLINK:ENABLE_SOURCE_SELECT', { evId: urdata.evId });
@@ -466,7 +465,7 @@ class ViewMain extends React.Component {
               &nbsp;&nbsp;by {modelAuthorGroupName} Group
             </Typography>
             <div className={classes.appBarRight}>
-              <StickyNoteButton parentId={modelId} parentType="propmech" />
+              <StickyNoteButton parentId={modelId}/>
               &nbsp;&nbsp;
               &nbsp;&nbsp;
               <Button onClick={ADM.CloseModel} color="inherit">

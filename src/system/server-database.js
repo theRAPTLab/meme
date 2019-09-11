@@ -375,33 +375,7 @@ DB.PKT_GetDatabase = pkt => {
         rsrcId: 'rs1',
         number: '1a',
         rating: 3,
-        note: 'ghoti ghoti gothi need food',
-        comments: [
-          {
-            id: 0,
-            author: 'Bessie',
-            date: new Date(),
-            text: 'What is this',
-            criteriaId: 'cr01',
-            readBy: ['Bob', 'Bill']
-          },
-          {
-            id: 1,
-            author: 'Bill',
-            date: new Date(),
-            text: 'I DONT like this',
-            criteriaId: 'cr02',
-            readBy: []
-          },
-          {
-            id: 3,
-            author: 'Mary',
-            date: new Date(),
-            text: 'Something from another group',
-            criteriaId: 'cr02',
-            readBy: []
-          }
-        ]
+        note: 'ghoti ghoti gothi need food'
       },
       {
         evId: 'ev3',
@@ -458,13 +432,21 @@ DB.PKT_GetDatabase = pkt => {
         note: 'ammonia is bad'
       }
     ],
-    model: [
-      {
-        title: '',
-        comments: []
-      }
-    ],
     commentThreads: [
+      {
+        id: 'ev3',
+        comments: [
+          {
+            id: 0,
+            time: 0,
+            author: 'Bob',
+            date: new Date(),
+            text: 'Comment on "fish need food"',
+            criteriaId: 'cr01',
+            readBy: ['Bob', 'Bill']
+          }
+        ]
+      },
       {
         id: 'tank',
         comments: [
