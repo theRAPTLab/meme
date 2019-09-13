@@ -1,0 +1,31 @@
+DATA MODEL
+
+let m_graph; // dagresjs/graphlib instance
+
+let a_props = []; // all properties (strings)
+let a_mechs = []; // all mechanisms (pathId strings)
+//
+let a_commentThreads = []; // all prop and mech comments
+//
+
+let a_components = []; // top-level props with no parents, derived
+let h_children = new Map(); // children hash of each prop by id
+let h_outedges = new Map(); // outedges hash of each prop by id
+let a_resources = [];
+let a_evidence = [];
+let h_evidenceByEvId = new Map();
+let h_evidenceByProp = new Map();
+let h_evlinkByResource = new Map();
+let h_evidenceByMech = new Map();
+let h_propByResource = new Map();
+let h_mechByResource = new Map();
+
+
+VIEW MODEL
+const map_vprops = new Map();
+const map_vmechs = new Map();
+const map_vbadges = new Map();
+const selected_vprops = new Set();
+const selected_vmechs = new Set();
+const map_rollover = new Map();
+

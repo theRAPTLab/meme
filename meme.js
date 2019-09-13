@@ -19,6 +19,7 @@ if (!fs.existsSync('./node_modules/ip')) {
 
 const path = require('path');
 const ip = require('ip');
+const process = require('process');
 const shell = require('shelljs');
 const argv = require('minimist')(process.argv.slice(1));
 const PROMPTS = require('./src/system/util/prompts');
@@ -103,7 +104,7 @@ function f_RunDevServer() {
 
   // run ursys socket server
   // note: in electron mode, this server is loaded from inside electron's console-main.js
-  URSERVER.InitializeNetwork();
+  URSERVER.Initialize({ memehost: 'devserver' });
   URSERVER.StartNetwork();
   URSERVER.StartWebServer();
 }

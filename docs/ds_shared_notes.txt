@@ -1,0 +1,21 @@
+
+session token: provides groupId, subgroupId (studentId)
+TEACHER-GROUP-HASH-FIRSTNAME
+
+-> info to load critical elements
+   modelId -> pmcdata Prop, Mech, Evidence
+    Prop, Mech -> SVGView
+    Evidence -> ResourceLibrary, ResourceView, Prop, Mech
+
+   resourceId -> Array<Resource> ->  ResourceLibrary, ResourceView
+   criteria -> CommentUI
+
+  [teachers] teacherId -> [classrooms] classroomId -> [groups] groupId -> studentIds
+  [models] modelId -> [pmc nodes, mechanisms, evidence] node,mech,ev -> [comments]
+
+  classroomId -> [criteria] criterion - popup menus in stickynotes
+              -> [selectedResources] resource
+              -> [sentenceStarters] sentence {string}
+
+  global [ratings] rating - rating key / legend  for stars {signed int}
+  global [resources] resource - master list of all resources in system

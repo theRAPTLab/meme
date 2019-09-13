@@ -36,12 +36,13 @@ let URSYS = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API: Main Entry Point
  */
-URSYS.InitializeNetwork = override => {
-  LOGGER.Write(LPR, `initializing network`);
-  console.log(`${CS}STARTING UR SOCKET SERVER${CR}`);
+URSYS.Initialize = (options = {}) => {
+  LOGGER.Write(LPR, `initializing network}`);
+  if (options.memehost) console.log(PR, `MEMEHOST:${options.memehost}`);
+  console.log(PR, `${CS}STARTING UR SOCKET SERVER${CR}`);
   URSYS.RegisterHandlers();
-  UDB.InitializeDatabase(override);
-  return UNET.InitializeNetwork(override);
+  UDB.InitializeDatabase(options);
+  return UNET.InitializeNetwork(options);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
@@ -125,7 +126,7 @@ URSYS.RegisterHandlers = () => {
 URSYS.StartWebServer = callback => {
   LOGGER.Write(LPR, `starting web server`);
   // returns an optional promise hook
-  console.log(`${CS}STARTING UR WEB SERVER${CR}`);
+  console.log(PR, `${CS}STARTING UR WEB SERVER${CR}`);
   (async () => {
     try {
       await EXPRESS.Start();

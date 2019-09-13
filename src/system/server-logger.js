@@ -20,7 +20,7 @@ const Tracer = require('tracer');
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 const PROMPTS = require('./util/prompts');
 
-const PR = PROMPTS.Pad('SRV-LOG');
+const PR = PROMPTS.Pad('LOGGER');
 
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -44,7 +44,7 @@ function StartLogging() {
   // initialize event logger
   let dir = PATH.resolve(PATH.join(__dirname, LOG_DIR));
   try {
-    console.log(`*** logging to ${dir}`);
+    console.log(PR, `logging to ${dir}`);
     FSE.ensureDirSync(dir);
     let logname = `${str_TimeDatedFilename('log')}.txt`;
     let pathname = `${dir}/${logname}`;
