@@ -115,6 +115,7 @@ import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import ADM from '../modules/adm-data';
 import PMC from '../modules/pmc-data';
+import UTILS from '../modules/utils';
 import StickyNote from './StickyNote';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -220,6 +221,7 @@ class StickyNoteCollection extends React.Component {
       comments.forEach(comment => {
         if (comment.readBy.includes(author)) return;
         comment.readBy.push(author);
+        UTILS.RLog('CommentMarkRead', `"${comment.text}" read by "${author}"`);
       });
       if (DBG) console.log(PKG, 'DoCloseSticky: comments should be:');
       if (DBG) console.table(comments);
@@ -260,10 +262,15 @@ class StickyNoteCollection extends React.Component {
       comments = comments.filter(co => {
         return co.id !== data.comment.id;
       });
+      UTILS.RLog('CommentDelete', `"${data.comment.text}" from "${this.state.parentId}"`);
     } else {
       // Regular data update
       const index = comments.findIndex(co => co.id === data.comment.id);
       if (index > -1) comments.splice(index, 1, data.comment); // ignore if it's been culled
+      UTILS.RLog(
+        'CommentUpdate',
+        `"${data.comment.text}" with criteria "${data.comment.criteriaId}" on "${this.state.parentId}"`
+      );
     }
     this.setState(
       {

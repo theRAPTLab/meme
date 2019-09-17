@@ -54,6 +54,7 @@ import StickyNoteCollection from '../../components/StickyNoteCollection';
 // MEME Modules and Utils
 import MEMEStyles from '../../components/MEMEStyles';
 import UR from '../../../system/ursys';
+import UTILS from '../../modules/utils';
 import RoutedView from './RoutedView';
 import DATA from '../../modules/pmc-data';
 import ADM from '../../modules/adm-data';
@@ -365,6 +366,7 @@ class ViewMain extends React.Component {
       // IF YOU UPDATE THE MODEL THEN BUILD IT SO VIEW UPDATES
       // MOST PMCDATA MODEL METHODS CALLS THIS AUTOMATICALLY
       // BUT IN THIS CASE YOU'RE MUTATING THE PROP DIRECTLY
+      UTILS.RLog('PropertyEdit', this.state.addPropLabel);
       DATA.BuildModel();
     } else {
       // Create new prop

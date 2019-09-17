@@ -1,5 +1,6 @@
 import DEFAULTS from './defaults';
 import UR from '../../system/ursys';
+import UTILS from './utils';
 import PMCData from './pmc-data';
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
@@ -501,6 +502,7 @@ ADMData.GetModelTitle = (modelId = adm_settings.selectedModelId) => {
  */
 ADMData.ModelTitleUpdate = (modelId, title) => {
   const model = ADMData.GetModelById(modelId);
+  UTILS.RLog('ModelRename', `from "${model.title}" to "${title}"`);
   model.title = title;
   UR.Publish('MODEL_TITLE:UPDATED', { title });
 };
@@ -518,6 +520,8 @@ ADMData.NewModel = (groupId = ADMData.GetSelectedGroupId()) => {
   adm_db.a_models.push(model);
   UR.Publish('ADM_DATA_UPDATED');
   ADMData.LoadModel(model.id, groupId);
+
+  UTILS.RLog('ModelCreate');
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

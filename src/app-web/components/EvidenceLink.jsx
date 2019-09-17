@@ -252,8 +252,6 @@ class EvidenceLink extends React.Component {
         // Get the last selection
         sourceId = selectedMechIds[selectedMechIds.length - 1];
         DATA.SetEvidenceLinkMechId(this.props.evlink.evId, sourceId);
-        // Clear the PropId in case it was set previously
-        DATA.SetEvidenceLinkPropId(this.props.evlink.evId, undefined);
         // leave it in a waiting state?  This allows you to change your mind?
         // REVIEW may want another way to exit / confirm the selection?
         // For May 1, exit as soon as something is selected to prevent
@@ -269,8 +267,6 @@ class EvidenceLink extends React.Component {
         // Get the last selection
         sourceId = selectedPropIds[selectedPropIds.length - 1];
         DATA.SetEvidenceLinkPropId(this.props.evlink.evId, sourceId);
-        // Clear the PropId in case it was set previously
-        DATA.SetEvidenceLinkMechId(this.props.evlink.evId, undefined);
         // leave it in a waiting state?  This allows you to change your mind?
         // REVIEW may want another way to exit / confirm the selection?
         // For May 1, exit as soon as something is selected to prevent

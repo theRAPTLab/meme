@@ -2,6 +2,7 @@ import { Graph, alg as GraphAlg, json as GraphJSON } from '@dagrejs/graphlib';
 import { cssinfo, cssreset, cssdata } from './console-styles';
 import DEFAULTS from './defaults';
 import UR from '../../system/ursys';
+import UTILS from './utils';
 
 const { CoerceToPathId, CoerceToEdgeObj } = DEFAULTS;
 
@@ -842,12 +843,14 @@ PMCData.VM_SelectedMechIds = () => {
 PMCData.PMC_AddProp = node => {
   m_graph.setNode(node, { name: `${node}` });
   PMCData.BuildModel();
+  UTILS.RLog('PropertyAdd', node);
   return `added node ${node}`;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_SetPropParent = (node, parent) => {
   m_graph.setParent(node, parent);
   PMCData.BuildModel();
+  UTILS.RLog('PropertySetParent', node, parent);
   return `set parent ${parent} to node ${node}`;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -869,12 +872,14 @@ PMCData.PMC_PropDelete = (propid = 'a') => {
   // Then remove propid
   m_graph.removeNode(propid);
   PMCData.BuildModel();
+  UTILS.RLog('PropertyDelete', propid);
   return `deleted propid ${propid}`;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_MechAdd = (sourceId, targetId, label) => {
   m_graph.setEdge(sourceId, targetId, { name: label });
   PMCData.BuildModel();
+  UTILS.RLog('MechanismAdd', sourceId, targetId, label);
   return `added edge ${sourceId} ${targetId} ${label}`;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -885,12 +890,13 @@ PMCData.PMC_MechAdd = (sourceId, targetId, label) => {
  *  assets over from the old mech to the new mech.
  */
 PMCData.PMC_MechUpdate = (origMech, newMech) => {
-  // If we're only changing the label, then don't do the fancy swap, just update the albel.
+  // If we're only changing the label, then don't do the fancy swap, just update the label.
   if (origMech.sourceId === newMech.sourceId && origMech.targetId === newMech.targetId) {
     // Just change label
     const { sourceId, targetId, label } = newMech;
     m_graph.setEdge(sourceId, targetId, { name: label });
     PMCData.BuildModel();
+    UTILS.RLog('MechanismEditLabel', label);
   } else {
     // 1. Add the new mech
     m_graph.setEdge(newMech.sourceId, newMech.targetId, { name: newMech.label });
@@ -915,6 +921,7 @@ PMCData.PMC_MechUpdate = (origMech, newMech) => {
     PMCData.PMC_MechDelete(origMechId);
 
     PMCData.BuildModel();
+    UTILS.RLog('MechanismEdit', `from "${origMechId}" to "${newMechId}" with label "${newMech.label}"`);
 
     // 3. Show review dialog alert.
     // HACK: Delay the alert so the system has a chance to redraw first.
@@ -963,6 +970,8 @@ PMCData.PMC_AddEvidenceLink = (rsrcId, note = '') => {
   const number = String(prefix) + count;
   a_evidence.push({ evId, propId: undefined, rsrcId, number, note });
   PMCData.BuildModel();
+
+  UTILS.RLog('EvidenceCreate', rsrcId); // note is empty at this point
   return evId;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -984,6 +993,7 @@ PMCData.PMC_DuplicateEvidenceLink = evId => {
   const oldlink = PMCData.PMC_GetEvLinkByEvId(evId);
   // Create new evlink
   let newEvId = PMCData.PMC_AddEvidenceLink(oldlink.rsrcId, oldlink.note);
+  UTILS.RLog('EvidenceDuplicate', oldlink.note);
   return newEvId;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1032,8 +1042,15 @@ PMCData.SetEvidenceLinkPropId = (evId, propId) => {
     return item.evId === evId;
   });
   evlink.propId = propId;
+  evlink.mechId = undefined; // clear this in case it was set
   // Call BuildModel to rebuild hash tables since we've added a new propId
   PMCData.BuildModel(); // DATA_UPDATED called by BuildModel()
+  if (propId !== undefined)
+    // Only log when setting, not when programmatically clearing
+    UTILS.RLog(
+      'EvidenceSetTarget',
+      `Attaching evidence "${evlink.note}" to Property "${propId}"`
+    );
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
@@ -1041,8 +1058,15 @@ PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
     return item.evId === evId;
   });
   evlink.mechId = mechId;
+  evlink.propId = undefined; // clear this in case it was set
   // Call BuildModel to rebuild hash tables since we've added a new mechId
   PMCData.BuildModel(); // DATA_UPDATED called by BuildModel()
+  if (mechId !== undefined)
+    // Only log when setting, not when programmatically clearing
+    UTILS.RLog(
+      'EvidenceSetTarget',
+      `Attaching evidence "${evlink.note}" to Mechanism "${mechId}"`
+    );
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkNote = (evId, note) => {
@@ -1051,6 +1075,7 @@ PMCData.SetEvidenceLinkNote = (evId, note) => {
   });
   evlink.note = note;
   UR.Publish('DATA_UPDATED');
+  UTILS.RLog('EvidenceSetNote', `Set evidence note to "${evlink.note}"`);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkRating = (evId, rating) => {
@@ -1060,6 +1085,7 @@ PMCData.SetEvidenceLinkRating = (evId, rating) => {
   if (evlink) {
     evlink.rating = rating;
     UR.Publish('DATA_UPDATED');
+    UTILS.RLog('EvidenceSetRating', `Set evidence "${evlink.note}" to "${rating}"`);
     return;
   }
   throw Error(`no evidence link with evId '${evId}' exists`);

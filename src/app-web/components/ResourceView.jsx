@@ -29,6 +29,7 @@ import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import DATA from '../modules/pmc-data';
 import ADM from '../modules/adm-data';
+import UTILS from '../modules/utils';
 import EvidenceList from './EvidenceList';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -71,6 +72,7 @@ class ResourceView extends React.Component {
         isOpen: true,
         resource
       });
+      UTILS.RLog('ResourceOpen', resource.label);
     } else {
       console.error('ViewMain: Could not find selected resource id', data.rsrcId);
     }

@@ -28,6 +28,7 @@ import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import ADM from '../modules/adm-data';
 import ModelsListTable from './ModelsListTable';
+import UTILS from '../modules/utils';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -101,11 +102,13 @@ class ModelSelect extends React.Component {
   OnModelEdit(modelId) {
     ADM.LoadModel(modelId);
     UR.Publish('MODEL:ALLOW_EDIT');
+    UTILS.RLog('ModelOpenEdit', modelId);
     this.OnModelDialogClose();
   }
 
   OnModelView(modelId) {
     ADM.LoadModel(modelId);
+    UTILS.RLog('ModelOpenView', modelId);
     this.OnModelDialogClose();
   }
 
@@ -115,7 +118,14 @@ class ModelSelect extends React.Component {
 
   render() {
     const { classes } = this.props;
-    const { modelId, modelSelectDialogOpen, showClassesModels, studentId, groupName, classroomName, teacherName } = this.state;
+    const {
+      modelSelectDialogOpen,
+      showClassesModels,
+      studentId,
+      groupName,
+      classroomName,
+      teacherName
+    } = this.state;
     const myModels = ADM.GetModelsByStudent();
     const ourModels = ADM.GetMyClassmatesModels(ADM.GetSelectedClassroomId(), studentId);
     return (
@@ -147,15 +157,11 @@ class ModelSelect extends React.Component {
           <Divider style={{ margin: '2em' }}/>
           <Grid container spacing={2}>
             <Grid item>
-              <Typography variant="h4">
-                {ADM.GetStudentGroupName()} Group&lsquo;s Models
-              </Typography>
+              <Typography variant="h4">{ADM.GetStudentGroupName()} Group&lsquo;s Models</Typography>
               <ModelsListTable models={myModels} OnModelSelect={this.OnModelEdit} />
             </Grid>
             <Grid item hidden={!showClassesModels}>
-              <Typography variant="h4">
-                My Class&lsquo; Models
-              </Typography>
+              <Typography variant="h4">My Class&lsquo; Models</Typography>
               <ModelsListTable models={ourModels} OnModelSelect={this.OnModelView} />
             </Grid>
           </Grid>

@@ -260,7 +260,7 @@ class MechDialog extends React.Component {
   OnTextChange(e) {
     this.setState({ label: e.target.value });
   }
-  
+
   OnReverse() {
     // Swap source and target
     const { sourceId, sourceLabel, targetId, targetLabel } = this.state;
@@ -277,18 +277,16 @@ class MechDialog extends React.Component {
         slideIn: false
       },
       () => {
-        setTimeout(
-          () => {
-            this.setState({ slideIn: true });
-            setTimeout(
-              () => {
-                // hack to prevent scrollbars from appearing during slide
-                document.getElementsByTagName('body')[0].style.overflow = origOverflowSetting;         
-              }, 250
-            )
-          }, 250
-        );
-      });
+        setTimeout(() => {
+          this.setState({ slideIn: true });
+          setTimeout(() => {
+            // hack to prevent scrollbars from appearing during slide
+            document.getElementsByTagName('body')[0].style.overflow = origOverflowSetting;
+          }, 250);
+        }, 250)
+      }
+    );
+    UTILS.RLog('MechanismReverse', `new source "${targetId}" to new target "${sourceId}"`);
   }
 
   DoSaveData() {
@@ -316,7 +314,6 @@ class MechDialog extends React.Component {
       sourceLabel,
       targetId,
       targetLabel,
-      editExisting,
       listenForSourceSelection,
       listenForTargetSelection,
       saveButtonLabel,
