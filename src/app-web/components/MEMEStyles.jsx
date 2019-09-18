@@ -10,6 +10,9 @@ const m_stickynoteColor = yellow[400]; //`#ffe25a`;
 const m_systemTextColor = 'rgba(0,0,0,0.35)';
 const m_systemLabelTextColor = 'rgba(0,0,0,0.25)';
 const m_resourceListWidth = 300;
+const m_zResourceList = 1250;
+const m_zSticky = 1500;
+const m_zHelp = 1600;
 
 const styles = theme => {
   return {
@@ -85,10 +88,10 @@ const styles = theme => {
       height: '3em',
       alignItems: 'baseline'
     },
-    informationList: {
+    resourceList: {
       width: m_resourceListWidth,
       backgroundColor: teal[50],
-      zIndex: 1250 // above drawer, below modal
+      zIndex: m_zResourceList // above drawer, below modal
     },
     resourceListLabel: {
       fontSize: '0.8em',
@@ -378,7 +381,7 @@ const styles = theme => {
       position: 'absolute',
       top: '200px',
       left: '300px',
-      zIndex: 1500
+      zIndex: m_zSticky
     },
     stickynoteCard: {
       backgroundColor: 'rgba(255,255,0,0.5)',
@@ -424,6 +427,22 @@ const styles = theme => {
     stickynoteCardCriteria: {
       fontSize: '14px', // match Typograophy subitlte2
       display: 'inline-flex'
+    },
+    helpViewPaper: {
+      position: 'absolute',
+      width: '300px',
+      height: '90%',
+      top: '5%',
+      right: m_resourceListWidth,
+      zIndex: m_zHelp,
+      padding: '10px 0 0 10px',
+      backgroundColor: 'rgba(255,243,211,0.9)'
+    },
+    helpViewText: {
+      display: 'block', // override default MDReactComponent <span>
+      height: '90%',
+      padding: '10px 0 5px 0',
+      overflowY: 'scroll'
     }
   };
 };

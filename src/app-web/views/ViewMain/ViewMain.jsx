@@ -41,6 +41,7 @@ import ChatBubbleOutlineIcon from '@material-ui/icons/ChatBubbleOutline';
 import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
 import EditIcon from '@material-ui/icons/Edit';
 // MEME App Components
+import HelpView from '../../components/HelpView';
 import Login from '../../components/Login';
 import MechDialog from '../../components/MechDialog';
 import ModelSelect from '../../components/ModelSelect';
@@ -98,6 +99,7 @@ class ViewMain extends React.Component {
     this.OnPropDialogCreateClick = this.OnPropDialogCreateClick.bind(this);
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.DoSelectionChange = this.DoSelectionChange.bind(this);
+    this.OnHelp = this.OnHelp.bind(this);
     UR.Subscribe('WINDOW:SIZE', this.UpdateDimensions);
     UR.Subscribe('DATA_UPDATED', this.DoDataUpdate);
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
@@ -113,7 +115,7 @@ class ViewMain extends React.Component {
       studentId: '',
       studentName: '',
       studentGroup: '',
-      viewHeight: 0, // need to init this to prevent error with first render of informationList
+      viewHeight: 0, // need to init this to prevent error with first render of resourceList
       addPropOpen: false,
       addPropLabel: '',
       addPropPropId: '', // The prop Id of the component being edited, if new component then ''
@@ -432,6 +434,10 @@ class ViewMain extends React.Component {
     });
   }
 
+  OnHelp() {
+    UR.Publish('HELP_OPEN');
+  }
+
   render() {
     const { classes } = this.props;
 
@@ -490,6 +496,7 @@ class ViewMain extends React.Component {
               </Button>
               &nbsp;&nbsp; &nbsp;&nbsp;
               <Button onClick={ADM.Logout} color="inherit">Logout</Button>
+              <Button onClick={this.OnHelp} color="inherit">?</Button>
             </div>
           </Toolbar>
         </AppBar>
@@ -588,7 +595,7 @@ class ViewMain extends React.Component {
         {/* Resource Library */}
         <Drawer variant="permanent" style={{ width: '300px' }} anchor="right">
           {/*<div style={{ height: this.state.viewHeight + 64, overflowY: 'scroll', zIndex: 1250 }}>*/}
-          <Paper className={classes.informationList}>
+          <Paper className={classes.resourceList}>
             <div className={classes.resourceListLabel}>RESOURCE LIBRARY</div>
             <List dense>
               {resources.map(resource => (
@@ -601,6 +608,9 @@ class ViewMain extends React.Component {
 
         {/* Resource View */}
         <ResourceView />
+
+        {/* Help View */}
+        <HelpView />
 
         {/* Prop Dialog -- Property label editing dialog */}
         <Dialog

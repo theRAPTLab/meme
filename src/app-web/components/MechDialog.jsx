@@ -304,7 +304,7 @@ class MechDialog extends React.Component {
   OnCreateClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (DBG) console.log('create edge');
     this.DoSaveData();
     this.DoClose();
@@ -375,7 +375,7 @@ class MechDialog extends React.Component {
                 type="submit"
                 color="primary"
                 variant="contained"
-                disabled={sourceId === '' || targetId === ''}
+                disabled={sourceId === '' || targetId === '' || label === ''}
               >
                 {saveButtonLabel}
               </Button>
