@@ -152,8 +152,8 @@ DB.PKT_GetDatabase = pkt => {
   adm_db.a_ratingsDefinitions = f_GetCollectionData('ratingsDefinitions');
   adm_db.a_classroomResources = f_GetCollectionData('classroomResources');
   adm_db.a_resources = f_GetCollectionData('resources');
-
   // return object for transaction; URSYS will automatically return
+
   // to the netdevice that called this
   return adm_db;
   //

@@ -3,7 +3,7 @@ import ADM from './adm-data';
 import PMC from './pmc-data';
 import UR from '../../system/ursys';
 
-const { VPROP, SVGSYMBOLS } = DEFAULTS;
+const { VPROP, COLOR, SVGSYMBOLS } = DEFAULTS;
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -16,7 +16,7 @@ const m_pad = 5; // was PAD.MIN, but that's too big.  5 works better
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = true;
+const DBG = false;
 const PKG = 'VBadge';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
@@ -168,14 +168,21 @@ class VBadge {
         xx += badge.width() + m_pad;
       });
     }
-    
+
     // Set Current Read/Unreaad status
+    let hasNoComments;
+    let hasUnreadComments;
     const comments = PMC.GetComments(vparent.id);
-    const author = ADM.GetSelectedStudentId(); // FIXME: This should read from session
-    const hasNoComments = comments ? comments.length < 1 : true;
-    const hasUnreadComments = comments.find(comment => {
-      return comment.readBy ? !comment.readBy.includes(author) : false;
-    });
+    if (comments === undefined) {
+      hasNoComments = true;
+      hasUnreadComments = false;
+    } else {
+      hasNoComments = comments.length < 1;
+      const author = ADM.GetSelectedStudentId(); // FIXME: This should read from session
+      hasUnreadComments = comments.find(comment => {
+        return comment.readBy ? !comment.readBy.includes(author) : false;
+      });
+    }
     if (hasNoComments) {
       this.gStickyButtons.chat.attr('display', 'none');
       this.gStickyButtons.chatBubble.attr('display', 'none');
@@ -269,15 +276,18 @@ VBadge.SVGEvLink = (evlink, vparent) => {
     .font({ fill: '#fff', size: '1em', anchor: 'middle' })
     .move(m_pad, m_pad / 2);
 
-  gBadge.gRating = VBadge.SVGRating(evlink, gBadge).move((3 - Math.abs(evlink.rating)) * 4, radius);
+  gBadge.gRating = VBadge.SVGRating(evlink, gBadge).move(
+    (3 - Math.abs(Math.max(1, evlink.rating))) * 4, // always shift at least 1 symbol, since no rating is 0
+    radius
+  );
 
   return gBadge;
 };
 
-/// SVGEvLink  ////////////////////////////////////////////////////////////////
+/// SVGRating  ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
- *  Creates and returns a badge for an evidence link
+ *  Creates and returns the rating icon for a badge
  */
 VBadge.SVGRating = (evlink, gBadge) => {
   const rating = evlink.rating;
@@ -300,8 +310,11 @@ VBadge.SVGRating = (evlink, gBadge) => {
         .scale(0.4);
     }
   } else {
-    console.error('...notrated');
     // Not Rated
+    gRatings
+      .use(SVGSYMBOLS.get('ratingsNeutral'))
+      .move(m_pad, m_pad)
+      .scale(0.4);
   }
 
   return gRatings;
@@ -320,7 +333,6 @@ VBadge.SVGStickyButton = (vparent, x, y) => {
     if (DBG) console.log(`${e.target} clicked e=${e}`);
     UR.Publish('STICKY:OPEN', {
       parentId: vparent.id,
-      parentType: 'propmech',
       x: e.clientX,
       y: e.clientY
     });

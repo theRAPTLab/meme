@@ -1,4 +1,4 @@
-import { green, indigo, orange, red, teal, yellow } from '@material-ui/core/colors';
+import { green, grey, indigo, orange, red, teal, yellow } from '@material-ui/core/colors';
 import { registerMorphableType } from '@svgdotjs/svg.js/src/main';
 import { Hidden } from '@material-ui/core';
 
@@ -291,6 +291,9 @@ const styles = theme => {
     evidenceLinkPaperExpanded: {
       height: 'auto',
       padding: '10px 0 10px 10px',
+      backgroundColor: '#bce8e4'
+    },
+    evidenceLinkPaperEditting: {
       backgroundColor: '#dbfaf7'
     },
     lessIconCollapsed: {
@@ -348,6 +351,9 @@ const styles = theme => {
     },
     ratingIconNegative: {
       color: red[600]
+    },
+    ratingIconNeutral: {
+      color: grey[600]
     },
     ratingIconPositive: {
       color: green[600]

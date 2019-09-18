@@ -49,8 +49,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from '@material-ui/core/Button';
 // Material UI Icons
-import PositiveIcon from '@material-ui/icons/Add';
 import NegativeIcon from '@material-ui/icons/Clear';
+import BlockIcon from '@material-ui/icons/Block';
+import PositiveIcon from '@material-ui/icons/Add';
 // Material UI Theming
 import { withStyles } from '@material-ui/core/styles';
 
@@ -83,17 +84,20 @@ class RatingButton extends React.Component {
 
     const count = Math.abs(rating);
     const icons = [];
-    for (let i = 0; i < count; i++) {
-      if (rating < 0) {
-        icons.push(
-          <NegativeIcon className={classes.ratingIconNegative} key={i} fontSize="small" />
-        );
-      } else if (rating > 0) {
-        icons.push(
-          <PositiveIcon className={classes.ratingIconPositive} key={i} fontSize="small" />
-        );
-      } else {
-        // leave blank
+    if (count === 0) {
+      // No Rating
+      icons.push(<BlockIcon className={classes.ratingIconNeutral} key={0} fontSize="small" />);
+    } else {
+      for (let i = 0; i < count; i++) {
+        if (rating < 0) {
+          icons.push(
+            <NegativeIcon className={classes.ratingIconNegative} key={i} fontSize="small" />
+          );
+        } else if (rating > 0) {
+          icons.push(
+            <PositiveIcon className={classes.ratingIconPositive} key={i} fontSize="small" />
+          );
+        }
       }
     }
 

@@ -1,4 +1,4 @@
-import { yellow, green, red } from '@material-ui/core/colors';
+import { yellow, green, red, grey } from '@material-ui/core/colors';
 import SVGJS from '@svgdotjs/svg.js/src/svg';
 import DATA from './pmc-data';
 import VProp from './class-vprop';
@@ -177,6 +177,13 @@ PMCView.DefineDefs = svg => {
 /**
  * PRIVATE: Define named svg "symbols" for reuse in the view.
  * It shouldn't be called externally.
+ * 
+ * To get the path definitions from Material UI icons:
+ * 1. Go to the icon page, e.g. https://material.io/resources/icons/?style=baseline
+ * 2. Click on the icon
+ * 3. Download the icon as svg
+ * 4. Open the svg file
+ * 5. Copy the path info
  * @param {SVGJSinstance} svg - SVGJS instance to add DEFs to
  */
 PMCView.DefineSymbols = svg => {
@@ -241,6 +248,20 @@ PMCView.DefineSymbols = svg => {
           'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'
         )
         .fill(red[600]);
+      icon.path('M0 0h24v24H0z').fill('none');
+      return icon;
+    })()
+  );
+  SVGSYMBOLS.set(
+    'ratingsNeutral',
+    (() => {
+      const icon = svg.symbol();
+      // from https://fonts.gstatic.com/s/i/materialicons/clear/v1/24px.svg?download=true
+      icon
+        .path(
+          'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z'
+        )
+        .fill(grey[600]);
       icon.path('M0 0h24v24H0z').fill('none');
       return icon;
     })()

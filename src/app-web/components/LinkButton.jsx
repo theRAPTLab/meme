@@ -94,10 +94,11 @@ class LinkButton extends React.Component {
     let icon;
     let evidenceLinkSelectButtonClass = classes.evidenceLinkSelectButton;
 
-    if (sourceLabel !== undefined && sourceLabel !== '') {
+    if (sourceLabel !== undefined) {
       label = sourceLabel;
       switch (sourceType) {
         case 'mech':
+          if (label === '') label = 'unlabeled';
           evidenceLinkSelectButtonClass = classes.evidenceLinkSourceMechAvatarSelected;
           break;
         default:

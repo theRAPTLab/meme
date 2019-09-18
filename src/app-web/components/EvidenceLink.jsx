@@ -18,6 +18,7 @@ import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import Collapse from '@material-ui/core/Collapse';
 import Divider from '@material-ui/core/Divider';
+import FilledInput from '@material-ui/core/FilledInput';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
 import TextField from '@material-ui/core/TextField';
@@ -27,7 +28,7 @@ import CreateIcon from '@material-ui/icons/Create';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 // Material UI Theming
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -173,6 +174,7 @@ class EvidenceLink extends React.Component {
 
   OnSaveButtonClick(e) {
     e.stopPropagation();
+    DATA.SetEvidenceLinkNote(this.props.evlink.evId, this.state.note);
     // FIXME May 1 Hack
     // How do we handle draftValue vs committedValue?
     this.setState({
@@ -211,7 +213,6 @@ class EvidenceLink extends React.Component {
   OnNoteChange(e) {
     if (DBG) console.log(PKG, 'Note Change:', e.target.value);
     this.setState({ note: e.target.value });
-    DATA.SetEvidenceLinkNote(this.props.evlink.evId, e.target.value);
   }
 
   /* User has clicked on the 'link' button, so we want to
@@ -278,6 +279,7 @@ class EvidenceLink extends React.Component {
   }
 
   DoToggleExpanded() {
+    if (this.state.isBeingEdited) return; // Don't toggle if being edited
     if (DBG) console.log(PKG, 'evidence link clicked');
     if (this.state.isExpanded) {
       this.setState({
@@ -297,10 +299,38 @@ class EvidenceLink extends React.Component {
   }
 
   render() {
+    // theme overrides
+    // See https://github.com/mui-org/material-ui/issues/14905 for details
+    const theme = createMuiTheme();
+    theme.overrides = {
+      MuiFilledInput: {
+        root: {
+          backgroundColor: 'rgba(255,255,255,0.25)',
+          paddingTop: '3px',
+          '&$disabled': {
+            backgroundColor: 'rgba(255,255,255,0.35)'
+          },
+          '&$focused': {
+            backgroundColor: '#fff'
+          }
+        },
+        multiline: {
+          padding: '5px'
+        }
+      }
+    };
+
     // evidenceLinks is an array of arrays because there might be more than one?!?
     const { classes, evlink } = this.props;
     const { evId, rsrcId, propId, mechId } = evlink;
-    const { note, rating, ratingDefs, isBeingEdited, isExpanded, listenForSourceSelection } = this.state;
+    const {
+      note,
+      rating,
+      ratingDefs,
+      isBeingEdited,
+      isExpanded,
+      listenForSourceSelection
+    } = this.state;
     if (evId === '') return '';
 
     let sourceType;
@@ -321,11 +351,12 @@ class EvidenceLink extends React.Component {
         <Paper
           className={ClassNames(
             classes.evidenceLinkPaper,
-            isExpanded ? classes.evidenceLinkPaperExpanded : ''
+            isExpanded ? classes.evidenceLinkPaperExpanded : '',
+            isBeingEdited ? classes.evidenceLinkPaperEditting : ''
           )}
           onClick={this.DoToggleExpanded}
           key={`${rsrcId}`}
-          elevation={isExpanded ? 20 : 1}
+          elevation={isExpanded ? 5 : 1}
         >
           {/* Title Bar */}
           <Button
@@ -360,31 +391,40 @@ class EvidenceLink extends React.Component {
                 className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed}
               >
                 <Grid item xs={4} hidden={!isExpanded}>
-                  <Typography className={classes.evidenceWindowLabel} variant="caption" align="right">
+                  <Typography
+                    className={classes.evidenceWindowLabel}
+                    variant="caption"
+                    align="right"
+                  >
                     DESCRIPTION:
                   </Typography>
                 </Grid>
 
                 <Grid item xs>
                   {isExpanded ? (
-                    <TextField
-                      className={ClassNames(
-                        classes.evidenceLabelField,
-                        classes.evidenceLabelFieldExpanded
-                      )}
-                      value={note}
-                      placeholder="Untitled..."
-                      autoFocus
-                      multiline
-                      onChange={this.OnNoteChange}
-                      onClick={e => {
-                        e.stopPropagation();
-                      }}
-                      InputProps={{
-                        readOnly: !isBeingEdited
-                      }}
-                      inputRef={this.textInput}
-                    />
+                    <MuiThemeProvider theme={theme}>
+                      <FilledInput
+                        className={ClassNames(
+                          classes.evidenceLabelField,
+                          classes.evidenceLabelFieldExpanded
+                        )}
+                        value={note}
+                        placeholder="Untitled..."
+                        autoFocus
+                        multiline
+                        variant="filled"
+                        disabled={!isBeingEdited}
+                        disableUnderline
+                        onChange={this.OnNoteChange}
+                        onClick={e => {
+                          e.stopPropagation();
+                        }}
+                        inputProps={{
+                          readOnly: !isBeingEdited
+                        }}
+                        inputRef={this.textInput}
+                      />
+                    </MuiThemeProvider>
                   ) : (
                     <div className={classes.evidenceLabelField}>{note}</div>
                   )}
@@ -396,7 +436,9 @@ class EvidenceLink extends React.Component {
                 <Grid
                   container
                   spacing={1}
-                  className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed}
+                  className={
+                    isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed
+                  }
                 >
                   <Grid item xs={4} hidden={!isExpanded}>
                     <Typography
@@ -427,10 +469,16 @@ class EvidenceLink extends React.Component {
               <Grid
                 container
                 spacing={1}
-                className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRatingCollapsed}
+                className={
+                  isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRatingCollapsed
+                }
               >
                 <Grid item xs={4} hidden={!isExpanded}>
-                  <Typography className={classes.evidenceWindowLabel} variant="caption" align="right">
+                  <Typography
+                    className={classes.evidenceWindowLabel}
+                    variant="caption"
+                    align="right"
+                  >
                     RATING:
                   </Typography>
                 </Grid>
@@ -452,7 +500,10 @@ class EvidenceLink extends React.Component {
                 </Typography>
               </Grid>
               <Grid item xs>
-                <Button className={classes.evidenceScreenshotButton} onClick={this.OnScreenShotClick}>
+                <Button
+                  className={classes.evidenceScreenshotButton}
+                  onClick={this.OnScreenShotClick}
+                >
                   <img
                     src="../static/screenshot_sim.png"
                     alt="screenshot"
