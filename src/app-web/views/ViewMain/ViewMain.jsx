@@ -11,7 +11,7 @@ import PropTypes from 'prop-types';
 import ClassNames from 'classnames';
 import { Switch, Route } from 'react-router-dom';
 // Material UI Theming
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles, createMuiTheme } from '@material-ui/core/styles';
 import { yellow } from '@material-ui/core/colors';
 
 /// COMPONENTS ////////////////////////////////////////////////////////////////
@@ -23,7 +23,6 @@ import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import List from '@material-ui/core/List';
 import Typography from '@material-ui/core/Typography';
-import Divider from '@material-ui/core/Divider';
 import Tooltip from '@material-ui/core/Tooltip';
 import Card from '@material-ui/core/Card';
 import Paper from '@material-ui/core/Paper';
@@ -35,12 +34,14 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
+
 // Material UI Icons
 import AddIcon from '@material-ui/icons/Add';
 import ChatBubbleOutlineIcon from '@material-ui/icons/ChatBubbleOutline';
 import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
 import EditIcon from '@material-ui/icons/Edit';
 // MEME App Components
+import HelpView from '../../components/HelpView';
 import Login from '../../components/Login';
 import MechDialog from '../../components/MechDialog';
 import ModelSelect from '../../components/ModelSelect';
@@ -49,6 +50,7 @@ import ResourceItem from '../../components/ResourceItem';
 import RatingsDialog from '../../components/RatingsDialog';
 import StickyNoteButton from '../../components/StickyNoteButton';
 import StickyNoteCollection from '../../components/StickyNoteCollection';
+import ToolsPanel from './ToolsPanel';
 // MEME Modules and Utils
 import MEMEStyles from '../../components/MEMEStyles';
 import UR from '../../../system/ursys';
@@ -62,6 +64,16 @@ import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DBG = false;
 const PKG = 'ViewMain:';
+
+// Customized TreeItem Component with smaller font
+const SmallTreeItem = withStyles(theme => ({
+  iconContainer: {
+    width: '16px'
+  },
+  label: {
+    fontSize: '11px'
+  }
+}))(props => <TreeItem {...props} />);
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -98,11 +110,14 @@ class ViewMain extends React.Component {
     this.OnPropDialogCreateClick = this.OnPropDialogCreateClick.bind(this);
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.DoSelectionChange = this.DoSelectionChange.bind(this);
+    this.OnHelp = this.OnHelp.bind(this);
     UR.Subscribe('WINDOW:SIZE', this.UpdateDimensions);
     UR.Subscribe('DATA_UPDATED', this.DoDataUpdate);
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Subscribe('MODEL_TITLE:UPDATED', this.DoModelTitleUpdate);
+    UR.Subscribe('PROP_ADD', this.OnComponentAdd);
+    UR.Subscribe('MECH_ADD', this.OnMechAdd);
     UR.Subscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
     UR.Subscribe('MECHDIALOG:CLOSED', this.DoMechClosed);
     this.state = {
@@ -113,7 +128,7 @@ class ViewMain extends React.Component {
       studentId: '',
       studentName: '',
       studentGroup: '',
-      viewHeight: 0, // need to init this to prevent error with first render of informationList
+      viewHeight: 0, // need to init this to prevent error with first render of resourceList
       addPropOpen: false,
       addPropLabel: '',
       addPropPropId: '', // The prop Id of the component being edited, if new component then ''
@@ -432,6 +447,10 @@ class ViewMain extends React.Component {
     });
   }
 
+  OnHelp() {
+    UR.Publish('HELP_OPEN');
+  }
+
   render() {
     const { classes } = this.props;
 
@@ -451,6 +470,7 @@ class ViewMain extends React.Component {
       mechIsSelected,
       suppressSelection
     } = this.state;
+
     const classroomId = ADM.GetClassroomIdByStudent(studentId);
     const resources = ADM.GetResourcesForClassroom(classroomId);
     return (
@@ -490,62 +510,13 @@ class ViewMain extends React.Component {
               </Button>
               &nbsp;&nbsp; &nbsp;&nbsp;
               <Button onClick={ADM.Logout} color="inherit">Logout</Button>
+              <Button onClick={this.OnHelp} color="inherit">?</Button>
             </div>
           </Toolbar>
         </AppBar>
 
         {/* Left Tool Sidebar */}
-        <Drawer
-          className={classes.drawer}
-          variant="permanent"
-          classes={{
-            paper: classes.drawerPaper
-          }}
-          anchor="left"
-        >
-          <div className={classes.toolbar} />
-          <Divider />
-          <Tooltip title="Add Component or Property">
-            <Fab
-              color="primary"
-              aria-label="Add"
-              className={classes.fab}
-              onClick={this.OnComponentAdd}
-              disabled={addPropOpen || addEdgeOpen}
-            >
-              <AddIcon />
-            </Fab>
-          </Tooltip>
-          <Typography align="center" variant="caption">
-            Add Component
-          </Typography>
-          <br />
-          <Divider />
-          {/*
-            <List>
-              {['CmdA', 'CmdB', 'CmdC', 'CmdD'].map((text, index) => (
-                <ListItem button key={text}>
-                  <ListItemIcon>{index % 2 === 0 ? <InboxIcon /> : <MailIcon />}</ListItemIcon>
-                  <ListItemText primary={text} />
-                </ListItem>
-              ))}
-            </List>
-          */}
-          <Tooltip title="Add Mechanism">
-            <Fab
-              color="primary"
-              aria-label="Add"
-              className={ClassNames(classes.fab, classes.edgeButton)}
-              onClick={this.OnMechAdd}
-              disabled={addPropOpen || addEdgeOpen}
-            >
-              <AddIcon />
-            </Fab>
-          </Tooltip>
-          <Typography align="center" variant="caption">
-            Add Mechanism
-          </Typography>
-        </Drawer>
+        <ToolsPanel isDisabled={addPropOpen || addEdgeOpen}/>
 
         <main className={classes.content} ref={this.refMain}>
           <div className={classes.toolbar} ref={this.refToolbar} />
@@ -588,7 +559,7 @@ class ViewMain extends React.Component {
         {/* Resource Library */}
         <Drawer variant="permanent" style={{ width: '300px' }} anchor="right">
           {/*<div style={{ height: this.state.viewHeight + 64, overflowY: 'scroll', zIndex: 1250 }}>*/}
-          <Paper className={classes.informationList}>
+          <Paper className={classes.resourceList}>
             <div className={classes.resourceListLabel}>RESOURCE LIBRARY</div>
             <List dense>
               {resources.map(resource => (
@@ -601,6 +572,9 @@ class ViewMain extends React.Component {
 
         {/* Resource View */}
         <ResourceView />
+
+        {/* Help View */}
+        <HelpView />
 
         {/* Prop Dialog -- Property label editing dialog */}
         <Dialog

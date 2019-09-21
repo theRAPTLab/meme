@@ -219,6 +219,9 @@ class MechDialog extends React.Component {
         listenForTargetSelection = false;
       }
 
+// FIXME: This conflates two uses of `editExisting` -- it means this is sent
+// to pmc as an update rather than a new mech add AND using it to determine
+// whether Link buttons are enabled
       // If both source and target have been defined, we change the
       // dialog to edit existing mode so that you can individually
       // set each link
@@ -304,7 +307,7 @@ class MechDialog extends React.Component {
   OnCreateClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (DBG) console.log('create edge');
     this.DoSaveData();
     this.DoClose();
@@ -365,17 +368,19 @@ class MechDialog extends React.Component {
                 />
               </Slide>
               <div style={{ flexGrow: '1' }} />
-              <Button onClick={this.OnClose} color="default">
+              <Button onClick={this.OnClose} color="primary" size="small">
                 Cancel
               </Button>
-              <Button onClick={this.OnReverse} color="primary">
+              &nbsp;
+              <Button onClick={this.OnReverse} color="primary" size="small">
                 Reverse Direction
               </Button>
+              &nbsp;
               <Button
                 type="submit"
                 color="primary"
                 variant="contained"
-                disabled={sourceId === '' || targetId === ''}
+                disabled={sourceId === '' || targetId === '' || label === ''}
               >
                 {saveButtonLabel}
               </Button>

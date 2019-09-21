@@ -247,8 +247,10 @@ class StickyNote extends React.Component {
       day: 'numeric'
     });
 
-    let showCriteria = isBeingEdited || comment.criteriaId !== '';
-    let criteriaDisplay = ADM.GetCriteriaLabel(comment.criteriaId);
+    const showCriteria = isBeingEdited || comment.criteriaId !== '';
+    const selectedCriteria = criteria.find(crit => crit.id === comment.criteriaId);
+    const criteriaDescription = selectedCriteria !== undefined ? selectedCriteria.description : '';
+    let criteriaDisplay;
     if (isBeingEdited) {
       criteriaDisplay = (
         <select value={comment.criteriaId} onChange={this.OnCriteriaSelect}>
@@ -262,6 +264,8 @@ class StickyNote extends React.Component {
           ))}
         </select>
       );
+    } else {
+      criteriaDisplay = ADM.GetCriteriaLabel(comment.criteriaId);
     }
 
     return (
@@ -285,7 +289,10 @@ class StickyNote extends React.Component {
             <Grid item xs={9}>
               <div hidden={!showCriteria}>
                 <InputLabel className={classes.stickynoteCardLabel}>CRITERIA:&nbsp;</InputLabel>
-                <div className={classes.stickynoteCardCriteria}>{criteriaDisplay}</div>
+                <div className={classes.stickynoteCardCriteria} title={criteriaDescription}>{criteriaDisplay}</div>
+                <div hidden={!isBeingEdited} className={classes.stickynoteCardCriteriaDescription}>
+                  {criteriaDescription}
+                </div>
               </div>
               <MuiThemeProvider theme={theme}>
                 <FilledInput

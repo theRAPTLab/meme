@@ -1,15 +1,17 @@
-import { green, grey, indigo, orange, red, teal, yellow } from '@material-ui/core/colors';
+import { blue, green, grey, indigo, orange, red, teal, yellow } from '@material-ui/core/colors';
 import { registerMorphableType } from '@svgdotjs/svg.js/src/main';
 import { Hidden } from '@material-ui/core';
 
 const m_drawerWidth = 100;
-const m_edgeDialogWidth = 800;
 const m_primary = indigo[500];
 const m_stickynoteIconColor = yellow[800]; // `#ffc904`;
 const m_stickynoteColor = yellow[400]; //`#ffe25a`;
 const m_systemTextColor = 'rgba(0,0,0,0.35)';
 const m_systemLabelTextColor = 'rgba(0,0,0,0.25)';
 const m_resourceListWidth = 300;
+const m_zResourceList = 1250;
+const m_zSticky = 1500;
+const m_zHelp = 1600;
 
 const styles = theme => {
   return {
@@ -36,7 +38,9 @@ const styles = theme => {
       height: '100vh'
     },
     drawerPaper: {
-      width: m_drawerWidth
+      width: m_drawerWidth,
+      overflowX: 'hidden',
+      alignItems: 'center'
     },
     toolbar: theme.mixins.toolbar,
     content: {
@@ -49,17 +53,47 @@ const styles = theme => {
       backgroundColor: '#f0f0ff'
     },
     fab: {
-      margin: theme.spacing(2)
+      margin: theme.spacing(2),
+      marginBottom: '8px'
     },
     projectTitle: {
       color: '#fff'
+    },
+    treeItem: {
+      margin: '0 2px 2px -24px',
+      padding: '2px',
+      fontSize: '10px',
+      borderRadius: '2px',
+      overflow: 'hidden',
+      wordBreak: 'break-all',
+      cursor: 'pointer'
+    },
+    treeItemSelected: {
+      border: '2px solid',
+      borderColor: blue[800]
+    },
+    treePropItem: {
+      color: indigo[600],
+      backgroundColor: indigo[50]
+    },
+    treePropItemColor: {
+      color: indigo[600]
+    },
+    treeSubPropItem: {
+      marginLeft: '0.5em',
+      fontSize: '10px',
+      fontStyle: 'italic',
+      color: indigo[300]
+    },
+    treeMechItem: {
+      color: orange[800],
+      backgroundColor: orange[50]
     },
     edgeButton: {
       backgroundColor: orange[500],
       '&:hover': { backgroundColor: orange[700] }
     },
     edgeDialog: {
-      width: m_edgeDialogWidth,
       height: '70px'
     },
     edgeDialogWindowLabel: {
@@ -76,19 +110,21 @@ const styles = theme => {
     edgeDialogPaper: {
       margin: `1em 10em 1em ${m_drawerWidth}px`,
       padding: '1em',
-      width: m_edgeDialogWidth,
       position: 'absolute',
-      bottom: 0
+      bottom: 0,
+      left: '10px',
+      right: '180px'
     },
     edgeDialogInput: {
       display: 'flex',
       height: '3em',
-      alignItems: 'baseline'
+      marginTop: '0.5em',
+      alignItems: 'center'
     },
-    informationList: {
+    resourceList: {
       width: m_resourceListWidth,
       backgroundColor: teal[50],
-      zIndex: 1250 // above drawer, below modal
+      zIndex: m_zResourceList // above drawer, below modal
     },
     resourceListLabel: {
       fontSize: '0.8em',
@@ -378,7 +414,7 @@ const styles = theme => {
       position: 'absolute',
       top: '200px',
       left: '300px',
-      zIndex: 1500
+      zIndex: m_zSticky
     },
     stickynoteCard: {
       backgroundColor: 'rgba(255,255,0,0.5)',
@@ -423,7 +459,29 @@ const styles = theme => {
     },
     stickynoteCardCriteria: {
       fontSize: '14px', // match Typograophy subitlte2
-      display: 'inline-flex'
+      display: 'inline-flex',
+      cursor: 'default'
+    },
+    stickynoteCardCriteriaDescription: {
+      color: m_systemTextColor,
+      fontStyle: 'italic',
+      marginBottom: '0.66em'
+    },
+    helpViewPaper: {
+      position: 'absolute',
+      display: 'flex',
+      flexDirection: 'column',
+      width: '300px',
+      height: '90%',
+      top: '5%',
+      right: m_resourceListWidth,
+      zIndex: m_zHelp,
+      padding: '10px 0 0 10px',
+      backgroundColor: 'rgba(255,243,211,0.9)'
+    },
+    helpViewText: {
+      display: 'block', // override default MDReactComponent <span>
+      padding: '10px 0 5px 0'
     }
   };
 };
