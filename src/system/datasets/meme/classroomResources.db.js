@@ -1,6 +1,6 @@
 module.exports = [
-  { classroomId: 'cl01', resources: ['rs1', 'rs2'] }, // PMCData resources
-  { classroomId: 'cl02', resources: ['rs2', 'rs3'] },
-  { classroomId: 'cl03', resources: ['rs4', 'rs5'] },
-  { classroomId: 'cl04', resources: ['rs6', 'rs7'] }
+  { id: 1, classroomId: 1, resources: [1, 2] }, // PMCData resources
+  { id: 2, classroomId: 2, resources: [2, 3] },
+  { id: 3, classroomId: 3, resources: [4, 5] },
+  { id: 4, classroomId: 3, resources: [6, 7] }
 ];

@@ -56,8 +56,8 @@ import MEMEStyles from '../../components/MEMEStyles';
 import UR from '../../../system/ursys';
 import UTILS from '../../modules/utils';
 import RoutedView from './RoutedView';
-import DATA from '../../modules/pmc-data';
-import ADM from '../../modules/adm-data';
+import DATA from '../../modules/data';
+import ADM from '../../modules/data';
 import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -111,7 +111,7 @@ class ViewMain extends React.Component {
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.DoSelectionChange = this.DoSelectionChange.bind(this);
     this.OnHelp = this.OnHelp.bind(this);
-    UR.Subscribe('WINDOW:SIZE', this.UpdateDimensions);
+    UR.Subscribe('WINDOW_SIZE', this.UpdateDimensions);
     UR.Subscribe('DATA_UPDATED', this.DoDataUpdate);
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
@@ -151,7 +151,7 @@ class ViewMain extends React.Component {
     // child components need to know the dimensions
     // of this component, but they are invalid until
     // the root component renders in SystemInit.
-    // SystemInit fires `WINDOW:SIZE` to force the
+    // SystemInit fires `WINDOW_SIZE` to force the
     // relayout
   }
 
@@ -501,7 +501,7 @@ class ViewMain extends React.Component {
             />
             <Typography variant="caption">&nbsp;&nbsp;by {modelAuthorGroupName} Group</Typography>
             <div className={classes.appBarRight}>
-              <StickyNoteButton parentId={modelId}/>
+              <StickyNoteButton parentId={modelId} />
               &nbsp;&nbsp; &nbsp;&nbsp;
               <Button onClick={ADM.CloseModel} color="inherit">
                 <div>{studentName}</div>
@@ -509,14 +509,18 @@ class ViewMain extends React.Component {
                 <div>{studentGroup}</div>
               </Button>
               &nbsp;&nbsp; &nbsp;&nbsp;
-              <Button onClick={ADM.Logout} color="inherit">Logout</Button>
-              <Button onClick={this.OnHelp} color="inherit">?</Button>
+              <Button onClick={ADM.Logout} color="inherit">
+                Logout
+              </Button>
+              <Button onClick={this.OnHelp} color="inherit">
+                ?
+              </Button>
             </div>
           </Toolbar>
         </AppBar>
 
         {/* Left Tool Sidebar */}
-        <ToolsPanel isDisabled={addPropOpen || addEdgeOpen}/>
+        <ToolsPanel isDisabled={addPropOpen || addEdgeOpen} />
 
         <main className={classes.content} ref={this.refMain}>
           <div className={classes.toolbar} ref={this.refToolbar} />
@@ -563,7 +567,7 @@ class ViewMain extends React.Component {
             <div className={classes.resourceListLabel}>RESOURCE LIBRARY</div>
             <List dense>
               {resources.map(resource => (
-                <ResourceItem key={resource.rsrcId} resource={resource} />
+                <ResourceItem key={resource.id} resource={resource} />
               ))}
             </List>
           </Paper>

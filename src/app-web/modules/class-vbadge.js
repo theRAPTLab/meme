@@ -1,6 +1,6 @@
 import DEFAULTS from './defaults';
-import ADM from './adm-data';
-import PMC from './pmc-data';
+import ADM from './data';
+import PMC from './data';
 import UR from '../../system/ursys';
 
 const { VPROP, COLOR, SVGSYMBOLS } = DEFAULTS;

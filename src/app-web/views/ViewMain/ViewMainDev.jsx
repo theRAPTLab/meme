@@ -49,8 +49,8 @@ import { withStyles } from '@material-ui/core/styles';
 import RoutedView from './RoutedView';
 import MEMEStyles from '../../components/MEMEStyles';
 import UR from '../../../system/ursys';
-import DATA from '../../modules/pmc-data';
-import ADM from '../../modules/adm-data';
+import DATA from '../../modules/data';
+import ADM from '../../modules/data';
 import EvidenceList from '../../components/EvidenceList';
 import Login from '../../components/Login';
 import ModelSelect from '../../components/ModelSelect';
@@ -98,7 +98,7 @@ class ViewMain extends React.Component {
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.handleSelectionChange = this.handleSelectionChange.bind(this);
     this.handleSnapshot = this.handleSnapshot.bind(this);
-    UR.Subscribe('WINDOW:SIZE', this.UpdateDimensions);
+    UR.Subscribe('WINDOW_SIZE', this.UpdateDimensions);
     UR.Subscribe('DATA_UPDATED', this.HandleDataUpdate);
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Subscribe('SHOW_RESOURCE', this.handleResourceClick);
@@ -145,7 +145,7 @@ class ViewMain extends React.Component {
     // child components need to know the dimensions
     // of this component, but they are invalid until
     // the root component renders in SystemInit.
-    // SystemInit fires `WINDOW:SIZE` to force the
+    // SystemInit fires `WINDOW_SIZE` to force the
     // relayout
     // special ViewMainDev login bypass
     ADM.Login('Bob');
@@ -153,7 +153,7 @@ class ViewMain extends React.Component {
   }
 
   componentWillUnmount() {
-    UR.Unsubscribe('WINDOW:SIZE', this.UpdateDimensions);
+    UR.Unsubscribe('WINDOW_SIZE', this.UpdateDimensions);
     UR.Unsubscribe('DATA_UPDATED', this.HandleDataUpdate);
     UR.Unsubscribe('SHOW_RESOURCE', this.handleResourceClick);
     UR.Unsubscribe('SELECTION_CHANGED', this.handleSelectionChange);

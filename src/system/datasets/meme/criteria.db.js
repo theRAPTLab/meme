@@ -1,26 +1,26 @@
 module.exports = [
   {
-    id: 'cr01',
+    id: 1,
     label: 'Clarity',
     description: 'How clear is the explanation?',
-    classroomId: 'cl01'
+    classroomId: 1
   },
   {
-    id: 'cr02',
+    id: 2,
     label: 'Visuals',
     description: 'Does the layout make sense?',
-    classroomId: 'cl01'
+    classroomId: 1
   },
   {
-    id: 'cr03',
+    id: 3,
     label: 'Clarity',
     description: 'How clear is the evidence link?',
-    classroomId: 'cl02'
+    classroomId: 2
   },
   {
-    id: 'cr04',
+    id: 4,
     label: 'Layout',
     description: 'Does the layout make sense?',
-    classroomId: 'cl02'
+    classroomId: 2
   }
 ];

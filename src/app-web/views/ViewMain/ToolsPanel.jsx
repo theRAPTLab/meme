@@ -30,8 +30,8 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 // MEME Modules and Utils
 import MEMEStyles from '../../components/MEMEStyles';
 import UR from '../../../system/ursys';
-import DATA from '../../modules/pmc-data';
-import ADM from '../../modules/adm-data';
+import DATA from '../../modules/data';
+import ADM from '../../modules/data';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

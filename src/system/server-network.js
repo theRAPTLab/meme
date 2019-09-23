@@ -100,7 +100,7 @@ UNET.StartNetwork = () => {
  * @param {string} mesgName message to register a handler for
  * @param {function} handlerFunc function receiving 'data' object
  */
-UNET.NetSubscribe = (mesgName, handlerFunc) => {
+UNET.Subscribe = (mesgName, handlerFunc) => {
   if (typeof handlerFunc !== 'function') {
     throw Error('arg2 must be a function');
   }
@@ -110,7 +110,7 @@ UNET.NetSubscribe = (mesgName, handlerFunc) => {
     m_server_handlers.set(mesgName, handlers);
   }
   handlers.add(handlerFunc);
-}; // end NetSubscribe()
+}; // end Subscribe()
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** NetUnsubscribe() revokes a handler function from a registered message.
@@ -181,7 +181,7 @@ UNET.NetRaise = (mesgName, data) => {
  * @return {Object} object with registered property containing array of message
  */
 UNET.RegisterRemoteHandlers = pkt => {
-  if (pkt.Message() !== 'SRV_REG_HANDLERS') throw Error('not a registration packet');
+  if (pkt.Message() !== 'NET:SRV_REG_HANDLERS') throw Error('not a registration packet');
   let uaddr = pkt.SourceAddress();
   let { messages = [] } = pkt.Data();
   let regd = [];
@@ -300,56 +300,61 @@ function m_SocketDelete(socket) {
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** m_HandleMessage() performs the actual work of dispatching messages on behalf
  * of a client to other remote clients, gathers up all the data, and returns
- * it.
+ * it. There are THREE CASES:
+ * 1. The incoming message is intended for the server
+ * 2. the incoming message is from a remote reaching another remote
+ * 3. the incoming message is the RETURNED data from the other remote
  * @param {Object} socket messaging socket
  * @param {NetMessage} pkt - NetMessage packet instance
  */
 async function m_HandleMessage(socket, pkt) {
-  // is this a returning packet that was forwarded?
+  // (1) Is the incoming message a response to a message forwarded earlier
   if (pkt.IsResponse()) {
     // console.log(PR,`-- ${pkt.Message()} completing transaction ${pkt.seqlog.join(':')}`);
     pkt.CompleteTransaction();
     return;
   }
-  // console.log(PR,`packet source incoming ${pkt.SourceAddress()}-${pkt.Message()}`);
-  // (1) first check if this is a server handler
+  // (2) Does the server implement any of the messages?
   let promises = m_PromiseServerHandlers(pkt);
-
-  // (2) if it wasn't, then see if we have remote handlers defined
+  // (3) Are there any remotes that implement the message?
   if (promises.length === 0) promises = m_PromiseRemoteHandlers(pkt);
 
-  // (3) FAIL if no promises were returned, because there were no eligible
-  // UADDR targets, possibly because the sources are not allowed to call itself
-  // except in the case of the SIGNAL type
+  // If there were NO HANDLERS defined for the incoming message, then
+  // this is an error. If the message was a CALL expecting a return value,
+  // then return the error immediately
   if (promises.length === 0) {
     const out = `${pkt.SourceAddress()} cannot resolve call '${pkt.Message()}'`;
     console.log(PR, out);
     // return transaction to resolve callee
     pkt.SetData({
       URserver: `info: ${out}`,
-      error: 'message not found'
+      error: `message ${pkt.Message()} not found`
     });
     if (pkt.IsType('mcall')) pkt.ReturnTransaction(socket);
     return;
   }
 
-  // output the condition BEFORE async block runs
-  const DBG_NOSRV = !pkt.Message().startsWith('SRV_');
+  // We have a promises array full of handlers.
+  const DBG_NOSRV = !pkt.Message().startsWith('NET:SRV_');
   if (DBG) console_PktDirection(pkt, 'call', promises);
   if (DBG && DBG_NOSRV) console_PktTransaction(pkt, 'queuing', promises);
 
-  /* MAGICAL ASYNC/AWAIT BLOCK *****************************/
+  /* (5) MAGICAL ASYNC/AWAIT BLOCK *****************************/
+  /* pktArray will contain data objects from each resolved */
+  /* promise */
   let pktArray = await Promise.all(promises);
-  /* END MAGICAL ASYNC/AWAIT BLOCK *************************/
+  /* END MAGICAL ASYNC/AWAIT BLOCK *****************************/
 
   // output the condition AFTER async block ran
   if (DBG && DBG_NOSRV) console_PktTransaction(pkt, 'resolved');
   if (DBG) console_PktDirection(pkt, 'rtrn', promises);
 
-  // (4) only the packet type for call needs to collect the return data
+  // (6A) If the call type doesn't expect return data, we are done!
   if (!pkt.IsType('mcall')) return;
 
-  // (5A) If got this far, this is a call! collect all output into a new data object
+  // (6B) The call type is 'mcall', and we need to return the original
+  // message packet to the original caller. First merge the data into
+  // one data object.
   let data = pktArray.reduce((d, p) => {
     let pdata = p instanceof NetMessage ? p.Data() : p;
     let retval = Object.assign(d, pdata);
@@ -357,7 +362,8 @@ async function m_HandleMessage(socket, pkt) {
     return retval;
   }, {});
 
-  // (5B) return the packet with aggregate data
+  // (6C) Return the packet using magical NetMessage.ReturnTransaction()
+  // on the caller's socket, which we have retained through the magic of closures!
   pkt.SetData(data);
   // if (DBG_NOSRV) console.log(PR,`'${pkt.Message()}' returning transaction data ${JSON.stringify(data)}`);
   pkt.ReturnTransaction(socket);
@@ -438,20 +444,23 @@ function m_PromiseRemoteHandlers(pkt) {
       case 'msend': // send does not mirror
       case 'mcall': // call does not mirror
         if (s_uaddr !== d_uaddr) {
-          const transactionPromise = f_promise_remote_resolver(pkt, d_uaddr);
-          promises.push(transactionPromise);
+          promises.push(f_promise_remote_resolver(pkt, d_uaddr));
         } else {
           // console.log(PR,`${type} '${pkt.Message()}' -NO ECHO- ${d_uaddr}`);
         }
         break;
       default:
         throw Error(`${ERR_UNKNOWN_PKT} ${type}`);
-    } // switch
-  }); // forEach
-  // return all promises made by NetMessage.PromiseTransaction()
+    }
+  }); // handlers.forEach
   return promises;
 
-  /// inline utility function /////////////////////////////////////////////
+  /// MAGIC PROMISE RESOLVER //////////////////////////////////////////////
+  /// Creates a Promise that resolves when a new package is sent to a remote
+  /// and is received back. The Promise resolves the returned data package.
+  /// Relies on NetMessage to handle the actual socket connection passed to
+  /// PromiseTransaction(socket) to return the promise. Promises on promises!
+  /// But it works!
   function f_promise_remote_resolver(srcPkt, d_uaddr) {
     // get the address of the destination implementor of MESSAGE
     let d_sock = mu_sockets.get(d_uaddr);

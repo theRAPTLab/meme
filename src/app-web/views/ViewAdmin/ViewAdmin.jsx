@@ -24,7 +24,7 @@ import ResourcesList from './components/AdmResourcesList';
 import RatingsView from './components/AdmRatingsView';
 /// MODULES ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-import ADM from '../../modules/adm-data';
+import ADM from '../../modules/data';
 
 /// CSS IMPORTS ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

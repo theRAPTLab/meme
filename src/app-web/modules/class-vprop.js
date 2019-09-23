@@ -1,4 +1,4 @@
-import DATA from './pmc-data';
+import DATA from './data';
 import { cssinfo, cssblue, cssred, cssmark, cssreset } from './console-styles';
 import DEFAULTS from './defaults';
 import { AddDragDropHandlers } from './class-vprop-dragdrop';

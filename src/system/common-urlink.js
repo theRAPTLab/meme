@@ -167,6 +167,7 @@ class URLink {
       throw Error('did you intend to use Subscribe() instead of Publish()?');
     options = Object.assign(options, { type: 'msend' });
     options.srcUID = this.UID();
+    // ur_legacy_publish is set in ursys.js, and makes it work like Broadcast
     if (CENTRAL.GetVal('ur_legacy_publish')) options.srcUID = null;
     MESSAGER.Publish(mesgName, inData, options);
   }
@@ -262,7 +263,7 @@ class URLink {
     } else {
       messages = MESSAGER.NetMessageNames();
     }
-    return this.Call('SRV_REG_HANDLERS', { messages });
+    return this.Call('NET:SRV_REG_HANDLERS', { messages });
   }
 } // class URLink
 

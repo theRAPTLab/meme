@@ -42,7 +42,7 @@ function Init() {
   window.addEventListener(
     'resize',
     debounce(() => {
-      UR.Publish('WINDOW:SIZE');
+      UR.Publish('WINDOW_SIZE');
       // console.clear();
     }, 500)
   );
@@ -95,8 +95,8 @@ function m_PromiseRenderApp() {
 
 function m_BrokenPromiseWindowResize() {
   return new Promise((resolve, reject) => {
-    console.log('%cURSYS: Firing WINDOW:SIZE', cssuri);
-    UR.Publish('WINDOW:SIZE');
+    console.log('%cURSYS: Firing WINDOW_SIZE', cssuri);
+    UR.Publish('WINDOW_SIZE');
     resolve();
   });
 }

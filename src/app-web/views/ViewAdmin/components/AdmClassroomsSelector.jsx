@@ -31,7 +31,7 @@ import { withStyles } from '@material-ui/core/styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from '../../../components/MEMEStyles';
 import UR from '../../../../system/ursys';
-import ADM from '../../../modules/adm-data';
+import ADM from '../../../modules/data';
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1,6 +1,6 @@
 module.exports = [
   {
-    classroomId: 'cl01',
+    classroomId: 1,
     definitions: [
       { label: 'Really disagrees!', rating: -3 },
       { label: 'Kinda disagrees!', rating: -2 },
@@ -12,7 +12,7 @@ module.exports = [
     ]
   },
   {
-    classroomId: 'cl02',
+    classroomId: 2,
     definitions: [
       { label: 'Will this!', rating: -2 },
       { label: 'break', rating: -1 },

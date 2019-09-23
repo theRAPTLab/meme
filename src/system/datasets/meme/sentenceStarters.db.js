@@ -1,17 +1,17 @@
 module.exports = [
   {
-    id: 'ss01',
-    classroomId: 'cl01',
+    id: 1,
+    classroomId: 1,
     sentences: 'I noticed...\nI think...'
   },
   {
-    id: 'ss02',
-    classroomId: 'cl02',
+    id: 2,
+    classroomId: 2,
     sentences: 'We noticed...'
   },
   {
-    id: 'ss03',
-    classroomId: 'cl03',
+    id: 3,
+    classroomId: 3,
     sentences: 'We believe...'
   }
 ];

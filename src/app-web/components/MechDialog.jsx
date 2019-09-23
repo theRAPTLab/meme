@@ -25,7 +25,7 @@ import { withStyles } from '@material-ui/core/styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
-import DATA from '../modules/pmc-data';
+import DATA from '../modules/data';
 import UTILS from '../modules/utils';
 import LinkButton from './LinkButton';
 

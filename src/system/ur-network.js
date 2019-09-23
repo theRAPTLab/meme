@@ -12,7 +12,7 @@ import CENTRAL from './ur-central';
 import NetMessage from './common-netmessage';
 import PROMPTS from './util/prompts';
 
-const DBG = { connect: false, handle: false };
+const DBG = { connect: false, handle: true };
 
 /// DECLARATIONS /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -175,21 +175,27 @@ function m_HandleRegistrationMessage(msgEvent) {
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
- * Dispatch incoming event object
+ * Dispatch incoming event object from the network.
  * @param {SocketEvent} msgEvent -incoming event object from websocket
  */
 function m_HandleMessage(msgEvent) {
   let pkt = new NetMessage(msgEvent.data);
   let msg = pkt.Message();
+  // (1) If this packet is a response packet, then it must be one of
+  // our OWN previously-sent messages that we expected a return value.
+  // Call CompleteTransaction() to invoke the function handler
   if (pkt.IsResponse()) {
     if (DBG.handle) console.log(PR, 'completing transaction', msg);
     pkt.CompleteTransaction();
     return;
   }
+  // (2) Otherwise, the incoming network message has been routed to
+  // us to handle.
   let data = pkt.Data();
   let type = pkt.Type();
-  let dbgout = DBG.handle && !msg.startsWith('SRV_');
-  /// otherwise, incoming invocation from network
+  let dbgout = DBG.handle && !msg.startsWith('NET:SRV_');
+
+  // (3) handle each packet type as necessary
   switch (type) {
     case 'state':
       // unimplemented netstate
@@ -197,42 +203,21 @@ function m_HandleMessage(msgEvent) {
       break;
     case 'msig':
       // network signal to raise
-      if (dbgout) {
-        console.warn(
-          PR,
-          `ME_${NetMessage.SocketUADDR()} received msig '${msg}' from ${pkt.SourceAddress()}`,
-          data
-        );
-      }
+      if (dbgout) cout_ReceivedStatus(pkt);
       ULINK.LocalSignal(msg, data, { fromNet: true });
       pkt.ReturnTransaction();
       break;
     case 'msend':
       // network message received
-      if (dbgout) {
-        console.warn(
-          PR,
-          `ME_${NetMessage.SocketUADDR()} received msend '${msg}' from ${pkt.SourceAddress()}`,
-          data
-        );
-      }
+      if (dbgout) cout_ReceivedStatus(pkt);
       ULINK.LocalSend(msg, data, { fromNet: true });
       pkt.ReturnTransaction();
       break;
     case 'mcall':
       // network call received
-      if (dbgout) {
-        console.warn(
-          PR,
-          `ME_${NetMessage.SocketUADDR()} received mcall '${msg}' from ${pkt.SourceAddress()}`
-        );
-      }
+      if (dbgout) cout_ReceivedStatus(pkt);
       ULINK.LocalCall(msg, data, { fromNet: true }).then(result => {
-        if (dbgout) {
-          console.log(
-            `ME_${NetMessage.SocketUADDR()} forwarded '${msg}', returning ${JSON.stringify(result)}`
-          );
-        }
+        if (dbgout) cout_ForwardedStatus(pkt, result);
         // now return the packet
         pkt.SetData(result);
         pkt.ReturnTransaction();
@@ -240,6 +225,22 @@ function m_HandleMessage(msgEvent) {
       break;
     default:
       throw Error('unknown packet type', type);
+  }
+  // DEBUG OUT UTILITY
+  function cout_ReceivedStatus(pkt) {
+    console.warn(
+      PR,
+      `ME_${NetMessage.SocketUADDR()} received '${pkt.Type()}' '${pkt.Message()}' from ${pkt.SourceAddress()}`,
+      pkt.Data()
+    );
+  }
+  // DEBUG OUT UTILITY
+  function cout_ForwardedStatus(pkt, result) {
+    console.log(
+      `ME_${NetMessage.SocketUADDR()} forwarded '${pkt.Message()}', returning ${JSON.stringify(
+        result
+      )}`
+    );
   }
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

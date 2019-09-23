@@ -26,6 +26,8 @@ const ULINK = NewConnection(PR);
 
 /// RUNTIME FLAGS /////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// ur_legacy_publish is used to make DATALINK.Publish() work like Broadcast, so
+// messages will mirror back to itself
 CENTRAL.Define('ur_legacy_publish', true);
 
 /// PUBLIC METHODS ////////////////////////////////////////////////////////////
@@ -60,7 +62,7 @@ function ReactHook(scope, phase, func) {
 const { Publish, Subscribe, Unsubscribe } = ULINK;
 const { Call, Signal } = ULINK;
 
-const { NetPublish, NetSubscribe } = ULINK;
+const { NetPublish, NetSubscribe, NetUnsubscribe } = ULINK;
 const { NetCall, NetSignal } = ULINK;
 
 const { Define, GetVal, SetVal } = CENTRAL;
@@ -102,9 +104,9 @@ const UR = {
   Signal, // ULINK
   NetPublish, // ULINK
   NetSubscribe, // ULINK
+  NetUnsubscribe, // ULINK
   NetCall, // ULINK
   NetSignal, // ULINK
-  NetMessage, // ULINK
   Define, // CENTRAL
   GetVal, // CENTRAL
   SetVal, // CENTRAL

@@ -1,7 +1,7 @@
 module.exports = [
-  { id: 'gr01', name: 'Blue', students: ['Bob', 'Bessie', 'Bill'], classroomId: 'cl01' },
-  { id: 'gr02', name: 'Green', students: ['Ginger', 'Gail', 'Greg'], classroomId: 'cl01' },
-  { id: 'gr03', name: 'Red', students: ['Rob', 'Reese', 'Randy'], classroomId: 'cl01' },
-  { id: 'gr04', name: 'Purple', students: ['Peter', 'Paul', 'Penelope'], classroomId: 'cl01' },
-  { id: 'gr05', name: 'Mackerel', students: ['Mary', 'Mavis', 'Maddy'], classroomId: 'cl02' }
+  { id: 1, name: 'Blue', students: ['Bob', 'Bessie', 'Bill'], classroomId: 1 },
+  { id: 2, name: 'Green', students: ['Ginger', 'Gail', 'Greg'], classroomId: 1 },
+  { id: 3, name: 'Red', students: ['Rob', 'Reese', 'Randy'], classroomId: 1 },
+  { id: 4, name: 'Purple', students: ['Peter', 'Paul', 'Penelope'], classroomId: 1 },
+  { id: 5, name: 'Mackerel', students: ['Mary', 'Mavis', 'Maddy'], classroomId: 1 }
 ];

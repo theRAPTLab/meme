@@ -33,8 +33,8 @@ import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
-import ADM from '../modules/adm-data';
-import DATA from '../modules/pmc-data';
+import ADM from '../modules/data';
+import DATA from '../modules/data';
 import UR from '../../system/ursys';
 import StickyNoteButton from './StickyNoteButton';
 import RatingButton from './RatingButton';

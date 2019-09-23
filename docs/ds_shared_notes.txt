@@ -19,3 +19,198 @@ TEACHER-GROUP-HASH-FIRSTNAME
 
   global [ratings] rating - rating key / legend  for stars {signed int}
   global [resources] resource - master list of all resources in system
+
+
+IMPLEMENTING DATA INITIALIZATION
+
+When running the server from dev, we want to always load the hardcoded data.
+When running the server from electron, we want to initialize the database.
+
+Q. What happens with the runtime folder when making the electron build?
+A. meme.app/Contents/Resources/runtime/
+
+Q. How to tell if dev or electron?
+A. npm run dev runs meme.js, which loads server.js as URSERVER, which calls
+   InitializeNetwork(), StartNetwork(), and StartWebServer().
+   Electron builds are invoked through app-console/console-main.js instead.
+
+We'll start with ADMIN UPDATES
+
+o  PKT_Update() will receive a data objects with arrays of change objects
+o  It will return the array of dataobjects that were successfully transformed
+o  It will set the data.error property if there was a problem
+
+How to determine whether NET or LOCAL
+ultimately this is handled at the MESSAGER and NETMESSAGE level
+
+On the sending end
+
+* URLINK.Call() calls MESSAGER.CallAsync(mesgName, inData, options)
+* MESSAGER.CAllAsync() determines whether it goes to the network or is handled locally
+* path 1: if it's a local call and there are handlers, make a Resolver Promise
+* path 2: if it's a network call, make a NetMessage() and make a Transaction Promise
+
+On the receiving end: server-network largely is a switchboard
+
+* pkt is sent to m_HandleMessage()
+* packets know how to route themselves via available socket
+* a completed transaction is one that's returning from elsewhere
+* otherwise see if we have any handlers available for this packet's message via m_PromiseRemoteHandlers()
+* this creates a new packet transaction via PromiseTransaction(), which will return here as a ReturnTransaction()
+
+How are messages registered?
+
+SO WHAT DOES THIS MEAN FOR CHANNELS?
+
+* detected : channel
+* set the toNet, toLocal flags based on that
+* registering messages are done without the NET:
+
+UPDATING MESSAGER
+
+x - write a splitter function ParseMessage(msg) return { channel, message }
+x - Publish is for sending
+    x - replace toNet with NET, toLocal with LOCAL
+    o - remove NetPublish
+~ - Subscribe is for receiving
+    o - replace fromNet with NET
+    o - remove NetSubscribe
+o - CallAsync is send/receive data
+
+o - Signal is send only
+
+\
+DEBUGGING:
+when changing Messager.Subscribe() to use ParseMessage(), network breaks.
+
+Messager.Publish() uses ParseMessage().
+URLink.NetPublish() removed.
+Change SRV_* to NET:SRV_* for messages.
+
+OK1 - is it when NetSubscribe is used on Server?
+    - in server.js. It seems that this works in test, admin, and
+OK2 - is it when NetSubscribe is used on Client?
+      network-tests still pass
+OK3 - is it when NetSubscribe is handling Transactions?
+      network-tests still pass
+
+URLink.LocalPublish() removed.
+.. OK1, OK2, OK3
+
+Messager.Subscribe() use ParseMessage().
+.. option fromNet is set true by NetSubscribe, LocalSend, and LocalCall
+   NetSubscribe called from network-tests, ursus
+   URLINK.LocalSend called from ur-network as part of msend protocol
+   .. HandleMessage: ULINK.LocalSend(fromNet:true), pkt.ReturnTransaction()
+   URLINK.LocalCall is called from ur-network as part of mcall protocol
+   .. HandleMessage: ULINK.LocalCall(fromNet:true) then pktSetData, pktReturnTranaction
+.. otherwise fromNet is default to false
+REVIEW: fromNet is a flag that's set only for calls that are invoked from the network,
+meaning they cam in via ur-network.HandleMessage()
+
+A remote Send, Signal, or Call always returns a transaction
+A remote Send, Signal, or Call always set fromNet:true
+A remote Send, Signal, or Call should always have the CHANNEL in its name
+publish replaces send, but still uses type 'msend'
+There's also a 'direction' flag that's set
+
+IMPORTANT:
+
+    NET calls that do not terminate at the server are cloned and sent to remotes,
+    then reassembled!
+
+So what have we done so far?
+
+    Aded NET: to net calls, registered messages.
+
+    m_HandleMessage() exists BOTH on ur-network and server-network, and uses the
+    pkt.IsResponse() to determine when to complete transaction for itself.
+    The pkt.IsRequest() is not used though.
+
+    It's worth noting that on the client side, m_HandleMessage() is used to
+    handle network-sourced messages only. They invoke a ULINK call.
+    There is a single ULINK instance for all network elements from the network.
+
+    ULINK.LocalSignal(msg,data,{fromNet:true})
+    ULINK.LocalSend(msg,data,{fromNet:true});
+    ULINK.LocalCall(msg,data,{fromNet:true}).then(result=>{
+        pkt.SetData(result);
+        pkt.ReturnTransaction();
+    }
+
+    All the incoming messages should be preceded with NET:, as we're not
+    processing them at all. So a single CALL methods should determine what to do.
+
+Q. What is the difference between LocalCall(), Call(), and NetCall() in ULINK?
+A. From m_HandleMessage(), these are all invoked with fromNet: true
+
+   LocalCall(mesgName, inData, options)
+    -> set LOCAL true, NET false
+    -> return forwarded Call()
+   NetCall(mesgName, inData, options)
+   -> set LOCAL false, NET true
+   -> return forwarded Call()
+   *MASTER*
+   Call(mesgName, inData, options)
+    -> sets srcUID to ulink's ID
+    -> MESSAGER.CallAsync(mesgName, inData, options)
+
+   in MESSAGER.CallAsync(mesgName, inData, options)
+   -> uses LOCAL, NET to select DESTINATION
+   -> grabs fromNET to indicate it's a REMOTE INCOMING CALL
+
+   for the handling of a remote message, m_HandlerMessage()
+   purposefully calls LocalCall to set LOCAL and unset NET.
+   the actual calls are handled in the await Promise.all(promises)
+
+Q. So how to eliminate LocalCall and NetCall in favor of a single call?
+A. The incoming NET:MESSAGE needs to be converted to MESSAGE
+   in m_HandleMessage() line 218ish:
+      use { MESSAGE } = NetMessage.DecodeChannel(pkt)
+      use ULINK.Call() without the complete message to force local call
+
+    ***
+    the trick is that Call needs to determine what style of invocation to use.
+    Only calls wthat have NET: in them respond to local calls.
+    However, NET: sets the flag to call the network, NOT the local call.
+    SO...we probably still need the flag because the entire MESSAGE has NET in it.
+    ***
+
+    *** rewrite Call to handle fromNet to invoke NET:MESSAGE using local signaling
+
+IMPLEMENTING THE CHANGE
+
+o - ur-network.m_HandleMessage() uses its ULINK.Call() without the channel.
+o - however the message is registered with 'NET:' in front of it and that's how it's stored
+o - maybe the solution is to have MESSAGER actually store the handlers with the flags, but without the channels.
+
+Subscribe('NET:MYMESSAGE',data=>{});
+Publish('NET:MYSMESSAGE',data);
+Call('NET:MYMESSAGE',data).then(data=>{});
+Signal('NET:MYSMESSAGE',data); // system wide
+
+SetState('NET:state', state).then(state=>{});
+GetState('NET:state').then(state=>{});
+OnState('NET:state',state=>{});
+
+First fix SUBSCRIBE
+NetSubscribe is setting fromNet, which is kind of bogus.
+handlerFunc.fromNet is used in two different ways???
+x - update network-tests to replace NetSubscribe with Subscribe
+x - update messager.subscribe() to use CHANNEL EXTRACT
+x - update messager.callasync() to read handlerFunc.channels.net
+
+registered handlers no longer include CHANNEL: in registered message.
+
+Now fix
+x - LocalCall() change to use Call()
+x - UndefinedLocalCall() change to use Call()
+o - NetCall() change to use Call() 'NET:MYSTERY_REMOTE'
+    NET:MYSTERY_REMOTE NOTE FOUND
+
+*** PUNT ***
+*** PUNT ***
+*** PUNT ***
+*** Can not cleanly add CHANNEL SUPPORT without rewriting tests
+    from scratch, and also working out th channel strategy from
+    a signaling perspective.

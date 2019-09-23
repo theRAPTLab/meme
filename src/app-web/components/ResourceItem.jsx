@@ -26,7 +26,7 @@ import { withStyles } from '@material-ui/core/styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
-import DATA from '../modules/pmc-data';
+import DATA from '../modules/data';
 import EvidenceList from './EvidenceList';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -58,7 +58,7 @@ class ResourceItem extends React.Component {
     UR.Subscribe('SET_EVIDENCE_LINK_WAIT_FOR_SOURCE_SELECT', this.DoEvidenceLinkOpen);
   }
 
-  componentDidMount() { }
+  componentDidMount() {}
 
   componentWillUnmount() {
     UR.Unsubscribe('SHOW_EVIDENCE_LINK', this.DoEvidenceLinkOpen);
@@ -76,10 +76,10 @@ class ResourceItem extends React.Component {
     });
   }
 
-  DoDataUpdate() { }
+  DoDataUpdate() {}
 
   DoEvidenceLinkOpen(data) {
-    if (this.props.resource.rsrcId === data.rsrcId) {
+    if (this.props.resource.id === data.rsrcId) {
       if (DBG) console.log(PKG, 'OPENING Resource', data.rsrcId, ' data.evId is', data);
       this.setState(
         {
@@ -126,7 +126,7 @@ class ResourceItem extends React.Component {
     }
     return (
       <div className={classes.resourceItem}>
-        <ListItem button key={resource.id} onClick={() => this.OnResourceClick(resource.rsrcId)}>
+        <ListItem button key={resource.id} onClick={() => this.OnResourceClick(resource.id)}>
           <ListItemAvatar>
             <Avatar className={classes.resourceViewAvatar}>{resource.referenceLabel}</Avatar>
           </ListItemAvatar>
@@ -142,20 +142,16 @@ class ResourceItem extends React.Component {
             {resource.type === 'simulation' ? <ImageIcon /> : <DescriptionIcon />}
             {evBadge}
             <Button className={classes.resourceExpandButton} onClick={this.DoToggleExpanded}>
-              <ExpandLessIcon className={
-                isExpanded ? classes.lessIconExpanded : classes.lessIconCollapsed
-              } />
+              <ExpandLessIcon
+                className={isExpanded ? classes.lessIconExpanded : classes.lessIconCollapsed}
+              />
             </Button>
           </ListItemSecondaryAction>
         </ListItem>
         <Collapse in={isExpanded}>
           <div className={classes.resourceViewEvList}>
-            <EvidenceList rsrcId={resource.rsrcId} key={`${resource.rsrcId}ev`} />
-            <Button
-              size="small"
-              color="primary"
-              onClick={() => this.OnCreateEvidence(resource.rsrcId)}
-            >
+            <EvidenceList rsrcId={resource.id} key={`${resource.id}ev`} />
+            <Button size="small" color="primary" onClick={() => this.OnCreateEvidence(resource.id)}>
               Create Evidence
             </Button>
           </div>
@@ -175,7 +171,7 @@ ResourceItem.propTypes = {
 ResourceItem.defaultProps = {
   classes: {},
   resource: {
-    rsrcId: '',
+    rsrcId: -1,
     referenceLabel: '',
     label: '',
     notes: '',

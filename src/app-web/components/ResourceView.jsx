@@ -27,8 +27,8 @@ import { withStyles } from '@material-ui/core/styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
-import DATA from '../modules/pmc-data';
-import ADM from '../modules/adm-data';
+import DATA from '../modules/data';
+import ADM from '../modules/data';
 import UTILS from '../modules/utils';
 import EvidenceList from './EvidenceList';
 
@@ -152,12 +152,12 @@ class ResourceView extends React.Component {
               />
               <Typography variant="caption">OUR EVIDENCE LIST</Typography>
               <div className={classes.resourceViewSidebarEvidenceList}>
-                <EvidenceList rsrcId={resource.rsrcId} />
+                <EvidenceList rsrcId={resource.id} />
               </div>
               <Button
                 className={classes.resourceViewCreatebutton}
                 variant="contained"
-                onClick={() => this.OnCreateEvidence(resource.rsrcId)}
+                onClick={() => this.OnCreateEvidence(resource.id)}
                 color="primary"
               >
                 Create Evidence

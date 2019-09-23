@@ -24,7 +24,7 @@ module.exports = {
       evId: 'ev1',
       propId: 'fish',
       mechId: undefined,
-      rsrcId: 'rs1',
+      rsrcId: 1,
       number: '1a',
       rating: 3,
       note: 'ghoti ghoti gothi need food'
@@ -33,7 +33,7 @@ module.exports = {
       evId: 'ev3',
       propId: undefined,
       mechId: 'decomposers:deadstuff',
-      rsrcId: 'rs2',
+      rsrcId: 2,
       number: '2a',
       rating: 2,
       note: 'fish need food'
@@ -42,7 +42,7 @@ module.exports = {
       evId: 'ev2',
       propId: 'fish',
       mechId: undefined,
-      rsrcId: 'rs1',
+      rsrcId: 1,
       number: '1b',
       rating: -3,
       note: 'fish need food'
@@ -51,7 +51,7 @@ module.exports = {
       evId: 'ev4',
       propId: 'nutrients',
       mechId: undefined,
-      rsrcId: 'rs2',
+      rsrcId: 2,
       number: '2d',
       rating: 1,
       note: 'ammonia is bad'
@@ -67,7 +67,7 @@ module.exports = {
           author: 'Bob',
           date: new Date(),
           text: 'Comment on "fish need food"',
-          criteriaId: 'cr01',
+          criteriaId: 1,
           readBy: ['Bob', 'Bill']
         }
       ]
@@ -81,7 +81,7 @@ module.exports = {
           author: 'Bob',
           date: new Date(),
           text: 'Tank you',
-          criteriaId: 'cr01',
+          criteriaId: 1,
           readBy: ['Bob', 'Bill']
         },
         {
@@ -90,7 +90,7 @@ module.exports = {
           author: 'Bill',
           date: new Date(),
           text: 'This tanks!',
-          criteriaId: 'cr02',
+          criteriaId: 2,
           readBy: []
         }
       ]
@@ -104,7 +104,7 @@ module.exports = {
           author: 'Bob',
           date: new Date(),
           text: 'I like this fish',
-          criteriaId: 'cr01',
+          criteriaId: 1,
           readBy: ['Bob', 'Bill']
         },
         {
@@ -113,7 +113,7 @@ module.exports = {
           author: 'Bill',
           date: new Date(),
           text: 'I DONT like this fish',
-          criteriaId: 'cr02',
+          criteriaId: 2,
           readBy: []
         },
         {
@@ -122,7 +122,7 @@ module.exports = {
           author: 'Mary',
           date: new Date(),
           text: 'This is not my fish!',
-          criteriaId: 'cr02',
+          criteriaId: 2,
           readBy: []
         }
       ]
@@ -136,7 +136,7 @@ module.exports = {
           author: 'Bill',
           date: new Date(),
           text: 'Fish food fish food',
-          criteriaId: 'cr01',
+          criteriaId: 1,
           readBy: ['Bob', 'Bill']
         },
         {
@@ -145,7 +145,7 @@ module.exports = {
           author: 'Bill',
           date: new Date(),
           text: 'Food fish food fish',
-          criteriaId: 'cr02',
+          criteriaId: 2,
           readBy: []
         }
       ]

@@ -12,7 +12,7 @@ import { withStyles } from '@material-ui/core/styles';
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
-import DATA from '../modules/pmc-data';
+import DATA from '../modules/data';
 import UR from '../../system/ursys';
 import EvidenceLink from './EvidenceLink';
 
@@ -26,7 +26,7 @@ class EvidenceList extends React.Component {
     UR.Subscribe('DATA_UPDATED', this.HandleDataUpdate);
   }
 
-  componentDidMount() { }
+  componentDidMount() {}
 
   componentWillUnmount() {
     UR.Unsubscribe('DATA_UPDATED', this.HandleDataUpdate);
@@ -63,12 +63,12 @@ class EvidenceList extends React.Component {
 EvidenceList.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
   classes: PropTypes.object,
-  rsrcId: PropTypes.string
+  rsrcId: PropTypes.number
 };
 
 EvidenceList.defaultProps = {
   classes: {},
-  rsrcId: ''
+  rsrcId: -1
 };
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////

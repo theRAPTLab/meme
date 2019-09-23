@@ -60,7 +60,7 @@ function ServerReflect(comp) {
     testServerReflect.fail('server no response');
   }, 1000);
 
-  ULINK.NetCall('SRV_REFLECT', { stack: ['me'] }).then(data => {
+  ULINK.NetCall('NET:SRV_REFLECT', { stack: ['me'] }).then(data => {
     testServerReflect.pass();
     if (data.serverSays === 'REFLECTING') {
       clearTimeout(timeout);
@@ -99,7 +99,7 @@ function UndefinedLocalCall(comp) {
 
 function NetCall(comp) {
   if (UR.PeerCount() < 2) return;
-  let testNetCall = comp.RegisterTest('NetCallRoundTrip');
+  let testNetCall = comp.RegisterTest('NetCall');
   const testNetCallData = comp.RegisterTest('NetCall+Data');
 
   const timeout = setTimeout(() => {
@@ -112,7 +112,7 @@ function NetCall(comp) {
     clearTimeout(timeout);
     if (data.error) {
       // server returns only an error if couldn't find handler
-      testNetCall.fail(data.error);
+      testNetCall.fail(`server reports '${data.error}'`);
       return;
     }
     testNetCall.pass(); // the netcall mechanism worked!
@@ -139,7 +139,7 @@ function GetDB(comp) {
   const timeout = setTimeout(() => {
     testGetDB.fail('timeout');
   }, 1000);
-  ULINK.NetCall('SRV_DBGET', {}).then(data => {
+  ULINK.NetCall('NET:SRV_DBGET', {}).then(data => {
     clearTimeout(timeout);
     testGetDB.pass();
   });

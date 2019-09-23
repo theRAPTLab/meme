@@ -1,6 +1,6 @@
 import { yellow, green, red, grey } from '@material-ui/core/colors';
 import SVGJS from '@svgdotjs/svg.js/src/svg';
-import DATA from './pmc-data';
+import DATA from './data';
 import VProp from './class-vprop';
 import VMech from './class-vmech';
 import { cssinfo, cssalert, csstab, cssdraw } from './console-styles';
@@ -29,7 +29,7 @@ const DBG = false;
 
 /// PRIVATE HELPERS ///////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-UR.Subscribe('PROP:MOVED', data => {
+UR.Subscribe('PROP_MOVED', data => {
   if (data) {
     VMech.DrawEdges();
   }

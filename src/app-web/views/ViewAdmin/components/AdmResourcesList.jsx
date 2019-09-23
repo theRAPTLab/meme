@@ -26,7 +26,7 @@ import { withStyles } from '@material-ui/core/styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from '../../../components/MEMEStyles';
 import UR from '../../../../system/ursys';
-import ADM from '../../../modules/adm-data';
+import ADM from '../../../modules/data';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -47,9 +47,9 @@ class ResourcesList extends React.Component {
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate); // Broadcast when a resource is updated.
   }
 
-  componentDidMount() { }
+  componentDidMount() {}
 
-  componentWillUnmount() { }
+  componentWillUnmount() {}
 
   DoClassroomSelect(data) {
     this.setState({
@@ -93,16 +93,16 @@ class ResourcesList extends React.Component {
           </TableHead>
           <TableBody>
             {resources.map(resource => (
-              <TableRow key={resource.rsrcId}>
+              <TableRow key={resource.id}>
                 <TableCell>
                   <Checkbox
-                    checked={classroomResources.includes(resource.rsrcId)}
+                    checked={classroomResources.find(res => res.id === resource.id) ? true : false}
                     color="primary"
-                    onChange={e => this.OnResourceCheck(resource.rsrcId, e.target.checked)}
+                    onChange={e => this.OnResourceCheck(resource.id, e.target.checked)}
                     disabled={classroomId === ''}
                   />
                 </TableCell>
-                <TableCell>{resource.rsrcId}</TableCell>
+                <TableCell>{resource.id}</TableCell>
                 <TableCell>{resource.label}</TableCell>
                 <TableCell>{resource.notes}</TableCell>
                 <TableCell>{resource.type}</TableCell>

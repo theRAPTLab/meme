@@ -57,7 +57,7 @@ import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
-import ADM from '../modules/adm-data';
+import ADM from '../modules/data';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -169,10 +169,10 @@ class StickyNote extends React.Component {
   }
 
   OnCriteriaSelect(e) {
-    let criteriaId = e.target.value;
+    let criteriaId = parseInt(e.target.value);
     this.setState(state => {
       let comment = state.comment;
-      comment.criteriaId = criteriaId;
+      comment.id = criteriaId;
       return { comment };
     });
   }
@@ -247,13 +247,13 @@ class StickyNote extends React.Component {
       day: 'numeric'
     });
 
-    const showCriteria = isBeingEdited || comment.criteriaId !== '';
-    const selectedCriteria = criteria.find(crit => crit.id === comment.criteriaId);
+    const showCriteria = isBeingEdited || comment.id !== '';
+    const selectedCriteria = criteria.find(crit => crit.id === comment.id);
     const criteriaDescription = selectedCriteria !== undefined ? selectedCriteria.description : '';
     let criteriaDisplay;
     if (isBeingEdited) {
       criteriaDisplay = (
-        <select value={comment.criteriaId} onChange={this.OnCriteriaSelect}>
+        <select value={comment.id} onChange={this.OnCriteriaSelect}>
           <option value="" key="empty">
             Select one...
           </option>
@@ -265,7 +265,7 @@ class StickyNote extends React.Component {
         </select>
       );
     } else {
-      criteriaDisplay = ADM.GetCriteriaLabel(comment.criteriaId);
+      criteriaDisplay = ADM.GetCriteriaLabel(comment.id);
     }
 
     return (
@@ -289,7 +289,9 @@ class StickyNote extends React.Component {
             <Grid item xs={9}>
               <div hidden={!showCriteria}>
                 <InputLabel className={classes.stickynoteCardLabel}>CRITERIA:&nbsp;</InputLabel>
-                <div className={classes.stickynoteCardCriteria} title={criteriaDescription}>{criteriaDisplay}</div>
+                <div className={classes.stickynoteCardCriteria} title={criteriaDescription}>
+                  {criteriaDisplay}
+                </div>
                 <div hidden={!isBeingEdited} className={classes.stickynoteCardCriteriaDescription}>
                   {criteriaDescription}
                 </div>
