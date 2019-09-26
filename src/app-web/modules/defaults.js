@@ -42,7 +42,9 @@ const DEFAULTS = {
   COLOR: {
     MECH: 'orange',
     MECH_SEL: '#44F',
-    MECH_HOV: '#FFA244',
+    MECH_HOV: '#FFC78F',
+    MECH_LABEL: '#FF6600',
+    MECH_LABEL_BG: 'rgba(240,240,255,0.9)', // match background of svg
     PROP: '#44F',
     PROP_SEL: '#44F',
     PROP_HOV: '#FFA244'

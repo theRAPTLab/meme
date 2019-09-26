@@ -88,7 +88,9 @@ class EvidenceLink extends React.Component {
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
   }
 
-  componentDidMount() { }
+  componentDidMount() {
+    this.DoDataUpdate(); // Force load ratingDefs
+  }
 
   componentWillUnmount() {
     UR.Unsubscribe('DATA_UPDATED', this.DoDataUpdate);
@@ -241,7 +243,7 @@ class EvidenceLink extends React.Component {
     }
   }
 
-  // User has clicked on a different component/property/mechanism
+  // User has selected a different component/property/mechanism as the source
   DoSelectionChange() {
     if (this.state.listenForSourceSelection) {
       let sourceId;

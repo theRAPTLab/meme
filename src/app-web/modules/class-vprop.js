@@ -5,6 +5,9 @@ import { AddDragDropHandlers } from './class-vprop-dragdrop';
 import { VisualState } from './classes-visual';
 import VBadge from './class-vbadge';
 
+// testing mousedown
+import UR from '../../system/ursys';
+
 const { VPROP, PAD, COLOR } = DEFAULTS;
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
@@ -102,10 +105,12 @@ class VProp {
       this.visualState.Select('hover');
       this.visualStyle.fill.color = COL_HOVER;
       this.visualStyle.fill.opacity = COL_HOVER_OPACITY;
+      UR.Publish('DESCRIPTION_OPEN', { propId: this.id });
     } else {
       this.visualState.Deselect('hover');
       this.visualStyle.fill.color = COL_BG;
       this.visualStyle.fill.opacity = COL_BG_OPACITY;
+      UR.Publish('DESCRIPTION_CLOSE');
     }
     this.Draw();
   }
@@ -122,6 +127,13 @@ class VProp {
    */
   Y() {
     return this.gRoot.y();
+  }
+
+  /**
+   * @returns {SVG.Container} - The SVG Container object that the badge should attach to 
+   */
+  GetVBadgeParent() {
+    return this.gRoot;
   }
 
   /**

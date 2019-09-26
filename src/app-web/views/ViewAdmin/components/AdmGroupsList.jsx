@@ -106,7 +106,9 @@ class GroupsList extends React.Component {
     this.setState({ addGroupDialogOpen: true });
   }
 
-  OnAddGroupName() {
+  OnAddGroupName(e) {
+    e.preventDefault();
+    e.stopPropagation();
     ADM.AddGroup(this.state.addGroupDialogName);
     this.OnAddGroupDialogClose();
   }
@@ -238,7 +240,7 @@ class GroupsList extends React.Component {
               <Button onClick={this.OnAddGroupDialogClose} color="primary">
                 Cancel
               </Button>
-              <Button color="primary" typ="submit">
+              <Button color="primary" type="submit">
                 Add
               </Button>
             </DialogActions>

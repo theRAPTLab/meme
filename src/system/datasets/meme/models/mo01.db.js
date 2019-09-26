@@ -13,7 +13,7 @@ module.exports = {
   mechanisms: [
     { source: 'fertilizer', target: 'nutrients', name: 'increase' },
     { source: 'nutrients', target: 'algae', name: 'increase' },
-    { source: 'algae', target: 'deadstuff', name: 'die (incrase)' },
+    { source: 'algae', target: 'deadstuff', name: 'die (increase)' },
     { source: 'decomposers', target: 'deadstuff', name: 'eat' },
     { source: 'decomposers', target: 'oxygen', name: 'breath (decrease)' },
     { source: 'oxygen', target: 'population', name: 'if too low, decreases' },
@@ -40,8 +40,8 @@ module.exports = {
     },
     {
       evId: 'ev2',
-      propId: 'fish',
-      mechId: undefined,
+      propId: undefined,
+      mechId: 'oxygen:population',
       rsrcId: 1,
       number: '1b',
       rating: -3,
@@ -55,11 +55,20 @@ module.exports = {
       number: '2d',
       rating: 1,
       note: 'ammonia is bad'
+    },
+    {
+      evId: 'ev5',
+      propId: undefined,
+      mechId: 'oxygen:population',
+      rsrcId: 2,
+      number: '1c',
+      rating: -2,
+      note: 'fish 1c'
     }
   ],
   commentThreads: [
     {
-      id: 'ev3',
+      id: 'decomposers:oxygen',
       comments: [
         {
           id: 0,
@@ -73,7 +82,7 @@ module.exports = {
       ]
     },
     {
-      id: 'decomposers',
+      id: 'oxygen:fish',
       comments: [
         {
           id: 0,
@@ -96,7 +105,7 @@ module.exports = {
       ]
     },
     {
-      id: 'algae',
+      id: 'oxygen:population',
       comments: [
         {
           id: 0,
@@ -128,7 +137,7 @@ module.exports = {
       ]
     },
     {
-      id: 'fish',
+      id: 'ev1',
       comments: [
         {
           id: 0,

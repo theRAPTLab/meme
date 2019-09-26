@@ -23,28 +23,22 @@ import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import List from '@material-ui/core/List';
 import Typography from '@material-ui/core/Typography';
-import Tooltip from '@material-ui/core/Tooltip';
-import Card from '@material-ui/core/Card';
 import Paper from '@material-ui/core/Paper';
 import Button from '@material-ui/core/Button';
 import Fab from '@material-ui/core/Fab';
 import TextField from '@material-ui/core/TextField';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-
 // Material UI Icons
 import AddIcon from '@material-ui/icons/Add';
 import ChatBubbleOutlineIcon from '@material-ui/icons/ChatBubbleOutline';
 import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
 import EditIcon from '@material-ui/icons/Edit';
 // MEME App Components
+import DescriptionView from '../../components/DescriptionView';
 import HelpView from '../../components/HelpView';
 import Login from '../../components/Login';
 import MechDialog from '../../components/MechDialog';
 import ModelSelect from '../../components/ModelSelect';
+import PropDialog from '../../components/PropDialog';
 import ResourceView from '../../components/ResourceView';
 import ResourceItem from '../../components/ResourceItem';
 import RatingsDialog from '../../components/RatingsDialog';
@@ -64,16 +58,6 @@ import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DBG = false;
 const PKG = 'ViewMain:';
-
-// Customized TreeItem Component with smaller font
-const SmallTreeItem = withStyles(theme => ({
-  iconContainer: {
-    width: '16px'
-  },
-  label: {
-    fontSize: '11px'
-  }
-}))(props => <TreeItem {...props} />);
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -95,7 +79,6 @@ class ViewMain extends React.Component {
     this.DoModelTitleUpdate = this.DoModelTitleUpdate.bind(this);
     this.OnChangeModelTitle = this.OnChangeModelTitle.bind(this);
     this.DoSaveModelTitle = this.DoSaveModelTitle.bind(this);
-    this.OnPropDialogLabelChange = this.OnPropDialogLabelChange.bind(this);
     this.OnPropAdd = this.OnPropAdd.bind(this);
     this.OnPropDelete = this.OnPropDelete.bind(this);
     this.OnAddPropComment = this.OnAddPropComment.bind(this);
@@ -107,7 +90,6 @@ class ViewMain extends React.Component {
     this.DoMechClosed = this.DoMechClosed.bind(this);
     this.OnComponentAdd = this.OnComponentAdd.bind(this);
     this.OnPropDialogClose = this.OnPropDialogClose.bind(this);
-    this.OnPropDialogCreateClick = this.OnPropDialogCreateClick.bind(this);
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.DoSelectionChange = this.DoSelectionChange.bind(this);
     this.OnHelp = this.OnHelp.bind(this);
@@ -117,6 +99,7 @@ class ViewMain extends React.Component {
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Subscribe('MODEL_TITLE:UPDATED', this.DoModelTitleUpdate);
     UR.Subscribe('PROP_ADD', this.OnComponentAdd);
+    UR.Subscribe('PROPDIALOG_CLOSE', this.OnPropDialogClose);
     UR.Subscribe('MECH_ADD', this.OnMechAdd);
     UR.Subscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
     UR.Subscribe('MECHDIALOG:CLOSED', this.DoMechClosed);
@@ -130,9 +113,6 @@ class ViewMain extends React.Component {
       studentGroup: '',
       viewHeight: 0, // need to init this to prevent error with first render of resourceList
       addPropOpen: false,
-      addPropLabel: '',
-      addPropPropId: '', // The prop Id of the component being edited, if new component then ''
-      addPropIsProperty: false, // AddComponent dialog is adding a property (not a component)
       addEdgeOpen: false,
       addEdgeSource: '', // Add Mech Dialog
       addEdgeTarget: '', // Add Mech Dialog
@@ -161,6 +141,9 @@ class ViewMain extends React.Component {
     UR.Unsubscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Unsubscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Unsubscribe('MODEL_TITLE:UPDATED', this.DoModelTitleUpdate);
+    UR.Unsubscribe('PROP_ADD', this.OnComponentAdd);
+    UR.Unsubscribe('PROPDIALOG_CLOSE', this.OnPropDialogClose);
+    UR.Unsubscribe('MECH_ADD', this.OnMechAdd);
     UR.Unsubscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
     UR.Unsubscribe('MECHDIALOG:CLOSED', this.DoMechClosed);
   }
@@ -227,28 +210,19 @@ class ViewMain extends React.Component {
     ADM.ModelTitleUpdate(this.state.modelId, this.state.title);
   }
 
-  OnPropDialogLabelChange(e) {
-    this.setState({ addPropLabel: e.target.value });
-  }
-
   // User clicked on "(+) Add Component" drawer button
   OnComponentAdd() {
-    if (DBG) console.log('Add!');
+    UR.Publish('PROPDIALOG_OPEN', { isProperty: false });
     this.setState({
-      addPropOpen: true,
-      addPropLabel: '', // clear the old property name
-      addPropPropId: '', // new prop, so clear propId
-      addPropIsProperty: false // adding component, not property
+      addPropOpen: true
     });
   }
 
   // User selected component/prop and clicked on "(+) Add Property Button"
   OnPropAdd() {
+    UR.Publish('PROPDIALOG_OPEN', { isProperty: true });
     this.setState({
-      addPropOpen: true,
-      addPropLabel: '', // clear the old property name
-      addPropPropId: '', // new prop, so clear propId
-      addPropIsProperty: true
+      addPropOpen: true
     });
   }
 
@@ -258,13 +232,21 @@ class ViewMain extends React.Component {
     if (selectedPropIds.length > 0) {
       let propId = selectedPropIds[0];
       let prop = DATA.Prop(propId);
+      UR.Publish('PROPDIALOG_OPEN', {
+        label: prop.name,
+        propId,
+        description: prop.description,
+        isProperty: false
+      });
       this.setState({
-        addPropOpen: true,
-        addPropLabel: prop.name,
-        addPropPropId: propId,
-        addPropIsProperty: false
+        addPropOpen: true
       });
     }
+  }
+
+  OnPropDialogClose() {
+    if (DBG) console.log('close');
+    this.setState({ addPropOpen: false });
   }
 
   // User selected component/prop and clicked on "() Delete"
@@ -334,6 +316,7 @@ class ViewMain extends React.Component {
       let vw = mechId.split(':');
       let data = {
         label: mech.name,
+        description: mech.description,
         sourceId: vw[0],
         targetId: vw[1]
       };
@@ -358,43 +341,6 @@ class ViewMain extends React.Component {
     this.setState({
       mechIsSelected: false
     });
-  }
-
-  OnPropDialogClose() {
-    if (DBG) console.log('close');
-    this.setState({ addPropOpen: false });
-  }
-
-  OnPropDialogCreateClick(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (DBG) console.log('create prop');
-    if (this.state.addPropIsProperty) {
-      // Add a property to the selected component
-      let selectedPropIds = DATA.VM_SelectedPropsIds();
-      if (selectedPropIds.length > 0) {
-        let parentPropId = selectedPropIds[0];
-        if (DBG) console.log('...setting parent of', this.state.addPropLabel, 'to', parentPropId);
-        // Create new prop
-        DATA.PMC_AddProp(this.state.addPropLabel);
-        // Add it to the parent component
-        DATA.PMC_SetPropParent(this.state.addPropLabel, parentPropId);
-      }
-    } else if (this.state.addPropPropId !== '') {
-      // Update existing prop
-      let prop = DATA.Prop(this.state.addPropPropId);
-      prop.name = this.state.addPropLabel;
-      // IF YOU UPDATE THE MODEL THEN BUILD IT SO VIEW UPDATES
-      // MOST PMCDATA MODEL METHODS CALLS THIS AUTOMATICALLY
-      // BUT IN THIS CASE YOU'RE MUTATING THE PROP DIRECTLY
-      UTILS.RLog('PropertyEdit', this.state.addPropLabel);
-      DATA.BuildModel();
-    } else {
-      // Create new prop
-      DATA.PMC_AddProp(this.state.addPropLabel);
-    }
-    this.OnPropDialogClose();
   }
 
   /*/
@@ -462,8 +408,6 @@ class ViewMain extends React.Component {
       studentId,
       studentName,
       studentGroup,
-      addPropLabel,
-      addPropPropId,
       addPropOpen,
       addEdgeOpen,
       componentIsSelected,
@@ -555,9 +499,8 @@ class ViewMain extends React.Component {
 
           <StickyNoteCollection />
           <RatingsDialog />
-
-          {/* Mech Dialog */}
           <MechDialog />
+          <DescriptionView />
         </main>
 
         {/* Resource Library */}
@@ -581,35 +524,7 @@ class ViewMain extends React.Component {
         <HelpView />
 
         {/* Prop Dialog -- Property label editing dialog */}
-        <Dialog
-          open={this.state.addPropOpen}
-          onClose={this.OnPropDialogClose}
-          aria-labelledby="form-dialog-title"
-        >
-          <form onSubmit={this.OnPropDialogCreateClick}>
-            <DialogTitle id="form-dialog-title">Add Component/Property</DialogTitle>
-            <DialogContent>
-              <DialogContentText>Type a name for your component or property.</DialogContentText>
-              <TextField
-                autoFocus
-                margin="dense"
-                id="propLabel"
-                label="Label"
-                fullWidth
-                onChange={this.OnPropDialogLabelChange}
-                value={addPropLabel}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={this.OnPropDialogClose} color="primary">
-                Cancel
-              </Button>
-              <Button type="submit" color="primary">
-                {addPropPropId === '' ? 'Create' : 'Save'}
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+        <PropDialog />
 
         {/* Component/Mech add/edit/delete buttons that respond to selection events */}
         <div

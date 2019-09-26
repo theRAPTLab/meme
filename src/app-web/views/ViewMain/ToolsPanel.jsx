@@ -152,6 +152,10 @@ class ToolsPanel extends React.Component {
           selectedPropId === propId ? classes.treeItemSelected : ''
         )}
         onClick={e => this.OnPropClick(e, propId)}
+        onMouseEnter={e => {
+          e.stopPropagation();
+          UR.Publish('DESCRIPTION_OPEN', { propId: propId });
+        }}
       >
         {prop.name}
         {children.length > 0
@@ -179,6 +183,10 @@ class ToolsPanel extends React.Component {
             selectedMechId.v === mechId.v && selectedMechId.w === mechId.w ? classes.treeItemSelected : ''
           )}
           onClick={e => this.OnMechClick(e, mechId)}
+          onMouseEnter={e => {
+            e.stopPropagation();
+            UR.Publish('DESCRIPTION_OPEN', { mechId: mechId });
+          }}
         >
           <span className={classes.treePropItemColor}>{source} </span>
           {mech.name}
