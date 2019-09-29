@@ -55,12 +55,12 @@ class EvidenceList extends React.Component {
 EvidenceList.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
   classes: PropTypes.object,
-  rsrcId: PropTypes.number
+  rsrcId: PropTypes.string
 };
 
 EvidenceList.defaultProps = {
   classes: {},
-  rsrcId: -1
+  rsrcId: ''
 };
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////

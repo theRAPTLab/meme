@@ -34,6 +34,13 @@ let adm_db = {
 }; // server database object by reference
 let adm_settings = {}; // local settings, state of the admin view (current displayed class/teacher)
 
+/// UTILITY ///////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+function ConverToStringArray(arr) {
+  return arr.map(item => String(item));
+}
+
 /// URSYS HOOKS ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 UR.Hook(__dirname, 'LOAD_ASSETS', () => {
@@ -47,8 +54,7 @@ UR.Hook(__dirname, 'LOAD_ASSETS', () => {
         reject(`server says '${data.error}'`);
         return;
       }
-      adm_db = data;
-      ADMData.Load();
+      ADMData.InitializeData(data);
       resolve();
     });
   });
@@ -57,7 +63,7 @@ UR.Hook(__dirname, 'LOAD_ASSETS', () => {
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-ADMData.Load = () => {
+ADMData.InitializeData = ( data ) => {
   // INITIALIZE SETTINGS
   adm_settings = {
     selectedTeacherId: '',
@@ -65,6 +71,33 @@ ADMData.Load = () => {
     selectedStudentId: '',
     selectedModelId: ''
   };
+  
+  // convert ids
+  const a_resources = data.a_resources.map(res => {
+    const { id, referenceLabel, label, notes, type, url, links } = res;
+    return {
+      id: String(id), // Convert resource ids to strings
+      referenceLabel,
+      label,
+      notes,
+      type,
+      url,
+      links
+    };
+  });
+  data.a_resources = a_resources;
+  
+  const a_classroomResources = data.a_classroomResources.map(rsrcs => {
+    const { id, classroomId, resources } = rsrcs;
+    return {
+      id: id, // String(id),
+      classroomId: classroomId, // String(classroomId),
+      resources: ConverToStringArray(resources)
+    }
+  });
+  data.a_classroomResources = a_classroomResources;
+
+  adm_db = data;
 };
 
 /// PRIVATE METHODS ////////////////////////////////////////////////////////////

@@ -171,7 +171,7 @@ ResourceItem.propTypes = {
 ResourceItem.defaultProps = {
   classes: {},
   resource: {
-    rsrcId: -1,
+    rsrcId: '',
     referenceLabel: '',
     label: '',
     notes: '',

@@ -148,13 +148,13 @@ PMCData.InitializeModel = (model, resources) => {
   // Load Evidence Links
   m.data.evidence = m.data.evidence || [];
   m.data.evidence.forEach(ev => {
-    let { evId, propId, mechId, rsrcId, number, rating, note, comments } = ev;
+    let { id, propId, mechId, rsrcId, number, rating, note, comments } = ev;
     comments = comments || []; // allow empty comments
     a_evidence.push({
-      evId,
-      propId,
-      mechId,
-      rsrcId,
+      id: String(id), // Model expects string ids
+      propId: propId === undefined ? undefined : String(propId),
+      mechId: mechId === undefined ? undefined : String(mechId),
+      rsrcId: rsrcId === undefined ? undefined : String(rsrcId),
       number,
       rating,
       note,
@@ -165,7 +165,12 @@ PMCData.InitializeModel = (model, resources) => {
   // Comments
   m.data.commentThreads = m.data.commentThreads || [];
   m.data.commentThreads.forEach(cm => {
-    a_commentThreads.push(cm);
+    let { id, refId, comments } = cm;
+    a_commentThreads.push({
+      id: String(id),
+      refId: String(refId),
+      comments
+    });
   });
 
   a_resources = resources || [];
@@ -222,7 +227,7 @@ PMCData.BuildModel = () => {
   /*/
   h_evidenceById = new Map();
   a_evidence.forEach(ev => {
-    h_evidenceById.set(ev.evId, ev);
+    h_evidenceById.set(ev.id, ev);
   });
 
   /*/
@@ -421,7 +426,11 @@ PMCData.Mech = (evo, ew) => {
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_AddProp = node => {
-  m_graph.setNode(node, { name: `${node}` });
+  // FIXME
+  // Temporarily insert a random numeric prop id
+  // This will get replaced with a server promise once that's implemented
+  const propId = Math.trunc(Math.random() * 10000000000).toString();
+  m_graph.setNode(propId, { name: `${node}` });
   PMCData.BuildModel();
   UTILS.RLog('PropertyAdd', node);
   return `added node ${node}`;
@@ -441,7 +450,7 @@ PMCData.PMC_PropDelete = propid => {
   const evlinks = PMCData.PMC_GetEvLinksByPropId(propid);
   if (evlinks)
     evlinks.forEach(evlink => {
-      PMCData.SetEvidenceLinkPropId(evlink.evId, undefined);
+      PMCData.SetEvidenceLinkPropId(evlink.id, undefined);
     });
   // Delete any children nodes
   const children = PMCData.Children(propid);
@@ -490,7 +499,7 @@ PMCData.PMC_MechUpdate = (origMech, newMech) => {
     // 2a. Move evidence over. Modify in place.
     if (evlinks) {
       evlinks.forEach(evlink => {
-        PMCData.SetEvidenceLinkMechId(evlink.evId, newMechId);
+        PMCData.SetEvidenceLinkMechId(evlink.id, newMechId);
       });
     }
     // 2b. Move comments over
@@ -527,7 +536,7 @@ PMCData.PMC_MechDelete = mechId => {
   const evlinks = PMCData.PMC_GetEvLinksByMechId(mechId);
   if (evlinks)
     evlinks.forEach(evlink => {
-      PMCData.SetEvidenceLinkMechId(evlink.evId, undefined);
+      PMCData.SetEvidenceLinkMechId(evlink.id, undefined);
     });
   // Then remove mech
   // FIXME / REVIEW : Do we need to use `name` to distinguish between
@@ -541,8 +550,10 @@ PMCData.PMC_MechDelete = mechId => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_AddEvidenceLink = (rsrcId, note = '') => {
+  
+// Retrieve from db?!?  
   // HACK!  FIXME!  Need to properly generate a unique ID.
-  let evId = `ev${Math.trunc(Math.random() * 10000)}`;
+  let id = `ev${Math.trunc(Math.random() * 10000)}`;
 
   // Construct number, e.g. "2c"
   // 1. Ordinal value of resource in resource library, e.g. "2"
@@ -553,11 +564,11 @@ PMCData.PMC_AddEvidenceLink = (rsrcId, note = '') => {
   const count = String.fromCharCode(97 + numberOfEvLinks); // lower case for smaller footprint
 
   const number = String(prefix) + count;
-  a_evidence.push({ evId, propId: undefined, rsrcId, number, note });
+  a_evidence.push({ id, propId: undefined, rsrcId, number, note });
   PMCData.BuildModel();
 
   UTILS.RLog('EvidenceCreate', rsrcId); // note is empty at this point
-  return evId;
+  return id;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
@@ -585,7 +596,7 @@ PMCData.PMC_DuplicateEvidenceLink = evId => {
 PMCData.PMC_DeleteEvidenceLink = evId => {
   // Then delete the link(s)
   let i = a_evidence.findIndex(e => {
-    return e.evId === evId;
+    return e.id === evId;
   });
   a_evidence.splice(i, 1);
   PMCData.BuildModel();
@@ -602,30 +613,31 @@ PMCData.PMC_GetEvLinkByEvId = evId => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
- *  Given the passed propid (prop data object), returns evidence linked to the prop object.
+ *  Given the passed propid, returns evidence linked to the prop object.
  *  e.g. { evidenceId: '1', note: 'fish food fish food' }
- *  @param {string|undefined} nodeId - if defined, nodeId string of the prop (aka `propId`)
+ *  @param {String} propId - if defined, id of the prop (aka `propId`)
  *  @return [evlinks] An array of evidenceLink objects
  */
-PMCData.PMC_GetEvLinksByPropId = propid => {
-  return h_evidenceByProp.get(propid);
+PMCData.PMC_GetEvLinksByPropId = propId => {
+  return h_evidenceByProp.get(propId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
  *  Given the passed mechId (mech object), returns evidence linked to the mech object.
  *  e.g. { evidenceId: '1', note: 'fish food fish food' }
- *  @param {string|undefined} mechId - if defined, mechId string of the prop (aka `propId`)
+ *  @param {String|undefined} mechId - if defined, mechId string of the prop (aka `propId`)
  *  @return [evlinks] An array of evidenceLink objects
  */
 PMCData.PMC_GetEvLinksByMechId = mechId => {
   return h_evidenceByMech.get(mechId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Set propId to `undefined` to unlink
+/**
+ *  @param {String} evId
+ *  @param {String||undefined} propId - Set propId to `undefined` to unlink
+ */
 PMCData.SetEvidenceLinkPropId = (evId, propId) => {
-  let evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
+  let evlink = h_evidenceById.get(evId);
   evlink.propId = propId;
   evlink.mechId = undefined; // clear this in case it was set
   // Call BuildModel to rebuild hash tables since we've added a new propId
@@ -636,9 +648,7 @@ PMCData.SetEvidenceLinkPropId = (evId, propId) => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
-  let evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
+  let evlink = h_evidenceById.get(evId);
   evlink.mechId = mechId;
   evlink.propId = undefined; // clear this in case it was set
   // Call BuildModel to rebuild hash tables since we've added a new mechId
@@ -649,18 +659,14 @@ PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkNote = (evId, note) => {
-  let evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
+  let evlink = h_evidenceById.get(evId);
   evlink.note = note;
   UR.Publish('DATA_UPDATED');
   UTILS.RLog('EvidenceSetNote', `Set evidence note to "${evlink.note}"`);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkRating = (evId, rating) => {
-  let evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
+  let evlink = h_evidenceById.get(evId);  
   if (evlink) {
     evlink.rating = rating;
     UR.Publish('DATA_UPDATED');
@@ -674,12 +680,12 @@ PMCData.SetEvidenceLinkRating = (evId, rating) => {
 /// STICKIES //////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * @param {string} id - id of Property or Mechanism
+ * @param {string} refId - id of Property or Mechanism
  * @return [array] Array of comment objects, or [] if none defined.
  */
-PMCData.GetComments = id => {
+PMCData.GetComments = refId => {
   const result = a_commentThreads.find(c => {
-    return c.id === id;
+    return c.refId === refId;
   });
   return result ? result.comments : [];
 };
@@ -716,7 +722,7 @@ PMCData.UpdateComments = (parentId, comments) => {
   let index;
   let commentThread;
   index = a_commentThreads.findIndex(c => {
-    return c.id === parentId;
+    return c.refId === parentId;
   });
   if (index > -1) {
     // existing comment
@@ -725,10 +731,12 @@ PMCData.UpdateComments = (parentId, comments) => {
     a_commentThreads.splice(index, 1, commentThread);
   } else {
     // new comment
-    commentThread = { id: parentId, comments };
-    console.error('adding new commentThread', commentThread);
+    // FIXME
+    // Temporarily insert a random numeric prop id
+    // This will get replaced with a server promise once that's implemented
+    const id = Math.trunc(Math.random() * 10000000000).toString();
+    commentThread = { id, refId: parentId, comments };
     a_commentThreads.push(commentThread);
-    console.table(a_commentThreads);
   }
   UR.Publish('DATA_UPDATED');
 };

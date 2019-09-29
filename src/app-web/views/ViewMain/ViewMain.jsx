@@ -139,10 +139,6 @@ class ViewMain extends React.Component {
       componentIsSelected: false, // A component or property has been selected by user.  Used for pro-centric actions.
       mechIsSelected: false // A mechanism is slected by user.  Used for mech-centric actions.
     };
-
-    // FIXME
-    // Hack load in ADM data for now.  Eventually ADM will be loaded by system startup.
-    ADM.Load();
   }
 
   componentDidMount() {

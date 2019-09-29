@@ -11,6 +11,7 @@ module.exports = {
     { id: 17, node: 'population', name: 'population', parent: 16 }
   ],
   mechanisms: [
+// these ids are wrong, they should be strings like "10:15"
     { id: 20, edge: 'fertilizer:nutrients', source: 10, target: 11, name: 'increase' },
     { id: 21, edge: 'nutrients:algae', source: 11, target: 12, name: 'increase' },
     { id: 22, edge: 'algae:deadstuff', source: 12, target: 13, name: 'die (incrase)' },
@@ -59,6 +60,7 @@ module.exports = {
   ],
   commentThreads: [
     {
+      id: 51,
       refId: 33,
       comments: [
         {
@@ -73,6 +75,7 @@ module.exports = {
       ]
     },
     {
+      id: 52,
       refId: 14,
       comments: [
         {
@@ -80,7 +83,7 @@ module.exports = {
           time: 0,
           author: 'Bob',
           date: new Date(),
-          text: 'Tank you',
+          text: 'Decomposers decompose',
           criteriaId: 1,
           readBy: ['Bob', 'Bill']
         },
@@ -89,13 +92,14 @@ module.exports = {
           time: 10,
           author: 'Bill',
           date: new Date(),
-          text: 'This tanks!',
+          text: 'Suppose decompose',
           criteriaId: 2,
           readBy: []
         }
       ]
     },
     {
+      id: 53,
       refId: 12,
       comments: [
         {
@@ -103,7 +107,7 @@ module.exports = {
           time: 0,
           author: 'Bob',
           date: new Date(),
-          text: 'I like this fish',
+          text: 'Algae green',
           criteriaId: 1,
           readBy: ['Bob', 'Bill']
         },
@@ -112,7 +116,7 @@ module.exports = {
           time: 10,
           author: 'Bill',
           date: new Date(),
-          text: 'I DONT like this fish',
+          text: 'Algae seein you',
           criteriaId: 2,
           readBy: []
         },
@@ -121,21 +125,22 @@ module.exports = {
           time: 11,
           author: 'Mary',
           date: new Date(),
-          text: 'This is not my fish!',
+          text: 'You can call me Algae',
           criteriaId: 2,
           readBy: []
         }
       ]
     },
     {
-      refId: 16,
+      id: 54,
+      refId: "15:17",
       comments: [
         {
           id: 0,
           time: 0,
           author: 'Bill',
           date: new Date(),
-          text: 'Fish food fish food',
+          text: 'Fish need O2',
           criteriaId: 1,
           readBy: ['Bob', 'Bill']
         },
@@ -144,7 +149,7 @@ module.exports = {
           time: 10,
           author: 'Bill',
           date: new Date(),
-          text: 'Food fish food fish',
+          text: 'Fish pop pop',
           criteriaId: 2,
           readBy: []
         }

@@ -99,15 +99,13 @@ class VBadge {
    * @param {*} vparent class-vprop or class-vmech
    */
   Update(vparent) {
-    let id = vparent.id;
+    const id = vparent.id;
     if (m_IsVMech(vparent)) {
       // parent is a VMech
       this.evlinks = PMC.PMC_GetEvLinksByMechId(id);
-      //console.error('id', id, 'isMech!', vparent, 'evlinks are', this.evlinks);
     } else {
       // parent is VProp
       this.evlinks = PMC.PMC_GetEvLinksByPropId(id);
-      //console.log('id', id, 'isProp!',vparent,'evlinks are', this.evlinks);
     }
   }
 
