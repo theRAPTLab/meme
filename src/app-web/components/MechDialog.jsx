@@ -49,6 +49,7 @@ class MechDialog extends React.Component {
     this.OnSourceLinkButtonClick = this.OnSourceLinkButtonClick.bind(this);
     this.OnTargetLinkButtonClick = this.OnTargetLinkButtonClick.bind(this);
     this.OnTextChange = this.OnTextChange.bind(this);
+    this.OnDescriptionChange = this.OnDescriptionChange.bind(this);
     this.OnReverse = this.OnReverse.bind(this);
     this.DoSaveData = this.DoSaveData.bind(this);
     this.OnCreateClick = this.OnCreateClick.bind(this);
@@ -61,6 +62,7 @@ class MechDialog extends React.Component {
       targetId: '',
       targetLabel: undefined,
       label: '',
+      description: '',
       listenForSourceSelection: false,
       listenForTargetSelection: false,
       origSourceId: '',
@@ -95,6 +97,7 @@ class MechDialog extends React.Component {
         targetId: '',
         targetLabel: undefined,
         label: '',
+        description: '',
         listenForSourceSelection: true,
         listenForTargetSelection: true,
         saveButtonLabel: 'Add'
@@ -107,7 +110,7 @@ class MechDialog extends React.Component {
 
   DoEdit(data) {
     if (DBG) console.log(PKG, 'Edit Mech!', data);
-    const { label, sourceId, targetId } = data;
+    const { label, description, sourceId, targetId } = data;
     this.setState(
       {
         isOpen: true,
@@ -117,6 +120,7 @@ class MechDialog extends React.Component {
         targetId,
         targetLabel: DATA.Prop(targetId).name,
         label,
+        description: description || '',  // Simple validation
         origSourceId: sourceId,
         origTargetId: targetId,
         listenForSourceSelection: false,
@@ -146,7 +150,6 @@ class MechDialog extends React.Component {
    * @param {*} targetId
    */
   DoSelectSourceAndTarget(sourceId, targetId) {
-    console.error(PKG, 'DoSelectSourceAndTarget', sourceId, targetId);
     const currentVPropSource = DATA.VM_VProp(sourceId);
     DATA.VM_SelectProp(currentVPropSource);
     currentVPropSource.visualState.Select('first'); // hack, this shold probably be implemented as a PMCData call?
@@ -157,8 +160,9 @@ class MechDialog extends React.Component {
   DoSelectionChange() {
     let selectedPropIds = DATA.VM_SelectedPropsIds();
     if (DBG) console.log('selection changed', selectedPropIds);
-
-    if (this.state.editExisting) {
+    // If both source and target have been defined, allow
+    // user to independently set each link
+    if (this.state.sourceId !== '' && this.state.targetId !== '') {
       /**
        * Edit Existing Mech
        *
@@ -219,16 +223,6 @@ class MechDialog extends React.Component {
         listenForTargetSelection = false;
       }
 
-// FIXME: This conflates two uses of `editExisting` -- it means this is sent
-// to pmc as an update rather than a new mech add AND using it to determine
-// whether Link buttons are enabled
-      // If both source and target have been defined, we change the
-      // dialog to edit existing mode so that you can individually
-      // set each link
-      if (sourceId !== '' && targetId !== '') {
-        editExisting = true;
-      }
-
       this.setState({
         sourceId,
         sourceLabel: sourceId !== '' ? DATA.Prop(sourceId).name : undefined,
@@ -265,6 +259,10 @@ class MechDialog extends React.Component {
     this.setState({ label: e.target.value });
   }
 
+  OnDescriptionChange(e) {
+    this.setState({ description: e.target.value });
+  }
+
   OnReverse() {
     // Swap source and target
     const { sourceId, sourceLabel, targetId, targetLabel } = this.state;
@@ -294,13 +292,21 @@ class MechDialog extends React.Component {
   }
 
   DoSaveData() {
-    const { sourceId, targetId, origSourceId, origTargetId, label, editExisting } = this.state;
+    const {
+      sourceId,
+      targetId,
+      origSourceId,
+      origTargetId,
+      label,
+      description,
+      editExisting
+    } = this.state;
     if (editExisting) {
       const origMech = { sourceId: origSourceId, targetId: origTargetId };
-      const newMech = { sourceId, targetId, label };
+      const newMech = { sourceId, targetId, label, description };
       DATA.PMC_MechUpdate(origMech, newMech);
     } else {
-      DATA.PMC_MechAdd(sourceId, targetId, label);
+      DATA.PMC_MechAdd(sourceId, targetId, label, description);
     }
   }
 
@@ -317,6 +323,7 @@ class MechDialog extends React.Component {
     const {
       isOpen,
       label,
+      description,
       sourceId,
       sourceLabel,
       targetId,
@@ -328,9 +335,8 @@ class MechDialog extends React.Component {
       slideIn
     } = this.state;
     const { classes } = this.props;
-
     return (
-      <Card className={classes.edgeDialog} hidden={!isOpen}>
+      <Card hidden={!isOpen}>
         <Paper className={classes.edgeDialogPaper}>
           <form onSubmit={this.OnCreateClick}>
             <div className={classes.edgeDialogWindowLabel}>ADD MECHANISM</div>
@@ -384,6 +390,17 @@ class MechDialog extends React.Component {
               >
                 {saveButtonLabel}
               </Button>
+            </div>
+            <div className={classes.edgeDialogInput}>
+              <TextField
+                placeholder="Describe how the the two are linked together..."
+                margin="dense"
+                id="edgeDescription"
+                label="Description"
+                value={description}
+                onChange={this.OnDescriptionChange}
+                className={classes.edgeDialogDescriptionField}
+              />
             </div>
           </form>
         </Paper>

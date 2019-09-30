@@ -1,12 +1,22 @@
 /* eslint-disable no-param-reassign */
 /*//////////////////////////////// ABOUT \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
-    Session Utilities
-    collection of session-related data structures
+  Session Utilities
+  collection of session-related data structures
+
+  For student logins, we just need to encode the groupId, which will give
+  us the classroomId. We also need the name, which is not encoded, but
+  can be checked against the groups database.
+
+  <NAME>-HASHED_DATA
+  where HASHED_DATA encodes groupId, classroomId
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * //////////////////////////////////////*/
 
-const HashIds = require('hashids');
+/// SYSTEM LIBRARIES //////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const HashIds = require('hashids').default;
+const UUIDv5 = require('uuid/v5');
 const PROMPTS = require('../system/util/prompts');
 
 /// DEBUGGING /////////////////////////////////////////////////////////////////
@@ -14,123 +24,156 @@ const PROMPTS = require('../system/util/prompts');
 const DBG = false;
 const PR = PROMPTS.Pad('SESSUTIL');
 
-/// SYSTEM LIBRARIES //////////////////////////////////////////////////////////
+/// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-/// MODULE DEFS ///////////////////////////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-let SESUTIL = {};
+/// HASH_* are used as parameters for hashids (login tokens)
 const HASH_ABET = 'ABCDEFGHIJKLMNPQRSTVWXYZ23456789';
 const HASH_MINLEN = 3;
-let m_current_groupid = null;
+const HASH_SALT = 'MEMESALT/2019';
+/// UUID_NAMESPACE was arbitrarily generated with 'npx uuid v4' (access keys)
+const UUID_NAMESPACE = '1abc839d-b04f-481e-87fe-5d69bd1907b2';
+
+/// MODULE DECLARATIONS ///////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+let m_current_name = undefined; // global decoded name (only for browsers)
+let m_current_idsobj = {}; // global decoded props (only for browsers)
 
 /// SESSION ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ Given a token of form CLASS-PROJECT-HASHEDID, return an object
+let SESSION = {};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/*/ Given a token of form NAME-HASHED_DATA, return an object
     containing as many decoded values as possible. Check isValid for
     complete decode succes. groupId is also set if successful
 /*/
-SESUTIL.DecodeToken = token => {
-  if (token === undefined) return {};
+SESSION.DecodeToken = token => {
   let tokenBits = token.split('-');
-  let classId;
-  let projId;
-  let hashedId;
-  let groupId;
-  let subId;
-  let isValid;
-  // optimistically set valid flag to be negated on failure
-  isValid = true;
-  // check for superficial issues
-  if (token.substr(-1) === '-') {
-    isValid = false;
-  }
-  // token is of form CLS-PRJ-HASHEDID
-  // classId, etc will be partially set and returned
-  if (tokenBits[0]) classId = tokenBits[0].toUpperCase();
-  if (tokenBits[1]) projId = tokenBits[1].toUpperCase();
-  if (tokenBits[2]) hashedId = tokenBits[2].toUpperCase();
-  if (tokenBits[3]) subId = tokenBits[3].toUpperCase();
+  let studentName, hashedData; // token
+  let groupId, classroomId; // decoded data
+  let isValid = false;
+  if (!token) return { isValid };
+  // check for missing dash
+  if (token.substr(-1) === '-') return { isValid, token, error: 'missing - in token' };
+  // token is of form NAME-HASHEDID
+  // (1) check student name
+  if (tokenBits[0]) studentName = tokenBits[0].toUpperCase();
+  if (studentName.length < 3)
+    return { isValid, token, error: 'student name must have 3 or more letters' };
+
+  // (2) check hashed data
+  if (tokenBits[1]) hashedData = tokenBits[1].toUpperCase();
   // initialize hashid structure
-  let salt = `${classId}${projId}`;
-  let hashids = new HashIds(salt, HASH_MINLEN, HASH_ABET);
+  let hashids = new HashIds(HASH_SALT + studentName, HASH_MINLEN, HASH_ABET);
   // try to decode the groupId
-  groupId = hashids.decode(hashedId)[0];
-  // invalidate if groupId isn't an integer
-  if (!Number.isInteger(groupId)) {
-    if (DBG) console.error('invalid token');
-    isValid = false;
-    groupId = 0;
-  }
-  // invalidate if groupId isn't non-negative integer
-  if (groupId < 0) {
-    if (DBG) console.error('decoded token, but value out of range <0');
-    isValid = false;
-    groupId = 0;
-  }
+  const dataIds = hashids.decode(hashedData);
+  // invalidate if couldn't decode
+  if (dataIds.length === 0) return { isValid, token, error: 'invalid token' };
 
   // at this point groupId is valid (begins with ID, all numeric)
   // check for valid subgroupId
-  if (subId) {
-    if (subId.length > 2 && subId.indexOf('ID') === 0 && /^\d+$/.test(subId.substring(2))) {
-      if (DBG) console.log('detected subid', subId.substring(2));
-      // subId contains a string "ID<N>" where <N> is an integer
-    } else {
-      // subId exists but didn't match subid format
-      if (DBG) console.log('invalid subId string', subId);
-      isValid = false; // groupId is still valid,
-      subId = 0;
-    }
-  }
-
-  // if isValid is false, check groupId is 0 or subId is 0, indicating error
-  let decoded = { token, isValid, classId, projId, hashedId, groupId, subId };
-  return decoded;
+  [groupId, classroomId] = dataIds;
+  isValid = true;
+  return { isValid, studentName, token, groupId, classroomId };
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /*/ Return TRUE if the token decodes into an expected range of values
 /*/
-SESUTIL.IsValidToken = token => {
-  let decoded = SESUTIL.DecodeToken(token);
-  return decoded && Number.isInteger(decoded.groupId);
+SESSION.IsValidToken = token => {
+  let decoded = SESSION.DecodeToken(token);
+  return decoded && Number.isInteger(decoded.groupId) && typeof decoded.studentName === 'string';
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ Returns a token string of form CLASS-PROJECT-HASHEDID
-    classId and projId should be short and are case-insensitive.
-    groupId must be a non-negative integer
-/*/
-SESUTIL.MakeToken = (classId, projId, groupId) => {
+/**
+ * Returns a token string of form NAME-HASHED_DATA
+ * @param {String} studentName
+ * @param {Object} dataIds
+ * @param {Number} dataIds.groupId
+ * @param {Number} dataIds.classroomId
+ */
+SESSION.MakeToken = (studentName, dataIds = {}) => {
   // type checking
-  if (typeof classId !== 'string') throw Error(`classId arg1 '${classId}' must be string`);
-  if (typeof projId !== 'string') throw Error(`projId arg2 '${projId}' must be string`);
-  if (classId.length < 1) throw Error(`classId arg1 length should be 1 or more`);
-  if (projId.length < 1) throw Error(`projId arg2 length should be 1 or more`);
-  if (!Number.isInteger(groupId)) throw Error(`groupId arg3 '${groupId}' must be integer`);
-  if (groupId < 0) throw Error(`groupId arg3 must be non-negative integer`);
-  if (groupId > Number.MAX_SAFE_INTEGER) throw Error(`groupId arg3 value exceeds MAX_SAFE_INTEGER`);
+  if (typeof studentName !== 'string') throw Error(`classId arg1 '${studentName}' must be string`);
+  let err;
+  if ((err = f_checkIdValue(dataIds))) {
+    console.warn(`Could not make token. ${err}`);
+    return undefined;
+  }
+
   // initialize hashid structure
-  classId = classId.toUpperCase();
-  projId = projId.toUpperCase();
-  let salt = `${classId}${projId}`;
-  let hashids = new HashIds(salt, HASH_MINLEN, HASH_ABET);
-  let hashedId = hashids.encode(groupId);
-  return `${classId}-${projId}-${hashedId}`;
+  studentName = studentName.toUpperCase();
+  const { groupId, classroomId } = dataIds;
+  let hashids = new HashIds(HASH_SALT + studentName, HASH_MINLEN, HASH_ABET);
+  let hashedId = hashids.encode(groupId, classroomId);
+  return `${studentName}-${hashedId}`;
+
+  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// support function
+  function f_checkIdValue(idsObj) {
+    const ids = Object.keys(idsObj);
+    let error = '';
+    ids.forEach(key => {
+      const val = idsObj[key];
+      if (!Number.isInteger(val)) {
+        error += `'${key}' is not an integer. `;
+        return;
+      }
+      if (val < 0) {
+        error += `'${key}' must be non-negative integer. `;
+        return;
+      }
+      if (val > Number.MAX_SAFE_INTEGER) {
+        error += `'${key}' exceeds MAX_SAFE_INTEGER. `;
+        return;
+      }
+    });
+    return error;
+  }
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** Makes a 'access key' that is not very secure, but unique enough to serve
+ * as an authentication key based on a login token
+ * @param {...*} var_args - string arguments
+ */
+SESSION.MakeAccessKey = (/* args */) => {
+  const name = [...arguments].join(':');
+  const key = UUIDv5(name, UUID_NAMESPACE);
+  return key;
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/ Set the global GROUPID, which is included in all NetMessage
-    packets that are sent to server.
-/*/
-SESUTIL.SetGroupID = token => {
-  let good = SESUTIL.DecodeToken(token).isValid;
-  if (good) m_current_groupid = token;
-  return good;
+/**
+ * Set the global GROUPID, which is included in all NetMessage packets that are
+ * sent to server. Do not use from server-based code.
+ */
+SESSION.DecodeAndSet = token => {
+  const decoded = SESSION.DecodeToken(token);
+  const { isValid, studentName, groupId, classroomId } = decoded;
+  if (isValid) {
+    m_current_name = studentName;
+    m_current_idsobj = {
+      groupId,
+      classroomId
+    };
+  }
+  return isValid;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SESUTIL.GroupID = () => {
-  return m_current_groupid;
+/**
+ * Return the global StudentName that was set using DecodeAndSet(). Don't use
+ * this from server-based code.
+ */
+SESSION.StudentName = () => {
+  return m_current_name;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * Return the global idsObject containing groupId, classroomId that was set
+ * using DecodeAndSet(). Don't use this from server-based code.
+ */
+SESSION.Ids = () => {
+  return m_current_idsobj;
 };
 
 /// EXPORT MODULE /////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-module.exports = SESUTIL;
+module.exports = SESSION;

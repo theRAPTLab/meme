@@ -9,7 +9,8 @@ should be a child of RoutedView
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import React from 'react';
 import PropTypes from 'prop-types';
-import '@svgdotjs/svg.draggable.js';
+import '../modules/svgjs-plugin-draggable.js';
+import '../modules/svgjs-plugin-panzoom.js';
 import PMCView from '../modules/pmc-view';
 
 import UR from '../../system/ursys';

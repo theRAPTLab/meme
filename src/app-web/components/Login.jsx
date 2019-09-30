@@ -53,7 +53,7 @@ class Login extends React.Component {
     this.DoADMDataUpdate();
   }
 
-  componentWillUnmount() {}
+  componentWillUnmount() { }
 
   DoADMDataUpdate() {
     if (ADM.IsLoggedOut()) {
@@ -121,7 +121,7 @@ class Login extends React.Component {
               error={!isValidLogin}
               id="loginId"
               label="Token"
-              placeholder="XXX-XXXX-XX"
+              placeholder="NAME-XXXX"
               fullWidth
               value={loginId}
               onChange={this.OnLoginIdChange}

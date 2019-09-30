@@ -26,7 +26,7 @@ class EvidenceList extends React.Component {
     UR.Subscribe('DATA_UPDATED', this.HandleDataUpdate);
   }
 
-  componentDidMount() {}
+  componentDidMount() { }
 
   componentWillUnmount() {
     UR.Unsubscribe('DATA_UPDATED', this.HandleDataUpdate);
@@ -40,20 +40,12 @@ class EvidenceList extends React.Component {
   render() {
     const { classes, rsrcId } = this.props;
     const evLinks = DATA.GetEvLinksByResourceId(rsrcId);
-    /*/ evLinks
-          is an array of evidence Link objects related to the resource, e.g.
-          [
-            {evId: "ev1", propId: "food", mechId: "fish:ammonia", rsrcId: "rs1", note: "fish need food", comments: []},
-            {evId: "ev3", propId: "rotting-food", mechId: "fish:ammonia", rsrcId: "rs1", note: "fish food rots"},
-            {evId: "ev4", propId: "ammonia", mechId: "fish:ammonia", rsrcId: "rs1", note: "ammonia causes fish to die"}
-          ]
-    /*/
     if (evLinks === undefined) return '';
-
+    // evLinks [ { id: <pmcid> propId: mechId: rsrcId: note: }, ... ]
     return (
       <div key={this.props.rsrcId}>
-        {evLinks.map(evlink => (
-          <EvidenceLink evlink={evlink} key={evlink.evId} />
+        {evLinks.map((evlink, index) => (
+          <EvidenceLink evlink={evlink} key={index} />
         ))}
       </div>
     );
@@ -63,12 +55,12 @@ class EvidenceList extends React.Component {
 EvidenceList.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
   classes: PropTypes.object,
-  rsrcId: PropTypes.number
+  rsrcId: PropTypes.string
 };
 
 EvidenceList.defaultProps = {
   classes: {},
-  rsrcId: -1
+  rsrcId: ''
 };
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////

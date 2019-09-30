@@ -57,7 +57,9 @@ const App = withStyles(styles)(props => {
         </Toolbar>
       </AppBar>
       <Typography style={{ padding: '1em' }}>
-        Connect to: <b>{client}</b>
+        Admin: open <b>{main}/#/admin</b>
+        <br />
+        Students: open <b>{client}</b>
       </Typography>
     </div>
   );

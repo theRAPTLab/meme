@@ -16,12 +16,12 @@ function getModel(id) {
   return models.find(element => element.id === id);
 }
 
-// HARDCODED MODEL LOAD
+// HARDCODED MODEL LOAD (GROUP 1)
 let model = getModel(1);
 model.data = require(`./models/mo01.db`);
 
-// HARDCODED MODEL LOAD
-model = getModel(2);
+// HARDCODED MODEL LOAD (GROUP 1)
+model = getModel(3);
 model.data = require(`./models/mo02.db`);
 
 module.exports = models;

@@ -88,7 +88,9 @@ class EvidenceLink extends React.Component {
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
   }
 
-  componentDidMount() { }
+  componentDidMount() {
+    this.DoDataUpdate(); // Force load ratingDefs
+  }
 
   componentWillUnmount() {
     UR.Unsubscribe('DATA_UPDATED', this.DoDataUpdate);
@@ -103,7 +105,7 @@ class EvidenceLink extends React.Component {
     // via the DATA_UPDATED call because `note` is only set by props
     // during construction.
 
-    let evlink = DATA.PMC_GetEvLinkByEvId(this.props.evlink.evId);
+    let evlink = DATA.PMC_GetEvLinkByEvId(this.props.evlink.id);
     if (evlink) {
       // Get current model's rating definitions
       const model = ADM.GetModelById();
@@ -129,7 +131,7 @@ class EvidenceLink extends React.Component {
    * @param {integer} rating - number of stars selected
    */
   DoRatingUpdate(rating) {
-    DATA.SetEvidenceLinkRating(this.props.evlink.evId, rating);
+    DATA.SetEvidenceLinkRating(this.props.evlink.id, rating);
   }
 
   OnScreenShotClick(e) {
@@ -145,13 +147,13 @@ class EvidenceLink extends React.Component {
   }
 
   OnDeleteButtonClick() {
-    DATA.PMC_DeleteEvidenceLink(this.props.evlink.evId);
+    DATA.PMC_DeleteEvidenceLink(this.props.evlink.id);
   }
 
   OnDuplicateButtonClick() {
-    const newEvId = DATA.PMC_DuplicateEvidenceLink(this.props.evlink.evId);
+    const newEvId = DATA.PMC_DuplicateEvidenceLink(this.props.evlink.id);
     const newEvLink = DATA.PMC_GetEvLinkByEvId(newEvId);
-    UR.Publish('SHOW_EVIDENCE_LINK', { evId: newEvLink.evId, rsrcId: newEvLink.rsrcId });
+    UR.Publish('SHOW_EVIDENCE_LINK', { evId: newEvLink.id, rsrcId: newEvLink.rsrcId });
   }
 
   OnEditButtonClick(e) {
@@ -174,7 +176,7 @@ class EvidenceLink extends React.Component {
 
   OnSaveButtonClick(e) {
     e.stopPropagation();
-    DATA.SetEvidenceLinkNote(this.props.evlink.evId, this.state.note);
+    DATA.SetEvidenceLinkNote(this.props.evlink.id, this.state.note);
     // FIXME May 1 Hack
     // How do we handle draftValue vs committedValue?
     this.setState({
@@ -183,7 +185,7 @@ class EvidenceLink extends React.Component {
   }
 
   DoEvidenceLinkOpen(data) {
-    if (this.props.evlink.evId === data.evId) {
+    if (this.props.evlink.id === data.evId) {
       if (DBG) console.log(PKG, 'Expanding', data.evId);
 
       // If we're being opened for the first time, notes is empty
@@ -227,21 +229,21 @@ class EvidenceLink extends React.Component {
     DATA.VM_DeselectAll();
     UR.Publish('SELECTION_CHANGED');
     // Remove any existing evidence links
-    DATA.SetEvidenceLinkPropId(evlink.evId, undefined);
-    DATA.SetEvidenceLinkMechId(evlink.evId, undefined);
+    DATA.SetEvidenceLinkPropId(evlink.id, undefined);
+    DATA.SetEvidenceLinkMechId(evlink.id, undefined);
     // Then trigger editing
     if (this.state.isBeingEdited) {
-      UR.Publish('REQUEST_SELECT_EVLINK_SOURCE', { evId: evlink.evId, rsrcId: evlink.rsrcId });
+      UR.Publish('REQUEST_SELECT_EVLINK_SOURCE', { evId: evlink.id, rsrcId: evlink.rsrcId });
     }
   }
 
   DoEnableSourceSelect(data) {
-    if (data.evId === this.props.evlink.evId) {
+    if (data.evId === this.props.evlink.id) {
       this.setState({ listenForSourceSelection: true });
     }
   }
 
-  // User has clicked on a different component/property/mechanism
+  // User has selected a different component/property/mechanism as the source
   DoSelectionChange() {
     if (this.state.listenForSourceSelection) {
       let sourceId;
@@ -252,7 +254,7 @@ class EvidenceLink extends React.Component {
       if (selectedMechIds.length > 0) {
         // Get the last selection
         sourceId = selectedMechIds[selectedMechIds.length - 1];
-        DATA.SetEvidenceLinkMechId(this.props.evlink.evId, sourceId);
+        DATA.SetEvidenceLinkMechId(this.props.evlink.id, sourceId);
         // leave it in a waiting state?  This allows you to change your mind?
         // REVIEW may want another way to exit / confirm the selection?
         // For May 1, exit as soon as something is selected to prevent
@@ -267,7 +269,7 @@ class EvidenceLink extends React.Component {
       if (selectedPropIds.length > 0) {
         // Get the last selection
         sourceId = selectedPropIds[selectedPropIds.length - 1];
-        DATA.SetEvidenceLinkPropId(this.props.evlink.evId, sourceId);
+        DATA.SetEvidenceLinkPropId(this.props.evlink.id, sourceId);
         // leave it in a waiting state?  This allows you to change your mind?
         // REVIEW may want another way to exit / confirm the selection?
         // For May 1, exit as soon as something is selected to prevent
@@ -294,7 +296,7 @@ class EvidenceLink extends React.Component {
   }
 
   OnRatingButtonClick() {
-    const data = { evId: this.props.evlink.evId, rating: this.props.evlink.rating };
+    const data = { evId: this.props.evlink.id, rating: this.props.evlink.rating };
     UR.Publish('RATING:OPEN', data);
   }
 
@@ -322,7 +324,7 @@ class EvidenceLink extends React.Component {
 
     // evidenceLinks is an array of arrays because there might be more than one?!?
     const { classes, evlink } = this.props;
-    const { evId, rsrcId, propId, mechId } = evlink;
+    const { id, rsrcId, propId, mechId } = evlink;
     const {
       note,
       rating,
@@ -331,7 +333,7 @@ class EvidenceLink extends React.Component {
       isExpanded,
       listenForSourceSelection
     } = this.state;
-    if (evId === '') return '';
+    if (id === '') return '';
 
     let sourceType;
     let sourceLabel;
@@ -375,7 +377,7 @@ class EvidenceLink extends React.Component {
             {/* Number / Comment */}
             <Grid item xs={isExpanded ? 12 : 2}>
               <div style={{ position: 'absolute', right: '0px' }}>
-                <StickyNoteButton parentId={evId} />
+                <StickyNoteButton parentId={id} />
               </div>
               <Avatar className={classes.evidenceBodyNumber}>{evlink.number}</Avatar>
             </Grid>
@@ -426,8 +428,8 @@ class EvidenceLink extends React.Component {
                       />
                     </MuiThemeProvider>
                   ) : (
-                    <div className={classes.evidenceLabelField}>{note}</div>
-                  )}
+                      <div className={classes.evidenceLabelField}>{note}</div>
+                    )}
                 </Grid>
               </Grid>
 
@@ -571,7 +573,7 @@ EvidenceLink.propTypes = {
 EvidenceLink.defaultProps = {
   classes: {},
   evlink: {
-    evId: '',
+    id: '',
     propId: '',
     mechId: '',
     rsrcId: '',

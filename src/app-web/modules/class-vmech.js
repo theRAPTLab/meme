@@ -8,9 +8,16 @@ import VBadge from './class-vbadge';
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const { VMECH, COLOR, CoerceToEdgeObj, SVGDEFS } = DEFAULTS;
+const { VMECH, COLOR, CoerceToEdgeObj, CoerceToPathId, SVGDEFS } = DEFAULTS;
 const m_up = VMECH.UP;
 const m_blen = VMECH.BLEN;
+const COL_MECH = COLOR.MECH;
+const COL_MECH_SEL = COLOR.MECH_SEL;
+const COL_MECH_LABEL = COLOR.MECH_LABEL;
+const COL_MECH_LABEL_BG = COLOR.MECH_LABEL_BG;
+const COL_HOV = COLOR.MECH_HOV;
+
+const PATHWIDTH = 6;
 
 const DBG = false;
 
@@ -72,33 +79,42 @@ class VMech {
       .path()
       .back()
       .fill('none')
-      .stroke({ width: 4, color: COLOR.MECH, dasharray: '4 2' });
+      .stroke({ width: PATHWIDTH, color: COL_MECH, dasharray: '6 3' })
+      .attr({ cursor: 'pointer' });
 
+    // The pathLabel is used purely for positioning the pathLabelGroup.
+    // We rely on SVGjs's ability to position a text label on a path to 
+    // get the position we will use for our own label.
     this.pathLabel = svgRoot.text(add => {
+      // add.tspan(this.data.name); // Original text that flowed along the path
+      add.tspan(''); // Add blank label just for placement of the center point
+    });
+
+    // The pathLabelGroup contains:
+    // 1. pathLabelBox -- a rectangle background
+    // 2. horizText -- the visible mechanism label, displayed horizontally, not along the path
+    // 3. VBadges -- evidence link badge(s) + sticky note button
+    this.pathLabelGroup = svgRoot.nested(); // we use `nested` so we can set x,y
+    this.pathLabelBox = this.pathLabelGroup
+      .rect(100, 25) // initial value, will get resized to text length.
+      .fill(COL_MECH_LABEL_BG)
+      .attr({ cursor: 'pointer' });
+    this.horizText = this.pathLabelGroup.text(add => {
       add.tspan(this.data.name);
     });
-    // HORIZONTAL TEXT ALTERNATIVE
-    // For VBadge display, hack in a "normal" text label that will not rotate/follow the path
-    // The VBadges will appear next to this text label.
-    // However, we still need to place the label for positioning.
-    // We're hacking it for VBadge mostly to get a position for the
-    // new label (horizText) and VBadges.
-    // this.pathLabel = svgRoot.text(add => {
-    //   add.tspan('.');
-    // });
-    // this.horizText = this.gRoot.text(add => {
-    //   // don't add horiz text for now -- we probably want to use the regular pathLabel
-    //   // add.tspan(this.data.name);
-    // });
-    // this.horizText.fill(COLOR.MECH);
+    this.horizText
+      .fill(COL_MECH_LABEL)
+      .move(5, 3)
+      .attr({ cursor: 'pointer' }); // offset in pathLabelBox for padding
 
-    // Testing anchor and offsets old value
-    //    this.pathLabel.fill(COLOR.MECH).attr('dy', -6);
-    // explicitly set offset to 0?
+    // Add VBadge group -- this needs to be added here for layering purposes
+    this.vBadge = VBadge.New(this);
+
     this.pathLabel
-      .fill(COLOR.MECH)
-      .attr('dy', -6)
+      // For pathGroupLabel, don't offset, keep it centered on the line
       .attr('dx', 0);
+      // .attr('dy', -6) // Original offset to move text off the pathline
+    // These initial 'pathLabel' and 'textpath' settings are overriden by Update, below.
     this.pathLabel.attr('text-anchor', 'end');
     this.textpath = this.pathLabel.path(this.path).attr('startOffset', this.path.length() - m_blen);
 
@@ -109,17 +125,20 @@ class VMech {
     this.HandleSelect = this.HandleSelect.bind(this);
     this.path.click(this.HandleSelect);
     this.pathLabel.click(this.HandleSelect);
+    this.pathLabelGroup.click(this.HandleSelect);
 
-    // add VBadge group
-    this.vBadge = VBadge.New(this);
-  }
-
-  /**
-   * @returns {string} associated nodeId
-
-   */
-  Id() {
-    return this.id;
+    // hack hover
+    // Don't track pathLabelGroup mouseenter/leave because it causes crazy flickers as you move across the group components
+    // Don't track horizText.mouseleave -- rely on pathLabelBox's mouseleave to remove hover
+    this.path.mouseenter(() => this.HoverState(true));
+    this.path.mouseleave(() => this.HoverState(false));
+    this.horizText.mouseenter(() => this.HoverState(true));
+    this.pathLabelBox.mouseenter(() => this.HoverState(true));
+    this.pathLabelBox.mouseleave(() => this.HoverState(false));
+    this.HoverStart = this.HoverStart.bind(this);
+    this.HoverEnd = this.HoverEnd.bind(this);
+    UR.Subscribe('MECH_HOVER_START', this.HoverStart);
+    UR.Subscribe('MECH_HOVER_END', this.HoverEnd);
   }
 
   /**
@@ -127,7 +146,59 @@ class VMech {
    */
   Release() {
     if (this.path) this.path.remove();
+    if (this.pathLabel) this.pathLabel.remove();
     this.vBadge.Release();
+    if (this.horizText) this.horizText.remove();
+    if (this.pathLabelBox) this.pathLabelBox.remove();
+    if (this.pathLabelGroup) this.pathLabelGroup.remove();
+    UR.Unsubscribe('MECH_HOVER_START', this.HoverStart);
+    UR.Unsubscribe('MECH_HOVER_END', this.HoverEnd);
+  }
+
+  /**
+   * @returns {string} associated nodeId
+   */
+  Id() {
+    return this.id;
+  }
+
+  /**
+   * @returns {SVG.Container} - The SVG Container object that the badge should attach to 
+   */
+  GetVBadgeParent() {
+    return this.pathLabelGroup;
+  }
+
+  // This is triggered by the reception of a `MECH_HOVER_START` message
+  // which means that it is triggered by a ToolsPanel hover event
+  // so we want to set the hover state WITHOUT sending out another MECH_HOVER_START call back to ToolsPanel.
+  HoverStart(data) {
+    const mechId = CoerceToPathId(data.mechId);
+    const publishEvent = false;
+    if (mechId === this.id) this.HoverState(true, publishEvent);
+  }
+
+  HoverEnd() {
+    this.HoverState(false, false);
+  }
+
+  /**
+   *
+   * @param {boolean} visible
+   * @param {boolean} publishEvent If true, send out a UR.Publish hover event so that ToolsPanel updates hover state
+   *                               If false, suppress the Publish event, e.g. we got the Hover state from ToolsPanel to avoid endless loop
+   */
+  HoverState(visible, publishEvent = true) {
+    if (typeof visible !== 'boolean') throw Error('must specific true or false');
+
+    if (visible) {
+      this.visualState.Select('hover');
+      if (publishEvent) UR.Publish('MECH_HOVER_START', { mechId: CoerceToEdgeObj(this.id) });
+    } else {
+      this.visualState.Deselect('hover');
+      if (publishEvent) UR.Publish('MECH_HOVER_END', { mechId: CoerceToEdgeObj(this.id) });
+    }
+    this.Draw();
   }
 
   /**
@@ -160,7 +231,10 @@ class VMech {
       this.data.name = data.name;
 
       // update label in case it changed
-      this.pathLabel.children()[0].text(this.data.name);
+      // pathLabel needs to have content, hence the period.  A space results in the positioning getting set at 0,0
+      this.pathLabel.children()[0].text('.'); // used for positining pathLabelGroup
+      this.horizText.children()[0].text(this.data.name);
+      this.pathLabelBox.width(this.horizText.length() + 10);
 
       // Update the VBadge horizText instead of the pathLabel
       this.vBadge.Update(this);
@@ -178,24 +252,32 @@ class VMech {
           // left to right
           this.path.plot(m_MakeQuadraticDrawingString(srcPt, tgtPt));
           this.path.marker('end', SVGDEFS.get('arrowEndHead')).attr('marker-start', '');
-          this.pathLabel.attr('text-anchor', 'end');
-          this.textpath.attr('startOffset', this.path.length() - m_blen);
+          // text-anchor is like justification setting the alignment
+          this.pathLabel.attr('text-anchor', 'middle'); // originally was 'end'
+          this.textpath.attr('startOffset', '50%');
+          // original setting placing label near end arrow
+          // this.textpath.attr('startOffset', this.path.length() - m_blen);
         } else {
           // right to left
           this.path.plot(m_MakeQuadraticDrawingString(tgtPt, srcPt));
           this.path.marker('start', SVGDEFS.get('arrowStartHead')).attr('marker-end', '');
-          this.pathLabel.attr('text-anchor', 'start');
-          this.textpath.attr('startOffset', m_blen);
+          this.pathLabel.attr('text-anchor', 'middle'); // originally was 'start'
+          this.textpath.attr('startOffset', '50%');
+          // original setting placing label near start arrow
+          // this.textpath.attr('startOffset', m_blen);
         }
 
-        // // VBadge hack position of horizText
-        // this.horizText.x(this.pathLabel.x());
-        // this.horizText.y(this.pathLabel.y());
+        // VBadge hack position of horizText
+        this.pathLabelGroup.show();
+        this.pathLabelGroup.x(this.pathLabel.x() - this.pathLabelBox.width() / 2); // center it on the path
+        this.pathLabelGroup.y(this.pathLabel.y());
 
         return;
       }
       // no srcPt or tgtPt, so hide path if it exists
       if (this.path) this.path.hide();
+      // also hide the pathlabelGroup
+      this.pathLabelGroup.hide();
     }
   }
 
@@ -209,12 +291,24 @@ class VMech {
    * Handle any post-Update() drawing, such as selection state
    */
   Draw() {
-    if (this.visualState.IsSelected()) {
-      this.path.stroke({ width: 6, color: COLOR.MECH_SEL, dasharray: '6 3' });
-      this.pathLabel.fill(COLOR.MECH_SEL);
+
+    if (this.visualState.IsSelected('hover')) {
+      // Hover
+      this.path.stroke({ width: PATHWIDTH, color: COL_HOV, dasharray: '6 3' });
+      this.pathLabel.fill(COL_HOV);
+      this.horizText.fill(COL_HOV);
+    } else if (this.visualState.IsSelected()) {
+      // Selected
+      this.path.stroke({ width: PATHWIDTH, color: COL_MECH_SEL, dasharray: '6 3' });
+      // markers.forEach(marker => marker.fill(COL_MECH_SEL));
+      this.pathLabel.fill(COL_MECH_SEL);
+      this.horizText.fill(COL_MECH_SEL);
     } else {
-      this.path.stroke({ width: 4, color: COLOR.MECH, dasharray: '4 2' });
-      this.pathLabel.fill(COLOR.MECH);
+      // Normal
+      this.path.stroke({ width: PATHWIDTH, color: COL_MECH, dasharray: '6 3' });
+      // markers.forEach(marker => marker.fill(COL_MECH));
+      this.pathLabel.fill(COL_MECH);
+      this.horizText.fill(COL_MECH_LABEL);
     }
     this.vBadge.Draw(this);
   }

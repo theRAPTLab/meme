@@ -56,7 +56,8 @@ class ViewAdmin extends React.Component {
     // FIXME: This will go away when UR.DB_Susbscribe('ADMIN:UPDATED') is implemented
     //        in adm-data.js.
     // Initialize Admin Data, but for now still need this
-    ADM.Load();
+    // NOTE: this is now handled by adm-data automatically
+    // ADM.Load();
   }
 
   componentDidMount() {

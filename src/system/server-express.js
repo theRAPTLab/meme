@@ -106,7 +106,7 @@ function Start() {
         if (!COMPILE_RESOLVED) {
           console.log(PR, `... webpack done`);
           clearInterval(INTERVAL);
-            resolve();
+          resolve();
           COMPILE_RESOLVED = true;
         } else {
           console.log(PR, `RECOMPILED SOURCE CODE and RELOADING`);
@@ -143,10 +143,8 @@ function Start() {
 function GetTemplateValues(req) {
   let { ip, hostname } = req;
   if (ip === '::1') ip = '127.0.0.1'; // rewrite short form IP
-  const clientKey = `UHT_${String((UKEY_IDX += 1))}`.padStart(5, '0');
   const params = {
     CLIENT_IP: ip,
-    CLIENT_Key: clientKey,
     USRV_Host: hostname,
     USRV_IP: IP.address(),
     USRV_MsgPort: 2929,

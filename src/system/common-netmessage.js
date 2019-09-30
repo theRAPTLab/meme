@@ -223,25 +223,6 @@ class NetMessage {
   }
 
   /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /**
-   * return array of collection arrays [ key, value ] that match passed
-   * key array [ key, key, ...]
-   * @param {Array<string>} keys - array of property names to match
-   * @returns {Array<Array>} - array of [key, [values]] that match
-   */
-  DataMatchingKeys(keys) {
-    let collections = [];
-    let error;
-    // always push an array
-    keys.forEach(key => {
-      const values = data[key];
-      if (Array.isArray(values)) collections.push([key, values]);
-      else collections.push([key, [values]]);
-    });
-    // returned undefined if no collections
-    return collections.length ? collections : undefined;
-  }
-  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /** NetMessage.Memo() returns the 'memo' field of the packet */
   Memo() {
     return this.memo;

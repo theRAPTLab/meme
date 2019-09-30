@@ -12,7 +12,7 @@ import CENTRAL from './ur-central';
 import NetMessage from './common-netmessage';
 import PROMPTS from './util/prompts';
 
-const DBG = { connect: false, handle: true };
+const DBG = { connect: false, handle: false };
 
 /// DECLARATIONS /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -172,6 +172,12 @@ function m_HandleRegistrationMessage(msgEvent) {
   m_status = M4_READY;
   // (4) network is initialized
   if (typeof m_options.success === 'function') m_options.success();
+  // (5) also update window.URSESSION with UADDR
+  if (window.URSESSION) {
+    console.log('updating URSESSION with registration data');
+    window.URSESSION.CLIENT_UADDR = UADDR;
+    window.URSESSION.USRV_UADDR = SERVER_UADDR;
+  }
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
@@ -210,7 +216,7 @@ function m_HandleMessage(msgEvent) {
     case 'msend':
       // network message received
       if (dbgout) cout_ReceivedStatus(pkt);
-      ULINK.LocalSend(msg, data, { fromNet: true });
+      ULINK.LocalPublish(msg, data, { fromNet: true });
       pkt.ReturnTransaction();
       break;
     case 'mcall':

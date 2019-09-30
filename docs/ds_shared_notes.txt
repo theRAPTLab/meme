@@ -214,3 +214,115 @@ o - NetCall() change to use Call() 'NET:MYSTERY_REMOTE'
 *** Can not cleanly add CHANNEL SUPPORT without rewriting tests
     from scratch, and also working out th channel strategy from
     a signaling perspective.
+
+
+--- ok --- what to do about updates ---
+
+Our data structures on the db side are COLLECTIONS in a LokiDB.
+These are an in-memory data structure.
+
+Use one of the names from DATAMAP.DBKEYS
+
+NET:SRV_DB_ADD, {
+    <dbkey>: {} or [{}...{}]
+} return {
+    <dbkey>: rewritten objects or array
+    error: 'set if there was an error'
+}
+
+NET:SRV_DB_UPDATE, {
+    <dbkey>: {} or [{}...{}] // must have ids set
+}
+
+NET:SRV_DB_DELETE, {
+    <dbkey>: id || [id,...]
+}
+
+NET:SRV_DB_QUERY, {
+    <dbkey>: condition || [ condition, condition, ... ]
+}
+
+--- ok --- now that these calls are available and capable of firing back their changes, we can try implementing PMC data
+
+PMCDATA.InitializeModel(model,resources)
+PMCDATA.PMC_AddProp(node)
+PMCDATA.PMC_SetPropParent(node,parent)
+PMCDATA.PMC_PropDelete(propid)
+PMCDATA.PMC_MechAdd(sourceId,targetId,label)
+PMCDATA.PMC_MechUpdate(origMech,newMech)
+PMCDATA.PMC_MechDelete(mechId)
+PMCDATA.PMC_DeleteEvidenceLink(evId)
+PMCDATA.SetEvidenceLinkPropId(evId,propId)
+
+BuildModel() is called whenever the properties are changed.
+
+ALL METHODS IN PMC-DATA REVIEW
+B = calls BuildModel()
+D = publishes DATA_UPDATED
+S = publishes SELECTION_CHANGED
+
+    ---
+    PMCData.Graph = ()
+ D  PMCData.BuildModel = ()
+    ---
+B   PMCData.InitializeModel = (model, resources)
+    PMCData.AllProps = ()
+    PMCData.AllMechs = ()
+    PMCData.Components = ()
+    PMCData.Children = nodeId
+    PMCData.HasProp = nodeId
+    PMCData.HasMech = (evo, ew)
+    PMCData.Prop = nodeId
+    PMCData.PropParent = nodeId
+    PMCData.Mech = (evo, ew)
+    ---
+B   PMCData.PMC_AddProp = node
+B   PMCData.PMC_SetPropParent = (node, parent)
+B   PMCData.PMC_PropDelete = propid
+B   PMCData.PMC_MechAdd = (sourceId, targetId, label)
+B   PMCData.PMC_MechUpdate = (origMech, newMech)
+B   PMCData.PMC_MechDelete = mechId
+B   PMCData.PMC_AddEvidenceLink = (rsrcId, note = '')
+    PMCData.PMC_GetResourceIndex = rsrcId
+B   PMCData.PMC_DuplicateEvidenceLink = evId
+B   PMCData.PMC_DeleteEvidenceLink = evId
+    PMCData.PMC_GetEvLinkByEvId = evId
+    PMCData.PMC_GetEvLinksByPropId = propid
+    PMCData.PMC_GetEvLinksByMechId = mechId
+    ---
+B   PMCData.SetEvidenceLinkPropId = (evId, propId)
+B   PMCData.SetEvidenceLinkMechId = (evId, mechId)
+ D  PMCData.SetEvidenceLinkNote = (evId, note)
+ D  PMCData.SetEvidenceLinkRating = (evId, rating)
+    PMCData.GetComments = id
+    PMCData.NewComment = (author, sentenceStarter)
+ D  PMCData.UpdateComments = (parentId, comments)
+    PMCData.GetPropIdsByResourceId = rsrcId
+    PMCData.GetEvLinksByResourceId = rsrcId
+    ---
+    VMData.VM_GetVPropChanges = ()
+    VMData.VM_VPropExists = nodeId
+    VMData.VM_VProp = nodeId
+    VMData.VM_VPropDelete = nodeId --- should be selection aware
+    VMData.VM_VPropSet = (nodeId, vprop)
+    VMData.VM_GetVMechChanges = () --- should use DATAMAP
+    VMData.VM_VMechExists = (evo, ew)
+    VMData.VM_VMech = (evo, ew)
+    VMData.VM_VMechDelete = (evo, ew) --- should be selection aware
+    VMData.VM_VMechSet = (vmech, evo, ew)
+  S VMData.VM_SelectAddProp = vprop
+  S VMData.VM_SelectProp = vprop
+    VMData.VM_PropMouseEnter = vprop
+    VMData.VM_PropMouseExit = vprop
+    VMData.VM_PropsMouseOver = ()
+    VMData.VM_SetSelectionLimit = max
+  S VMData.VM_DeselectProp = vprop
+  S VMData.VM_ToggleProp = vprop
+  S VMData.VM_DeselectAllProps = ()
+    VMData.VM_DeselectAllMechs = ()
+    VMData.VM_DeselectAll = ()
+  S VMData.VM_SelectOneMech = vmech
+  S VMData.VM_ToggleMech = vmech
+    VMData.VM_SelectedPropsIds = ()
+    VMData.VM_SelectedMechIds = ()
+

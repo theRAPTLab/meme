@@ -5,6 +5,9 @@ import { AddDragDropHandlers } from './class-vprop-dragdrop';
 import { VisualState } from './classes-visual';
 import VBadge from './class-vbadge';
 
+// testing mousedown
+import UR from '../../system/ursys';
+
 const { VPROP, PAD, COLOR } = DEFAULTS;
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
@@ -49,6 +52,7 @@ class VProp {
     this.gRoot = svgRoot.group(); // main reference group
     // this order is important
     this.visBG = this.gRoot.rect(this.width, this.height); // background
+    this.visBG.attr({ cursor: 'pointer' });
     this.gData = this.gRoot.group(); // main data properties
     this.gDataName = this.gData.text(this.data.name.toUpperCase()); // label
     this.gDataName.attr('pointer-events', 'none');
@@ -78,8 +82,23 @@ class VProp {
     // add VProp extensions
     VProp.AddDragDropHandlers(this);
 
+    this.HoverStart = this.HoverStart.bind(this);
+    this.HoverEnd = this.HoverEnd.bind(this);
+    UR.Subscribe('PROP_HOVER_START', this.HoverStart);
+    UR.Subscribe('PROP_HOVER_END', this.HoverEnd);
+
     // initial drawing
     this.Draw();
+  }
+
+  /**
+   * Remove  gRoot svg element and all its children
+   */
+  Release() {
+    this.vBadge.Release();
+    UR.Unsubscribe('PROP_HOVER_START', this.HoverStart);
+    UR.Unsubscribe('PROP_HOVER_END', this.HoverEnd);
+    return this.gRoot.remove();
   }
 
   /** return associated nodeId
@@ -95,17 +114,28 @@ class VProp {
     return this.posMode.wasMoved;
   }
 
-  HoverState(visible) {
+  HoverStart(data) {
+    const publishEvent = false;
+    if (data.propId === this.id) this.HoverState(true, publishEvent);
+  }
+
+  HoverEnd() {
+    this.HoverState(false, false);
+  }
+
+  HoverState(visible, publishEvent = true) {
     if (typeof visible !== 'boolean') throw Error('must specific true or false');
 
     if (visible) {
       this.visualState.Select('hover');
       this.visualStyle.fill.color = COL_HOVER;
       this.visualStyle.fill.opacity = COL_HOVER_OPACITY;
+      if (publishEvent) UR.Publish('PROP_HOVER_START', { propId: this.id });
     } else {
       this.visualState.Deselect('hover');
       this.visualStyle.fill.color = COL_BG;
       this.visualStyle.fill.opacity = COL_BG_OPACITY;
+      if (publishEvent) UR.Publish('PROP_HOVER_END', { propId: this.id });
     }
     this.Draw();
   }
@@ -122,6 +152,13 @@ class VProp {
    */
   Y() {
     return this.gRoot.y();
+  }
+
+  /**
+   * @returns {SVG.Container} - The SVG Container object that the badge should attach to 
+   */
+  GetVBadgeParent() {
+    return this.gRoot;
   }
 
   /**
@@ -324,14 +361,6 @@ class VProp {
     this.vBadge.Draw(this);
     // move
     if (point) this.gRoot.move(point.x, point.y);
-  }
-
-  /**
-   * Remove  gRoot svg element and all its children
-   */
-  Release() {
-    this.vBadge.Release();
-    return this.gRoot.remove();
   }
 
   /**
@@ -560,7 +589,10 @@ VProp.StaticMethod = (method, methodName) => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 VProp.StaticMethod(AddDragDropHandlers);
 
-window.VP = VProp;
+/// DEBUG /////////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+if (!window.ur) window.ur = {};
+window.ur.VPROP = VProp;
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

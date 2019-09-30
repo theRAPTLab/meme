@@ -168,10 +168,13 @@ class Messager {
     let { srcUID, type } = options;
     let { toLocal = true, toNet = true } = options;
     let { fromNet = false } = options;
+    const channel = NetMessage.ExtractChannel(mesgName);
     const handlers = this.handlerMap.get(mesgName);
     let promises = [];
-    /// toLocal
+    /// handle a call from the network
     if (toLocal) {
+      if (!channel.LOCAL && !fromNet)
+        throw Error(`'${mesgName}' for local calls remove channel prefix`);
       if (handlers) {
         handlers.forEach(handlerFunc => {
           /*/
@@ -219,6 +222,7 @@ class Messager {
     }
     /// toNetwork
     if (toNet) {
+      if (!channel.NET) throw Error('net calls must use NET: message prefix');
       type = type || 'mcall';
       let pkt = new NetMessage(mesgName, inData, type);
       let p = pkt.PromiseTransaction();

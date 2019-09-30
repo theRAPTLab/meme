@@ -44,6 +44,11 @@ UR.Subscribe('PROP_MOVED', data => {
 PMCView.InitializeViewgraph = container => {
   m_element = container;
   m_svgroot = SVGJS(m_element);
+  m_svgroot
+    .size(1000, 1000)
+    .viewbox(0, 0, 1000, 1000)
+    .panZoom({ zoomMin: 0.5, zoomMax: 2 })
+    .zoom(1.5, { x: 1000, y: 0 });
   m_svgroot.mousedown(() => {
     DATA.VM_DeselectAllProps();
     DATA.VM_DeselectAllMechs();
@@ -143,11 +148,6 @@ PMCView.TestGroups = () => {
     .fill({ color: 'blue' })
     .center(grx + 50, gry + 50);
   gr.add(grc);
-
-  console.groupEnd();
-  /* GLOBALS */
-  window.gt = gt;
-  window.gm = gm;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
@@ -177,7 +177,7 @@ PMCView.DefineDefs = svg => {
 /**
  * PRIVATE: Define named svg "symbols" for reuse in the view.
  * It shouldn't be called externally.
- * 
+ *
  * To get the path definitions from Material UI icons:
  * 1. Go to the icon page, e.g. https://material.io/resources/icons/?style=baseline
  * 2. Click on the icon
@@ -187,7 +187,7 @@ PMCView.DefineDefs = svg => {
  * @param {SVGJSinstance} svg - SVGJS instance to add DEFs to
  */
 PMCView.DefineSymbols = svg => {
-  const chatColor = yellow[800];
+  const chatColor = COLOR.STICKY_BUTTON; // '#ffdd11'; // '#ffd300'; // yellow[800];
   SVGSYMBOLS.set(
     'chatIcon',
     (() => {
@@ -294,7 +294,7 @@ PMCView.SyncModeSettings = () => {
  */
 PMCView.SyncPropsFromGraphData = () => {
   // if (DBG) console.groupCollapsed(`%c:SyncPropsFromGraphData()`, cssinfo);
-  const { added, removed, updated } = DATA.VM_GetVPropChanges();
+  const { added, removed, updated } = DATA.VM_GetVPropChanges(DATA.AllProps());
   removed.forEach(id => VProp.Release(id));
   added.forEach(id => VProp.New(id, m_svgroot)); // returns vprop instance but not using
   updated.forEach(id => VProp.Update(id));
@@ -314,7 +314,7 @@ PMCView.SyncPropsFromGraphData = () => {
 PMCView.SyncMechsFromGraphData = () => {
   // if (DBG) console.groupCollapsed(`%c:SyncMechsFromGraphData()`, cssinfo);
   // the following arrays contain pathIds
-  const { added, removed, updated } = DATA.VM_GetVMechChanges();
+  const { added, removed, updated } = DATA.VM_GetVMechChanges(DATA.AllMechs());
   removed.forEach(pathId => VMech.Release(pathId));
   added.forEach(pathId => VMech.New(pathId, m_svgroot));
   updated.forEach(pathId => VMech.Update(pathId));
@@ -358,8 +358,10 @@ PMCView.UpdateView = () => {
   // if (DBG) console.groupEnd();
 };
 
-/*/ DEBUG OBJECT /*/
-window.PMC = PMCView;
+/// DEBUG /////////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+if (!window.ur) window.ur = {};
+window.ur.PMCVIEW = PMCView;
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

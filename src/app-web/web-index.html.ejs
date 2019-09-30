@@ -8,11 +8,14 @@
       if (!window.URSESSION) {
         window.URSESSION = {
           CLIENT_IP: '<%=CLIENT_IP%>',
-          CLIENT_Key: '<%=CLIENT_Key%>',
           USRV_Host: '<%=USRV_Host%>',
           USRV_IP: '<%=USRV_IP%>',
-          USRV_MsgPort: <%=USRV_MsgPort%>,
+          USRV_MsgPort: '<%=USRV_MsgPort%>',
           USRV_Start: '<%=USRV_Start%>',
+          CLIENT_UADDR: '',
+          USRV_UADDR: '',
+          SESSION_Key: '',
+          SESSION_Token: ''
         };
       } else {
         var div = document.getElementById('app-container');

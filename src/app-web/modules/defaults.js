@@ -42,10 +42,13 @@ const DEFAULTS = {
   COLOR: {
     MECH: 'orange',
     MECH_SEL: '#44F',
-    MECH_HOV: '#FFA244',
+    MECH_HOV: '#FFC78F',
+    MECH_LABEL: '#FF6600',
+    MECH_LABEL_BG: 'rgba(240,240,255,0.9)', // match background of svg
     PROP: '#44F',
     PROP_SEL: '#44F',
-    PROP_HOV: '#FFA244'
+    PROP_HOV: '#FFA244',
+    STICKY_BUTTON: '#ffdd11'
   }
 };
 
@@ -89,7 +92,7 @@ DEFAULTS.CoerceToPathId = (vso, ws) => {
  *  ...always return an EdgeObject suitable for use by `dagres/graphlib`.
  * @param {string|object} vso - a PMC pathId, edgeObj, or source nodeId
  * @param {string} ws - the targetNodeId, if `vso` is also a string
- * @returns {object} - object of shape { w, v }
+ * @returns {object} - object of shape { w, v } where w and v are strings
  */
 DEFAULTS.CoerceToEdgeObj = (vso, ws) => {
   const ptype = typeof vso;
@@ -99,7 +102,9 @@ DEFAULTS.CoerceToEdgeObj = (vso, ws) => {
       // this is probably a regular pathid
       let bits = vso.split(':');
       if (bits.length !== 2) throw Error(`pathId parse error. Check delimiter char`);
-      return { v: bits[0], w: bits[1] };
+      const v = bits[0];
+      const w = bits[1];
+      return { v, w };
     }
     // this might be v,w
     return { v: vso, w: ws };
@@ -107,6 +112,11 @@ DEFAULTS.CoerceToEdgeObj = (vso, ws) => {
   if (ptype === 'object' && vso.v && vso.w) {
     return vso; // this is already an edgeobj
   }
+  if (ptype === 'number' && wtype === 'number') {
+    // convert to strings because outside of db, all ids are strings to match m_graph
+    return { v: String(vso), w: String(ws) };
+  }
+
   throw Error('can not conform');
 };
 // deeconstruct either int,int or object with keys into array
@@ -164,8 +174,8 @@ function DumpObj(obj) {
 
 /// DEBUGGING CONSOLE /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-if (window.meme === undefined) window.meme = {};
-window.meme.reflect = DumpObj;
+if (!window.ur) window.ur = {};
+window.ur.reflect = DumpObj;
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

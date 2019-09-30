@@ -17,6 +17,7 @@ import ReloadOnViewChange from './util/reload';
 import NetMessage from './common-netmessage';
 import URLink from './common-urlink';
 import REFLECT from './util/reflect';
+import SESSION from './common-session';
 
 /// PRIVATE DECLARATIONS //////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -86,14 +87,6 @@ function RoutePreflight(routes) {
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*/
-upcoming changes: introduce CHANNELS formally with reserved name NET
-because uppercase names are reserved by the system. user channel names
-will be lowercase.
-SetState('channel:STATE',value); // defaults to local without channel
-SynchState('channel:STATE',func); // defaults to local without channel
-NetCall('message') will become Call('NET:MESSAGE');
-/*/
 const UR = {
   Hook, // EXEC
   NewConnection, // ULINK
@@ -116,4 +109,20 @@ const UR = {
   RoutePreflight,
   ReactHook
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+if (!window.ur) window.ur = {};
+window.ur.SESSION = SESSION;
+window.ur.tnc = (msg, data) => {
+  NetCall(msg, data).then(rdata => {
+    console.log(`netcall '${msg}' returned`, rdata);
+  });
+  return `testing netcall '${msg}'`;
+};
+window.ur.serverinfo = () => {
+  window.ur.tnc('NET:SRV_SERVICE_LIST');
+};
+window.ur.clientinfo = () => {
+  console.log(window.URSESSION);
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 export default UR;

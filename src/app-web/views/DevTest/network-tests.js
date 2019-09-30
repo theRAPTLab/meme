@@ -29,16 +29,20 @@ function DefineHandlers(comp) {
   // it requires that the remote calls it
   // also both clients need to be refreshed at the same time
   // requires a working PEERCOUNT UPDATE system
-  ULINK2.NetSubscribe('MYSTERY_REMOTE', data => {
-    data.todos.push(`remote ${ULINK.UADDR()} call test`);
-    if (!data.subLog) data.subLog = [];
-    data.subLog.push('NetSubcriber');
-    testNetCallbackInvoke.pass();
-    // since this test is dependent on another client existing
-    // we need to run the completion test again
-    comp.DidTestsComplete();
-    return data;
-  });
+  try {
+    ULINK2.NetSubscribe('NET:MYSTERY_REMOTE', data => {
+      data.todos.push(`remote ${ULINK.UADDR()} call test`);
+      if (!data.subLog) data.subLog = [];
+      data.subLog.push('NetSubcriber');
+      testNetCallbackInvoke.pass();
+      // since this test is dependent on another client existing
+      // we need to run the completion test again
+      comp.DidTestsComplete();
+      return data;
+    });
+  } catch (err) {
+    console.log(err);
+  }
 
   ULINK2.Subscribe('MYSTERY_REMOTE', data => {
     if (!data.subLog) data.subLog = [];
@@ -105,7 +109,7 @@ function NetCall(comp) {
   const timeout = setTimeout(() => {
     testNetCall.fail('connection timeout');
   }, 1000);
-  ULINK.NetCall('MYSTERY_REMOTE', {
+  ULINK.NetCall('NET:MYSTERY_REMOTE', {
     todos: ['take out garbage', 'clean basement'],
     source: 'NetCall'
   }).then(data => {

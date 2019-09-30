@@ -14,7 +14,6 @@ const PATH = require('path');
 const FS = require('fs-extra');
 
 const DATAMAP = require('./common-datamap');
-const SESSION = require('./common-session');
 const LOGGER = require('./server-logger');
 const PROMPTS = require('../system/util/prompts');
 const UNET = require('./server-network');
@@ -30,7 +29,9 @@ const DATASETPATH = PATH.join(__dirname, '/datasets/meme');
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 let m_options; // saved initialization options
 let m_db; // loki database
-const DBKEYS = DATAMAP.DBKEYS;
+const { DBKEYS, DBCMDS } = DATAMAP; // key lookup for incoming data packets
+let send_queue = []; // queue outgoing data
+let recv_queue = []; // queue incoming requests
 
 /// API METHODS ///////////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -65,11 +66,12 @@ DB.InitializeDatabase = (options = {}) => {
   m_options.db_file = db_file; // store for use by DB.WriteJSON
 
   // register handlers
-  UNET.Subscribe('NET:SRV_DBGET', DB.PKT_GetDatabase);
-  UNET.Subscribe('NET:SRV_DBADD', DB.PKT_Add);
-  UNET.Subscribe('NET:SRV_DBUPDATE', DB.PKT_Update);
-  UNET.Subscribe('NET:SRV_DBDELETE', DB.PKT_Delete);
-  UNET.Subscribe('NET:SRV_DBQUERY', DB.PKT_Query);
+  UNET.NetSubscribe('NET:SRV_DBGET', DB.PKT_GetDatabase);
+  UNET.NetSubscribe('NET:SRV_DBADD', DB.PKT_Add);
+  UNET.NetSubscribe('NET:SRV_DBUPDATE', DB.PKT_Update);
+  UNET.NetSubscribe('NET:SRV_DBREMOVE', DB.PKT_Remove);
+  UNET.NetSubscribe('NET:SRV_DBQUERY', DB.PKT_Query);
+  // also we publish 'NET:SYSTEM_DBSYNC' { collection key arrays of change }
 
   // end of initialization code...following are local functions
 
@@ -152,6 +154,18 @@ function f_GetCollectionData(col) {
 }
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** Internal Helper:
+ * Utility that sends database synch changes to all subscribing clients.
+ * It is called whenever a change is written to the database.
+ */
+function m_DatabaseChangeEvent(dbEvent, data) {
+  if (!DBCMDS.includes(dbEvent)) throw Error(`unknown change event '{dbEvent}'`);
+  data.cmd = dbEvent;
+  // send data changes to all clients
+  UNET.NetPublish('NET:SYSTEM_DBSYNC', data);
+}
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API:
  * Return the entire admin database structure. Used when initializing client
  * app.
@@ -166,7 +180,6 @@ DB.PKT_GetDatabase = pkt => {
   // return object for transaction; URSYS will automatically return
   // to the netdevice that called this
   return adm_db;
-  //
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -180,6 +193,9 @@ DB.PKT_GetDatabase = pkt => {
  * @returns {Object} - data to return to caller
  */
 DB.PKT_Add = pkt => {
+  const session = UNET.PKT_Session(pkt);
+  if (session.error) return { error: session.error };
+  //
   const data = pkt.Data();
   const results = {};
   const collections = DATAMAP.ExtractCollections(data);
@@ -197,10 +213,14 @@ DB.PKT_Add = pkt => {
       .find({ id: { $in: insertedIds } })
       .data({ removeMeta: true });
     results[colName] = updated;
+    console.log(PR, `ADDED: ${JSON.stringify(updated)}`);
   });
-  // return the processed packet
+  // send update to network
+  m_DatabaseChangeEvent('add', results, pkt);
+  // return
   return results;
 };
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API:
  * Update a collection.
@@ -211,6 +231,9 @@ DB.PKT_Add = pkt => {
  * @returns {Object} - data to return (including error if any)
  */
 DB.PKT_Update = pkt => {
+  const session = UNET.PKT_Session(pkt);
+  if (session.error) return { error: session.error };
+  //
   const data = pkt.Data();
   const results = {};
   let error = '';
@@ -234,8 +257,8 @@ DB.PKT_Update = pkt => {
         .find({ id: { $eq: id } })
         .update(item => {
           if (DBG) {
-            console.log(`updating ${JSON.stringify(item)}`);
-            console.log(`with ${JSON.stringify(ditem)}`);
+            console.log(PR, `updating ${JSON.stringify(item)}`);
+            console.log(PR, `with ${JSON.stringify(ditem)}`);
           }
           Object.assign(item, ditem);
         });
@@ -247,10 +270,13 @@ DB.PKT_Update = pkt => {
       .find({ id: { $in: updatedIds } })
       .data({ removeMeta: true });
     results[colName] = updated;
-    console.log(`result ${JSON.stringify(updated)}`);
+    console.log(PR, `UPDATE: ${JSON.stringify(updated)}`);
   }); // collections forEach
-  // return the processed packet
-  if (error) results.error = error;
+  // was there an error?
+  if (error) return { error };
+  // otherwise send update to network
+  m_DatabaseChangeEvent('update', results, pkt);
+  // return
   return results;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -260,9 +286,34 @@ DB.PKT_Update = pkt => {
  * The property values must be an id or array of ids
  * If the call fails, the error property will be set as well.
  * @param {NetMessage} pkt - packet with data object as described above
+ * @param {NetMessage} pkt.data - data containing parameters
  * @returns {Object} - data to return (including error if any)
  */
-DB.PKT_Delete = pkt => {};
+DB.PKT_Remove = pkt => {
+  const session = UNET.PKT_Session(pkt);
+  if (session.error) return { error: session.error };
+  //
+  const data = pkt.Data();
+  const results = {};
+  let error = '';
+  const collections = DATAMAP.ExtractCollections(data);
+  collections.forEach(entry => {
+    let [colName, idsToDelete] = entry;
+    const dbc = m_db.getCollection(colName);
+    // return deleted objects
+    const removed = dbc.chain().find({ id: { $in: idsToDelete } });
+    const matching = removed.branch().data({ removeMeta: true });
+    results[colName] = matching;
+    removed.remove();
+    console.log(PR, `REMOVED: ${JSON.stringify(matching)}`);
+  }); // collections forEach
+  // was there an error?
+  if (error) return { error };
+  // otherwise send update to network
+  m_DatabaseChangeEvent('remove', results, pkt);
+  // return
+  return results;
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API:
  * Query elements.
@@ -274,7 +325,12 @@ DB.PKT_Delete = pkt => {};
  * @param {NetMessage} pkt - packet with data object as described above
  * @returns {Object} - data to return (including error if any)
  */
-DB.PKT_Query = pkt => {};
+DB.PKT_Query = pkt => {
+  const session = UNET.PKT_Session(pkt);
+  if (session.error) return { error: session.error };
+  //
+  return { error: 'query is unimplemented' };
+};
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** Given a root word, create a full pathname to .loki file in the runtime path.

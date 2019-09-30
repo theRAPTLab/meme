@@ -2,6 +2,7 @@ import { Graph, alg as GraphAlg, json as GraphJSON } from '@dagrejs/graphlib';
 import { cssinfo, cssreset, cssdata } from './console-styles';
 import DEFAULTS from './defaults';
 import UR from '../../system/ursys';
+import VM from './vm-data';
 import UTILS from './utils';
 
 const { CoerceToPathId, CoerceToEdgeObj } = DEFAULTS;
@@ -61,7 +62,7 @@ const PMCData = {};
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DBG = true;
-const PKG = 'pmc-data:';
+const PKG = 'PMCDATA';
 
 /// MODEL /////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -74,73 +75,14 @@ let a_components = []; // top-level props with no parents, derived
 let h_children = new Map(); // children hash of each prop by id
 let h_outedges = new Map(); // outedges hash of each prop by id
 //
-let a_resources = []; /*/ all resource objects to be displayed in InformationList
-                         a_resource = [
-                            {
-                              rsrcId: '1',
-                              label: 'Food Rot Simulation',
-                              notes: ['water quality', 'food rotting'],
-                              type: 'simulation',
-                              url: '../static/dlc/FishSpawn_Sim_5_SEEDS_v7.html',
-                              links: 0
-                            }
-                          ]
-                      /*/
-let a_evidence = []; /*/ An array of prop-related evidence links.
-                          This is the master list of evidence links.
-
-                          [ evidenceLink,... ]
-                          [ {eid, propId, rsrcId, note},... ]
-
-                          a_evidence.push({ eid: '1', propId: 'a', rsrcId: '1', note: 'fish need food' });
-
-                      /*/
-let h_evidenceByEvId = new Map(); /*/
-                          Hash table of an array of evidence links for
-                          look up by evId.
-
-                          Used by class-vprop when displaying
-                          the list of evidenceLink badges for each prop.
-
-                          {evId1: {evId1, propId, rsrcId, note},
-                           evId2: {evId, propId, rsrcId, note},
-                          ...}
-                      /*/
-let h_evidenceByProp = new Map(); /*/
-                          Hash table of an array of evidence links related
-                          to a property id, and grouped by property id.
-
-                          Used by class-vprop when displaying
-                          the list of evidenceLink badges for each prop.
-
-                          {propId: [{evId, propId, rsrcId, note},
-                                    {evId, propId, rsrcId, note},
-                                ...],
-                          ...}
-                      /*/
-let h_evlinkByResource = new Map(); /*/
-                          Used by EvidenceList to look up all evidence related to a resource
-                      /*/
+let a_resources = []; // resource objects { id, label, notes, type, url, links }
+let a_evidence = []; // evidence objects { id, propId, rsrcId, note }
+let h_evidenceById = new Map(); // evidence object for each id (lookup table)
+let h_evidenceByProp = new Map(); // evidence object array associated with each prop
+let h_evidenceByResource = new Map(); // evidence id array associated with each resource
 let h_evidenceByMech = new Map(); // links to evidence by mechanism id
-let h_propByResource = new Map(); /*/
-                          Hash table to look up an array of property IDs related to
-                          a specific resource.
-
-                          Used by InformationList to show props related to each resource.
-
-                          {rsrcId: [propId1, propId2,...],... }
-                      /*/
-let h_mechByResource = new Map(); // calculated links to mechanisms by evidence id
-
-/// VIEWMODEL /////////////////////////////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const map_vprops = new Map(); // our property viewmodel data stored by id
-const map_vmechs = new Map(); // our mechanism viewmodel data stored by pathid
-const selected_vprops = new Set();
-const selected_vmechs = new Set();
-const map_rollover = new Map();
-
-let max_selections = 1; // Limit the number of objects that can be selected simultaneously
+let h_propByResource = new Map(); // hash of props to a given resource
+let h_mechByResource = new Map(); // hash of mechs to a given resource
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -155,6 +97,7 @@ let max_selections = 1; // Limit the number of objects that can be selected simu
 PMCData.Graph = () => {
   return m_graph;
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  Clears all model data in preparation for loading a new model
  */
@@ -165,6 +108,7 @@ PMCData.ClearModel = () => {
   a_resources = [];
   a_evidence = [];
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  Loads a graph from model data and saves a local copy.  Replaces PMCData.LoadGraph.
  *  This will self repair bad data, but model.id and model.groupID MUST be defined.
@@ -204,13 +148,13 @@ PMCData.InitializeModel = (model, resources) => {
   // Load Evidence Links
   m.data.evidence = m.data.evidence || [];
   m.data.evidence.forEach(ev => {
-    let { evId, propId, mechId, rsrcId, number, rating, note, comments } = ev;
+    let { id, propId, mechId, rsrcId, number, rating, note, comments } = ev;
     comments = comments || []; // allow empty comments
     a_evidence.push({
-      evId,
-      propId,
-      mechId,
-      rsrcId,
+      id: String(id), // Model expects string ids
+      propId: propId === undefined ? undefined : String(propId),
+      mechId: mechId === undefined ? undefined : String(mechId),
+      rsrcId: rsrcId === undefined ? undefined : String(rsrcId),
       number,
       rating,
       note,
@@ -221,7 +165,12 @@ PMCData.InitializeModel = (model, resources) => {
   // Comments
   m.data.commentThreads = m.data.commentThreads || [];
   m.data.commentThreads.forEach(cm => {
-    a_commentThreads.push(cm);
+    let { id, refId, comments } = cm;
+    a_commentThreads.push({
+      id: String(id),
+      refId: String(refId),
+      comments
+    });
   });
 
   a_resources = resources || [];
@@ -274,11 +223,11 @@ PMCData.BuildModel = () => {
   });
 
   /*/
-   *  Update h_evidenceByEvId table
+   *  Update h_evidenceById table
   /*/
-  h_evidenceByEvId = new Map();
+  h_evidenceById = new Map();
   a_evidence.forEach(ev => {
-    h_evidenceByEvId.set(ev.evId, ev);
+    h_evidenceById.set(ev.id, ev);
   });
 
   /*/
@@ -341,11 +290,11 @@ PMCData.BuildModel = () => {
   /*/
    *  Used by EvidenceList to look up all evidence related to a resource
   /*/
-  h_evlinkByResource = new Map();
+  h_evidenceByResource = new Map();
   a_resources.forEach(resource => {
     let evlinkArray = a_evidence.filter(evlink => evlink.rsrcId === resource.id);
     if (evlinkArray === undefined) evlinkArray = [];
-    h_evlinkByResource.set(resource.id, evlinkArray);
+    h_evidenceByResource.set(resource.id, evlinkArray);
   });
 
   /*/
@@ -474,374 +423,14 @@ PMCData.Mech = (evo, ew) => {
   const eobj = CoerceToEdgeObj(evo, ew);
   return m_graph.edge(eobj);
 };
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns an object containing added, updated, removed arrays
- *  containing nodeId strings
- *  @return {object} - object { added, updated, removed }
- */
-PMCData.VM_GetVPropChanges = () => {
-  // remember that a_props is an array of string ids, not objects
-  // therefore the returned arrays have values, not references! yay!
-  const added = [];
-  const updated = [];
-  const removed = [];
-  // find what matches and what is new
-  a_props.forEach(id => {
-    if (map_vprops.has(id)) updated.push(id);
-    else added.push(id);
-  });
-  // removed ids exist in viewmodelPropMap but not in updated props
-  map_vprops.forEach((val, id) => {
-    if (!updated.includes(id)) removed.push(id);
-  });
-  return { added, removed, updated };
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns TRUE if a VProp corresponding to nodeId exists
- *  @param {string} nodeId - the property with nodeId to test
- *  @return {boolean} - true if the nodeId exists
- */
-PMCData.VM_VPropExists = nodeId => {
-  return map_vprops.has(nodeId);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns the VProp corresponding to nodeId if it exists
- *  @param {string} nodeId - the property with nodeId to retrieve
- *  @return {VProp} - VProp instance, if it exists
- */
-PMCData.VM_VProp = nodeId => {
-  return map_vprops.get(nodeId);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  deletes the VProp corresponding to nodeId if it exists
- *  @param {string} nodeId - the property with nodeId to delete
- */
-PMCData.VM_VPropDelete = nodeId => {
-  map_vprops.delete(nodeId);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  sets the VProp corresponding to nodeId
- *  @param {string} nodeId - the property with nodeId to add to viewmodel
- *  @param {VProp} vprop - the property with nodeId to add to viewmodel
- */
-PMCData.VM_VPropSet = (nodeId, vprop) => {
-  map_vprops.set(nodeId, vprop);
-};
 
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns an object containing added, updated, removed string arrays
- *  containing pathIds.
- */
-PMCData.VM_GetVMechChanges = () => {
-  // remember that a_mechs is an array of { v, w } edgeObjects.
-  const added = [];
-  const updated = [];
-  const removed = [];
-  // find what matches and what is new by pathid
-  a_mechs.forEach(edgeObj => {
-    const pathId = CoerceToPathId(edgeObj);
-    if (map_vmechs.has(pathId)) {
-      updated.push(pathId);
-      if (DBG) console.log('updated', pathId);
-    } else {
-      added.push(pathId);
-      if (DBG) console.log('added', pathId);
-    }
-  });
-  // removed
-  map_vmechs.forEach((val_vmech, key_pathId) => {
-    if (!updated.includes(key_pathId)) {
-      removed.push(key_pathId);
-      if (DBG) console.log('removed', key_pathId);
-    }
-  });
-  return { added, removed, updated };
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns TRUE if the designated edge exists.
- *
- *  This function can accept one of three formats: an edgeObject, a pathId,
- *  or a source/target pair of nodeId strings.
- *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
- *  @param {string|undefined} ew - if defined, nodeId string of the target prop */
-PMCData.VM_VMechExists = (evo, ew) => {
-  const pathId = CoerceToPathId(evo, ew);
-  return map_vmechs.has(pathId);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  returns the VMech corresponding to the designated edge if it exists
- *
- *  This function can accept one of three formats: an edgeObject, a pathId,
- *  or a source/target pair of nodeId strings.
- *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
- *  @param {string|undefined} ew - if defined, nodeId string of the target prop
- */
-PMCData.VM_VMech = (evo, ew) => {
-  const pathId = CoerceToPathId(evo, ew);
-  return map_vmechs.get(pathId);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  deletes the VMech corresponding to designated edge if it exists
- *
- *  This function can accept one of three formats: an edgeObject, a pathId,
- *  or a source/target pair of nodeId strings.
- *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
- *  @param {string|undefined} ew - if defined, nodeId string of the target prop
- */
-PMCData.VM_VMechDelete = (evo, ew) => {
-  const pathId = CoerceToPathId(evo, ew);
-  map_vmechs.delete(pathId);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- *  sets the VMech corresponding to the designated edge
- *
- *  This function can accept one of three formats: an edgeObject, a pathId,
- *  or a source/target pair of nodeId strings.
- *  @param {VMech} vmech - the VMech instance
- *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
- *  @param {string|undefined} ew - if defined, nodeId string of the target prop
- */
-PMCData.VM_VMechSet = (vmech, evo, ew) => {
-  const pathId = CoerceToPathId(evo, ew);
-  map_vmechs.set(pathId, vmech);
-};
-
-/// SELECTION MANAGER TEMPORARY HOME //////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-function u_DumpSelection(prompt) {
-  if (prompt) console.log(prompt);
-  console.table(PMCData.VM_SelectedPropsIds());
-}
-/** API.VIEWMODEL:
- * add the vprop to the selection set. The vprop will be
- * updated in its appearance to reflect its new state.
- * @param {object} vprop - VProp instance with id property.
- */
-PMCData.VM_SelectAddProp = vprop => {
-  // set appropriate vprop flags
-  vprop.visualState.Select();
-  vprop.Draw();
-  // update viewmodel
-  selected_vprops.add(vprop.id);
-  UR.Publish('SELECTION_CHANGED');
-  if (DBG) u_DumpSelection('SelectAddProp');
-};
-
-/** API.VIEWMODEL:
- * set the vprop to the selection set. The vprop will be
- * updated in its appearance to reflect its new state.
- * @param {object} vprop - VProp instance with id property.
- */
-PMCData.VM_SelectProp = vprop => {
-  // set appropriate vprop flags
-  vprop.visualState.Select();
-  vprop.Draw();
-  // update viewmodel
-  selected_vprops.forEach(id => {
-    const vp = PMCData.VM_VProp(id);
-    vp.visualState.Deselect();
-  });
-  selected_vprops.clear();
-  selected_vprops.add(vprop.id);
-  UR.Publish('SELECTION_CHANGED');
-  if (DBG) u_DumpSelection('SelectProp');
-};
-
-/* API.VIEWMODEL: Tracking Rollovers */
-PMCData.VM_PropMouseEnter = vprop => {
-  map_rollover.set(vprop.Id());
-  const topPropId = PMCData.VM_PropsMouseOver().pop();
-  if (vprop.Id() === topPropId) vprop.HoverState(true);
-};
-PMCData.VM_PropMouseExit = vprop => {
-  if (vprop.posMode.isDragging) return;
-  map_rollover.delete(vprop.Id());
-  vprop.HoverState(false);
-};
-/**
- * Return the array of targets that are "hovered" over
- * @returns {array} propId array
- */
-PMCData.VM_PropsMouseOver = () => {
-  return [...map_rollover.keys()];
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * Set the maximum number of objects the user can select.
- * After the limit is reached, users can not select any additional objects
- * though they can still toggle existing objects.
- * @oaram {integer} max - Maximum number of selected objects allowed.
- */
-PMCData.VM_SetSelectionLimit = max => {
-  max_selections = max;
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * Remove the passed vprop from the selection set, if set. The vprop will be
- * updated in its appearance to reflect its new state.
- * @param {object} vprop - VProp instance with id property
- */
-PMCData.VM_DeselectProp = vprop => {
-  // set appropriate vprop flags
-  vprop.visualState.Deselect();
-  vprop.Draw();
-  // update viewmodel
-  selected_vprops.delete(vprop.id);
-  UR.Publish('SELECTION_CHANGED');
-  if (DBG) u_DumpSelection('DeselectProp');
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * Select or deselect the passed vprop.  The vprop will be
- * updated in its appearance to reflect its new state.
- * @param {object} vprop - VProp instance with id property
- */
-PMCData.VM_ToggleProp = vprop => {
-  // limit the number of selections, but allow toggle
-  if (selected_vprops.size >= max_selections) {
-    // If we hit the limit...
-    if (max_selections === 1) {
-      // ...and the limit is 1, deselect all and select this one
-      DeselectAllProps();
-    } else {
-      // ...and the limit is more than one, don't alow any more selections
-      return;
-    }
-  }
-
-  // set appropriate vprop flags
-  vprop.visualState.ToggleSelect();
-  // update viewmodel
-  if (vprop.visualState.IsSelected()) {
-    selected_vprops.add(vprop.id);
-    if (selected_vprops.size === 1) {
-      vprop.visualState.Select('first');
-    }
-    vprop.Draw();
-  } else {
-    selected_vprops.delete(vprop.id);
-    vprop.Draw();
-  }
-  UR.Publish('SELECTION_CHANGED');
-  if (DBG) u_DumpSelection('ToggleProp');
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/**
- * Utility function
- * This is so we can deselect without triggering a UR event.
- */
-function DeselectAllProps() {
-  // tell all vprops to clear themselves
-  selected_vprops.forEach(vpid => {
-    const vprop = PMCData.VM_VProp(vpid);
-    vprop.visualState.Deselect();
-    vprop.Draw();
-  });
-  // clear selection viewmodel
-  selected_vprops.clear();
-}
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * erase the selected properties set. Also calls affected vprops to
- * handle deselection update
- */
-PMCData.VM_DeselectAllProps = () => {
-  DeselectAllProps();
-  UR.Publish('SELECTION_CHANGED');
-  if (DBG) u_DumpSelection('DeselectAllProps');
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * Deselect all vmechs. The vmechs will be updated in its
- * appearance to reflect its new state
- */
-PMCData.VM_DeselectAllMechs = () => {
-  // tell all vprops to clear themselves
-  selected_vmechs.forEach(vmid => {
-    const vmech = PMCData.VM_VMech(vmid);
-    vmech.visualState.Deselect();
-    vmech.Draw();
-  });
-  // clear selection viewmodel
-  selected_vmechs.clear();
-  if (DBG) console.log(`global selection`, selected_vmechs);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL
- * Delect all props and mechs. WARNING this is a method that is overly
- * broad.
- */
-PMCData.VM_DeselectAll = () => {
-  console.warn(`VM_DeselectAll() is deprecated. Use more specific selection manager calls.`);
-  PMCData.VM_DeselectAllProps();
-  PMCData.VM_DeselectAllMechs();
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * Select a single mechanism, clearing the existing selection.
- */
-PMCData.VM_SelectOneMech = vmech => {
-  // set appropriate vprop flags
-  PMCData.VM_DeselectAllMechs();
-  vmech.visualState.Select();
-  vmech.Draw();
-  // update viewmodel
-  selected_vmechs.add(vmech.id);
-  UR.Publish('SELECTION_CHANGED');
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * Select/deselect the passed vmech. The vmech will be updated in its
- * appearance to reflect its new state
- */
-PMCData.VM_ToggleMech = vmech => {
-  // set appropriate vprop flags
-  vmech.visualState.ToggleSelect();
-  // update viewmodel
-  if (vmech.visualState.IsSelected()) {
-    selected_vmechs.add(vmech.id);
-    vmech.Draw();
-  } else {
-    selected_vmechs.delete(vmech.id);
-    vmech.Draw();
-  }
-  if (DBG) console.log(`vmech selection`, selected_vmechs);
-  UR.Publish('SELECTION_CHANGED');
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- return array of all string ids that are currently selected PROPERTIES
- in order of insertion.
- Use VProp.visualState.IsSelected('first') to determine what the first
- selection is
- @returns {string[]} propIds - array of string ids of properties
- */
-PMCData.VM_SelectedPropsIds = () => {
-  return Array.from(selected_vprops.values());
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- return array of all string ids that are currently selected MECHANISMS
- in order of insertion. Unlike the Props version of this call, the selection
- is not tagged with any other meta data (e.g. 'first')
- @returns {string[]} mechIds - array of string ids of properties
- */
-PMCData.VM_SelectedMechIds = () => {
-  return Array.from(selected_vmechs.values());
-};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_AddProp = node => {
-  m_graph.setNode(node, { name: `${node}` });
+  // FIXME
+  // Temporarily insert a random numeric prop id
+  // This will get replaced with a server promise once that's implemented
+  const propId = Math.trunc(Math.random() * 10000000000).toString();
+  m_graph.setNode(propId, { name: `${node}` });
   PMCData.BuildModel();
   UTILS.RLog('PropertyAdd', node);
   return `added node ${node}`;
@@ -854,14 +443,14 @@ PMCData.PMC_SetPropParent = (node, parent) => {
   return `set parent ${parent} to node ${node}`;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PMCData.PMC_PropDelete = (propid = 'a') => {
+PMCData.PMC_PropDelete = propid => {
   // Deselect the prop first, otherwise the deleted prop will remain selected
-  PMCData.VM_DeselectAll();
+  VM.VM_DeselectAll();
   // Unlink any evidence
   const evlinks = PMCData.PMC_GetEvLinksByPropId(propid);
   if (evlinks)
     evlinks.forEach(evlink => {
-      PMCData.SetEvidenceLinkPropId(evlink.evId, undefined);
+      PMCData.SetEvidenceLinkPropId(evlink.id, undefined);
     });
   // Delete any children nodes
   const children = PMCData.Children(propid);
@@ -910,7 +499,7 @@ PMCData.PMC_MechUpdate = (origMech, newMech) => {
     // 2a. Move evidence over. Modify in place.
     if (evlinks) {
       evlinks.forEach(evlink => {
-        PMCData.SetEvidenceLinkMechId(evlink.evId, newMechId);
+        PMCData.SetEvidenceLinkMechId(evlink.id, newMechId);
       });
     }
     // 2b. Move comments over
@@ -942,12 +531,12 @@ PMCData.PMC_MechUpdate = (origMech, newMech) => {
 PMCData.PMC_MechDelete = mechId => {
   // mechId is of form "v:w"
   // Deselect the mech first, otherwise the deleted mech will remain selected
-  PMCData.VM_DeselectAll();
+  VM.VM_DeselectAll();
   // Unlink any evidence
   const evlinks = PMCData.PMC_GetEvLinksByMechId(mechId);
   if (evlinks)
     evlinks.forEach(evlink => {
-      PMCData.SetEvidenceLinkMechId(evlink.evId, undefined);
+      PMCData.SetEvidenceLinkMechId(evlink.id, undefined);
     });
   // Then remove mech
   // FIXME / REVIEW : Do we need to use `name` to distinguish between
@@ -961,8 +550,10 @@ PMCData.PMC_MechDelete = mechId => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_AddEvidenceLink = (rsrcId, note = '') => {
+  
+// Retrieve from db?!?  
   // HACK!  FIXME!  Need to properly generate a unique ID.
-  let evId = `ev${Math.trunc(Math.random() * 10000)}`;
+  let id = `ev${Math.trunc(Math.random() * 10000)}`;
 
   // Construct number, e.g. "2c"
   // 1. Ordinal value of resource in resource library, e.g. "2"
@@ -973,11 +564,11 @@ PMCData.PMC_AddEvidenceLink = (rsrcId, note = '') => {
   const count = String.fromCharCode(97 + numberOfEvLinks); // lower case for smaller footprint
 
   const number = String(prefix) + count;
-  a_evidence.push({ evId, propId: undefined, rsrcId, number, note });
+  a_evidence.push({ id, propId: undefined, rsrcId, number, note });
   PMCData.BuildModel();
 
   UTILS.RLog('EvidenceCreate', rsrcId); // note is empty at this point
-  return evId;
+  return id;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
@@ -1005,7 +596,7 @@ PMCData.PMC_DuplicateEvidenceLink = evId => {
 PMCData.PMC_DeleteEvidenceLink = evId => {
   // Then delete the link(s)
   let i = a_evidence.findIndex(e => {
-    return e.evId === evId;
+    return e.id === evId;
   });
   a_evidence.splice(i, 1);
   PMCData.BuildModel();
@@ -1018,34 +609,35 @@ PMCData.PMC_DeleteEvidenceLink = evId => {
  *  @return {evlink} An evidenceLink object.
  */
 PMCData.PMC_GetEvLinkByEvId = evId => {
-  return h_evidenceByEvId.get(evId);
+  return h_evidenceById.get(evId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
- *  Given the passed propid (prop data object), returns evidence linked to the prop object.
+ *  Given the passed propid, returns evidence linked to the prop object.
  *  e.g. { evidenceId: '1', note: 'fish food fish food' }
- *  @param {string|undefined} nodeId - if defined, nodeId string of the prop (aka `propId`)
+ *  @param {String} propId - if defined, id of the prop (aka `propId`)
  *  @return [evlinks] An array of evidenceLink objects
  */
-PMCData.PMC_GetEvLinksByPropId = propid => {
-  return h_evidenceByProp.get(propid);
+PMCData.PMC_GetEvLinksByPropId = propId => {
+  return h_evidenceByProp.get(propId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
  *  Given the passed mechId (mech object), returns evidence linked to the mech object.
  *  e.g. { evidenceId: '1', note: 'fish food fish food' }
- *  @param {string|undefined} mechId - if defined, mechId string of the prop (aka `propId`)
+ *  @param {String|undefined} mechId - if defined, mechId string of the prop (aka `propId`)
  *  @return [evlinks] An array of evidenceLink objects
  */
 PMCData.PMC_GetEvLinksByMechId = mechId => {
   return h_evidenceByMech.get(mechId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Set propId to `undefined` to unlink
+/**
+ *  @param {String} evId
+ *  @param {String||undefined} propId - Set propId to `undefined` to unlink
+ */
 PMCData.SetEvidenceLinkPropId = (evId, propId) => {
-  let evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
+  let evlink = h_evidenceById.get(evId);
   evlink.propId = propId;
   evlink.mechId = undefined; // clear this in case it was set
   // Call BuildModel to rebuild hash tables since we've added a new propId
@@ -1056,9 +648,7 @@ PMCData.SetEvidenceLinkPropId = (evId, propId) => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
-  let evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
+  let evlink = h_evidenceById.get(evId);
   evlink.mechId = mechId;
   evlink.propId = undefined; // clear this in case it was set
   // Call BuildModel to rebuild hash tables since we've added a new mechId
@@ -1069,18 +659,14 @@ PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkNote = (evId, note) => {
-  let evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
+  let evlink = h_evidenceById.get(evId);
   evlink.note = note;
   UR.Publish('DATA_UPDATED');
   UTILS.RLog('EvidenceSetNote', `Set evidence note to "${evlink.note}"`);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkRating = (evId, rating) => {
-  let evlink = a_evidence.find(item => {
-    return item.evId === evId;
-  });
+  let evlink = h_evidenceById.get(evId);  
   if (evlink) {
     evlink.rating = rating;
     UR.Publish('DATA_UPDATED');
@@ -1094,12 +680,12 @@ PMCData.SetEvidenceLinkRating = (evId, rating) => {
 /// STICKIES //////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * @param {string} id - id of Property or Mechanism
+ * @param {string} refId - id of Property or Mechanism
  * @return [array] Array of comment objects, or [] if none defined.
  */
-PMCData.GetComments = id => {
+PMCData.GetComments = refId => {
   const result = a_commentThreads.find(c => {
-    return c.id === id;
+    return c.refId === refId;
   });
   return result ? result.comments : [];
 };
@@ -1136,7 +722,7 @@ PMCData.UpdateComments = (parentId, comments) => {
   let index;
   let commentThread;
   index = a_commentThreads.findIndex(c => {
-    return c.id === parentId;
+    return c.refId === parentId;
   });
   if (index > -1) {
     // existing comment
@@ -1145,10 +731,12 @@ PMCData.UpdateComments = (parentId, comments) => {
     a_commentThreads.splice(index, 1, commentThread);
   } else {
     // new comment
-    commentThread = { id: parentId, comments };
-    console.error('adding new commentThread', commentThread);
+    // FIXME
+    // Temporarily insert a random numeric prop id
+    // This will get replaced with a server promise once that's implemented
+    const id = Math.trunc(Math.random() * 10000000000).toString();
+    commentThread = { id, refId: parentId, comments };
     a_commentThreads.push(commentThread);
-    console.table(a_commentThreads);
   }
   UR.Publish('DATA_UPDATED');
 };
@@ -1167,54 +755,12 @@ PMCData.GetPropIdsByResourceId = rsrcId => {
  *  @return {array} Array of propery ids
  */
 PMCData.GetEvLinksByResourceId = rsrcId => {
-  return h_evlinkByResource.get(rsrcId);
+  return h_evidenceByResource.get(rsrcId);
 };
 
 /// DEBUG UTILS //////////////////////////////////////////////////////////////
-if (window.may1 === undefined) window.may1 = {};
-window.may1.PCM_Mech = PMCData.Mech;
-window.may1.PMC_AddProp = PMCData.PMC_AddProp;
-window.may1.PMC_MechAdd = PMCData.PMC_MechAdd;
-window.may1.PMC_AddEvidenceLink = PMCData.PMC_AddEvidenceLink;
-window.may1.VM_GetVEvLinkChanges = PMCData.VM_GetVEvLinkChanges;
-window.may1.BuildModel = PMCData.BuildModel;
-window.may1.OpenSticky = () => {
-  UR.Publish('STICKY:OPEN', {
-    targetType: 'component',
-    targetId: 'tank',
-    comments: [
-      {
-        id: 0,
-        time: 0,
-        author: 'Bob',
-        date: new Date(),
-        text: 'I like this',
-        criteriaId: 'cr01',
-        readBy: ['Bob', 'Bill']
-      },
-      {
-        id: 1,
-        time: 10,
-        author: 'Bill',
-        date: new Date(),
-        text: 'I DONT like this',
-        criteriaId: 'cr02',
-        readBy: []
-      },
-      {
-        id: 2,
-        time: 11,
-        author: 'Mary',
-        date: new Date(),
-        text: 'This is not mine!',
-        criteriaId: 'cr02',
-        readBy: []
-      }
-    ]
-  });
-};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PMCData.VM = { map_vprops, map_vmechs };
 export default PMCData;

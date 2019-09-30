@@ -300,7 +300,7 @@ class StickyNoteCollection extends React.Component {
 
   render() {
     const { classes } = this.props;
-    const { comments, isHidden, isBeingEdited, top, left } = this.state;
+    const { comments, isHidden, isBeingEdited, top, left, parentId } = this.state;
 
     return (
       <div>
@@ -317,7 +317,7 @@ class StickyNoteCollection extends React.Component {
               return (
                 <StickyNote
                   comment={comment}
-                  key={comment.id}
+                  key={parentId + comment.id}
                   OnStartEdit={this.OnStartEdit}
                   OnUpdateComment={this.OnUpdateComment}
                 />
