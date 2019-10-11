@@ -414,22 +414,31 @@ ur.tpropd(11) attempts to remove prop 11, which currently doesn't return the del
     update pmcData.entities: value:{ id, entities: { id, ...props } }
     remove pmcData.entities: value:{ id, entities: { id } }
 
-[X] -   rewrite data.js for single use
-[X] -   rewrite server-database.js for single use
+    [X] - rewrite data.js for single use
+    [X] - rewrite server-database.js for single use
 
 ---
 
 FRIDAY CODE-ALONG
 
-.. pull req 55 - Client-Server Database API
-implements round-trip. short version:
+    * UR.DBQuery('cmd',{ ... }) (note: returns a promise, can chain .then(rdata=>{})
+    * system then fires DATA SYNC event that calls PMCDATA or ADM SyncAddedData, SyncUpdatedDate, etc
 
-* UR.DBQuery('cmd',{ ... }) (note: returns a promise, can chain .then(rdata=>{})
-* system then fires DATA SYNC event that calls PMCDATA or ADM SyncAddedData, SyncUpdatedDate, etc
+    THE CHALLENGE: Hookup the Sync* methods for Properties!
 
-THE CHALLENGE: Hookup the Sync* methods!
+    The result data format is different from the query data format!
 
-try sync PMC.propUpdate
+    RESULT FORMAT = {
+        cmd,
+        collection: [ {...} ],
+        collection.field: [ {...}
+    }
+    QUERY FORMAT = {
+        cmd,
+        collection: { id, ...props },
+        collection.field: { id, subkey: {...props} }
+    }
+
 
 
 

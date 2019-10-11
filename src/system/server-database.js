@@ -200,15 +200,15 @@ DB.PKT_GetDatabase = pkt => {
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** MESSAGE HANDLER: 'NET:SRV_DBADD'
- * Add an element or elements to the specificed collection.
- * All properties that match an existing DBKEY are considered inputs.
- * The property values must be objects WITHOUT an id property, or an
- * array of such objects. Returns the input with ids added to each object.
- * If the call fails, the error property will be set as well.
- * data.cmd 'add'
- * data.collectionName = obj || [ obj ], returns objs with id set
- * @param {NetMessage} pkt - packet with data object as described above
- * @returns {Object} - data to return to caller
+ *  Add an element or elements to the specificed collection.
+ *  All properties that match an existing DBKEY are considered inputs.
+ *  The property values must be objects WITHOUT an id property, or an
+ *  array of such objects. Returns the input with ids added to each object.
+ *  If the call fails, the error property will be set as well.
+ *  data.cmd 'add'
+ *  data.collectionName = obj || [ obj ], returns objs with id set
+ *  @param {NetMessage} pkt - packet with data object as described above
+ *  @returns {Object} - data to return to caller
  */
 DB.PKT_Add = pkt => {
   const session = UNET.PKT_Session(pkt);
@@ -219,10 +219,10 @@ DB.PKT_Add = pkt => {
   let reskey;
   const added = [];
   let error = '';
-  const collections = DATAMAP.ExtractCollections(data);
-  // collection is object with { colkey, subkey, value }
-  collections.forEach(collection => {
-    let { colkey, subkey, value } = collection;
+  const queries = DATAMAP.ExtractQueryData(data);
+  // query is object with { colkey, subkey, value }
+  queries.forEach(query => {
+    let { colkey, subkey, value } = query;
     const dbc = m_db.getCollection(colkey);
     let retval;
     // add!
@@ -261,17 +261,17 @@ DB.PKT_Add = pkt => {
           // subrecord is an array of objs to add
           if (!value[subkey]) {
             error += `${reskey} value missing subkey, got ${JSON.stringify(value)}`;
-            return; // process error outside collection loop
+            return; // process error outside query loop
           }
           if (value[subkey].id) {
             error += `${reskey} should not have an id prop ${JSON.stringify(newobj)}`;
-            return; // process error outside collection loop
+            return; // process error outside query loop
           }
 
           const list = match[subkey];
           if (!DATAMAP.HasValidIdObjs(list)) {
             error += `${reskey} list missing ids ${JSON.stringify(list)}`;
-            return; // process error outside collection loop
+            return; // process error outside query loop
           }
           // we're only handling entities with magic inserts
           // because these aren't automatically handled by loki
@@ -294,7 +294,7 @@ DB.PKT_Add = pkt => {
         });
     } // if subkey
     if (DBG) console.log(PR, `ADDED '${colkey}': ${JSON.stringify(results[reskey])}`);
-  }); // collections foreach
+  }); // queries foreach
 
   if (error) {
     console.log(PR, 'PKT_Add:', error);
@@ -308,12 +308,12 @@ DB.PKT_Add = pkt => {
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** MESSAGE HANDLER: 'NET:SRV_DBUPDATE'
- * Update a collection.
- * All properties that match an existing DBKEY are considered inputs.
- * The property values must be objects WITH an id property.
- * If the call fails, the error property will be set as well.
- * @param {NetMessage} pkt - packet with data object with collection keys
- * @returns {Object} - data to return (including error if any)
+ *  Update a collection.
+ *  All properties that match an existing DBKEY are considered inputs.
+ *  The property values must be objects WITH an id property.
+ *  If the call fails, the error property will be set as well.
+ *  @param {NetMessage} pkt - packet with data object with collection keys
+ *  @returns {Object} - data to return (including error if any)
  */
 DB.PKT_Update = pkt => {
   const session = UNET.PKT_Session(pkt);
@@ -322,10 +322,10 @@ DB.PKT_Update = pkt => {
   const data = pkt.Data();
   const results = {};
   let error = '';
-  const collections = DATAMAP.ExtractCollections(data);
-  // collection is object with { colkey, subkey, value }
-  collections.forEach(collection => {
-    let { colkey, subkey, value } = collection;
+  const queries = DATAMAP.ExtractQueryData(data);
+  // queries is object with { colkey, subkey, value }
+  queries.forEach(query => {
+    let { colkey, subkey, value } = query;
     const dbc = m_db.getCollection(colkey);
     if (!DATAMAP.IsValidId(value.id)) {
       error += `${colkey} no id in ${JSON.stringify(value)}`;
@@ -356,7 +356,7 @@ DB.PKT_Update = pkt => {
         results[reskey].push(retval); // update results object
         if (DBG) console.log(PR, `updated: ${reskey} ${JSON.stringify(retval)}`);
       });
-  }); // collections forEach
+  }); // queries forEach
   // was there an error?
   if (error) {
     console.log(PR, 'PKT_Update:', error);
@@ -388,12 +388,12 @@ DB.PKT_Remove = pkt => {
   const removed = [];
   const updated = [];
   let error = '';
-  const collections = DATAMAP.ExtractCollections(data);
-  // collection is object with { colkey, subkey, value }
-  collections.forEach(collection => {
-    let { colkey, subkey, value } = collection;
+  const queries = DATAMAP.ExtractQueryData(data);
+  // query is object with { colkey, subkey, value }
+  queries.forEach(query => {
+    let { colkey, subkey, value } = query;
     if (DBG) console.log(PR, `${colkey} has ${JSON.stringify(value)}`);
-    // process collections
+    // process queries
     const dbc = m_db.getCollection(colkey);
     if (!DATAMAP.IsValidId(value.id)) {
       error += `${colkey} no id in ${JSON.stringify(value)}`;
@@ -489,7 +489,7 @@ DB.PKT_Remove = pkt => {
         if (DBG) console.log(PR, `${reskey} updated`, JSON.stringify(updated));
       }); // end found update
     } // end if-else subkey
-  }); // collections
+  }); // queries
   // was there an error?
   if (error) {
     console.log(PR, 'PKT_Remove:', error);

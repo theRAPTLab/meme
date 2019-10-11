@@ -145,8 +145,8 @@ DataMap.GetCommandMessage = command => DBCMDS.get(command);
  * @param {Object} data - object with properties matching DBKEY contain array of values
  * @returns {Array} - an array of {colkey,subkey,value} for each matching DBKEY
  */
-DataMap.ExtractCollections = data => {
-  let collections = [];
+DataMap.ExtractQueryData = data => {
+  let queries = [];
   // the colkey might be a compound key (e.g. pmcData.entities)
   Object.keys(data).forEach(foundKey => {
     // only return keys that match a collection name
@@ -164,9 +164,9 @@ DataMap.ExtractCollections = data => {
     // prepare for write
     const [colkey, subkey] = foundKey.split('.');
     const entry = { colkey, subkey, value };
-    collections.push(entry);
+    queries.push(entry);
   });
-  return collections;
+  return queries;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** Return an array of keys and update objects. Used to parse the update or
