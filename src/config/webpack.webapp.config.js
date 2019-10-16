@@ -75,7 +75,7 @@ const webConfiguration = env => {
         __filename: true,
         __dirname: true
       },
-      devtool: 'source-map',
+      devtool: 'source-map', // use inline for dev only
       // apply these additional plugins
       plugins: [
         new webpack.DefinePlugin({
