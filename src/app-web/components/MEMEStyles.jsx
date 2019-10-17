@@ -1,12 +1,17 @@
 import { blue, green, grey, indigo, orange, red, teal, yellow } from '@material-ui/core/colors';
 import { registerMorphableType } from '@svgdotjs/svg.js/src/main';
 import { Hidden } from '@material-ui/core';
+import DEFAULTS from '../modules/defaults';
+
+const { COLOR } = DEFAULTS;
 
 const m_drawerWidth = 100;
 const m_primary = indigo[500];
-const m_stickynoteIconColor = yellow[800]; // `#ffc904`;
+const m_selectedColor = indigo[800];
 const m_stickynoteColor = yellow[400]; //`#ffe25a`;
+const m_stickynoteIconColor = COLOR.STICKY_BUTTON; // '#ffd700'; // yellow[800]; // `#ffc904`;
 const m_systemTextColor = 'rgba(0,0,0,0.35)';
+const m_systemLabelFontSize = '0.6em';
 const m_systemLabelTextColor = 'rgba(0,0,0,0.25)';
 const m_resourceListWidth = 300;
 const m_zResourceList = 1250;
@@ -31,6 +36,10 @@ const styles = theme => {
     appBarRight: {
       display: 'inline-flex',
       marginRight: m_resourceListWidth
+    },
+    appBarRightExpanded: {
+      display: 'inline-flex',
+      marginRight: 0
     },
     drawer: {
       width: m_drawerWidth,
@@ -68,9 +77,13 @@ const styles = theme => {
       wordBreak: 'break-all',
       cursor: 'pointer'
     },
+    treeItemHovered: {
+      border: '2px solid',
+      borderColor: orange[800]
+    },
     treeItemSelected: {
       border: '2px solid',
-      borderColor: blue[800]
+      borderColor: m_selectedColor
     },
     treePropItem: {
       color: indigo[600],
@@ -93,11 +106,8 @@ const styles = theme => {
       backgroundColor: orange[500],
       '&:hover': { backgroundColor: orange[700] }
     },
-    edgeDialog: {
-      height: '70px'
-    },
     edgeDialogWindowLabel: {
-      fontSize: '0.6em',
+      fontSize: m_systemLabelFontSize,
       color: m_systemTextColor,
       marginBottom: '-10px',
       marginTop: '-1em'
@@ -106,6 +116,11 @@ const styles = theme => {
       color: orange[500],
       width: '150px',
       margin: '0 25px'
+    },
+    edgeDialogDescriptionField: {
+      color: orange[500],
+      width: '65%',
+      margin: '0'
     },
     edgeDialogPaper: {
       margin: `1em 10em 1em ${m_drawerWidth}px`,
@@ -266,7 +281,7 @@ const styles = theme => {
       marginTop: '10px'
     },
     evidenceWindowLabel: {
-      fontSize: '0.6em',
+      fontSize: m_systemLabelFontSize,
       color: m_systemTextColor,
       marginBottom: '5px'
     },
@@ -322,7 +337,11 @@ const styles = theme => {
       width: '290px',
       margin: '1px auto 1px 0',
       padding: '1px 0 10px 10px',
-      backgroundColor: teal[100]
+      backgroundColor: teal[100],
+      cursor: 'pointer'
+    },
+    evidenceLinkPaperHover: {
+      backgroundColor: teal[200]
     },
     evidenceLinkPaperExpanded: {
       height: 'auto',
@@ -432,6 +451,9 @@ const styles = theme => {
     stickynoteIcon: {
       color: m_stickynoteIconColor
     },
+    stickynoteIconOpen: {
+      color: m_selectedColor
+    },
     stickynoteCardAuthor: {
       alignItems: 'baseline',
       flexGrow: '1',
@@ -482,6 +504,30 @@ const styles = theme => {
     helpViewText: {
       display: 'block', // override default MDReactComponent <span>
       padding: '10px 0 5px 0'
+    },
+    descriptionLabel: {
+      fontSize: m_systemLabelFontSize,
+      marginBottom: '0.5em',
+      textTransform: 'uppercase'
+    },
+    descriptionViewPaper: {
+      position: 'absolute',
+      bottom: '10px',
+      right: '10px',
+      width: '305px',
+      zIndex: m_zResourceList,
+      padding: '15px 15px 0 15px',
+      color: 'white'
+    },
+    descriptionViewPaperPropColor: {
+      backgroundColor: indigo[400]
+    },
+    descriptionViewPaperMechColor: {
+      backgroundColor: orange[800]
+    },
+    descriptionViewText: {
+      display: 'block', // override default MDReactComponent <span>
+      padding: '0'
     }
   };
 };

@@ -4,6 +4,11 @@ Sticky Note
 
     For documentation, see boilerplate/src/app-web/components/StickyNote.jsx
     
+    NOTE: The text input needs a mouseDown handler to stopProgation of
+    the click to the react-draggable component in the parent 
+    StickyNoteCollection component.  Otherwise, the user won't be able
+    to click on the field to enter text.
+    
 props
 
     comment           Comment data passed from the parent StickyNote
@@ -43,6 +48,7 @@ import PropTypes from 'prop-types';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 import Grid from '@material-ui/core/Grid';
 import IconButton from '@material-ui/core/IconButton';
+import Input from '@material-ui/core/Input';
 import FilledInput from '@material-ui/core/FilledInput';
 import InputLabel from '@material-ui/core/InputLabel';
 import Paper from '@material-ui/core/Paper';
@@ -129,7 +135,7 @@ class StickyNote extends React.Component {
       this.props.OnStartEdit();
     });
   }
-
+  
   DoSave() {
     PMC.CommentAdd(this.props.refId, this.state.comment);
     this.props.OnUpdateComment({ comment: this.state.comment });
@@ -198,14 +204,18 @@ class StickyNote extends React.Component {
     });
   }
 
-  OnMouseEnter() {
+  OnMouseEnter(e) {
+    e.preventDefault();
+    e.stopPropagation();
     // Show Edit Buttons
     this.setState({
       showEditButtons: true
     });
   }
 
-  OnMouseLeave() {
+  OnMouseLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
     // Hide Edit Buttons
     this.setState({
       showEditButtons: false
@@ -221,16 +231,20 @@ class StickyNote extends React.Component {
     // See https://github.com/mui-org/material-ui/issues/14905 for details
     const theme = createMuiTheme();
     theme.overrides = {
+      MuiInputBase: {
+        input: {
+          backgroundColor: 'rgba(255,255,255,0.8)',
+          '&:hover': {
+            backgroundColor: 'rgba(255,255,255,1)'
+          },
+          '&:disabled': {
+            backgroundColor: 'rgba(255,255,255,0.1)'
+          }
+        }
+      },
       MuiFilledInput: {
         root: {
-          backgroundColor: 'rgba(250,255,178,0.3)',
-          paddingTop: '3px',
-          '&:hover': {
-            backgroundColor: 'rgba(255,255,255,0.5)'
-          },
-          '&$focused': {
-            backgroundColor: '#fff'
-          }
+          paddingTop: '3px'
         },
         multiline: {
           padding: '0'
@@ -280,7 +294,6 @@ class StickyNote extends React.Component {
     } else {
       criteriaDisplay = ADM.GetCriteriaLabel(comment.id);
     }
-
     return (
       <ClickAwayListener onClickAway={this.OnClickAway}>
         <Paper
@@ -310,11 +323,12 @@ class StickyNote extends React.Component {
                 </div>
               </div>
               <MuiThemeProvider theme={theme}>
-                <FilledInput
+                <Input
                   className={classes.stickynoteCardInput}
                   value={comment.text}
                   placeholder={comment.placeholder}
                   onChange={e => this.OnCommentTextChange(e.target.value)}
+                  onMouseDown={e => e.stopPropagation()}
                   variant="filled"
                   rowsMax="4"
                   multiline

@@ -44,6 +44,11 @@ UR.Subscribe('PROP_MOVED', data => {
 PMCView.InitializeViewgraph = container => {
   m_element = container;
   m_svgroot = SVGJS(m_element);
+  m_svgroot
+    .size(1000, 1000)
+    .viewbox(0, 0, 1000, 1000)
+    .panZoom({ zoomMin: 0.5, zoomMax: 2 })
+    .zoom(1);
   m_svgroot.mousedown(() => {
     DATA.VM_DeselectAllProps();
     DATA.VM_DeselectAllMechs();
@@ -182,7 +187,7 @@ PMCView.DefineDefs = svg => {
  * @param {SVGJSinstance} svg - SVGJS instance to add DEFs to
  */
 PMCView.DefineSymbols = svg => {
-  const chatColor = yellow[800];
+  const chatColor = COLOR.STICKY_BUTTON; // '#ffdd11'; // '#ffd300'; // yellow[800];
   SVGSYMBOLS.set(
     'chatIcon',
     (() => {

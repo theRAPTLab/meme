@@ -48,7 +48,7 @@ class VBadge {
      *           |
      *           +-- gStickyButtons (group)
      */
-    this.gBadges = vparent.gRoot.group().attr('id', 'gBadges');
+    this.gBadges = vparent.GetVBadgeParent().group().attr('id', 'gBadges');
     this.gEvLinkBadges = this.gBadges.group().attr('id', 'gEvLinkBadges');
     this.gStickyButtons = VBadge.SVGStickyButton(vparent, 0, 0);
     this.gBadges.add(this.gStickyButtons);
@@ -118,37 +118,36 @@ class VBadge {
 
     const isVMech = m_IsVMech(vparent);
 
-    let baseElement;
     let xOffset;
     let yOffset;
+    let x;
+    let y;
+    let baseX;
+    let baseY;
     if (isVMech) {
       // VMech
-      baseElement = vparent.pathLabel; // position of the text label along the path
-      // 'eat' is too short @ 19, but 'produce' is too long @ 51.
-      xOffset = 60; // horiz text approach: Math.max(40, vparent.horizText.length()) * 1.5 + m_pad * 3;
-      yOffset = -13; // hoist badges back up even with text baseline.
+      x = 0;
+      y = 0;
+      // xOffset ought to be the text length + padding
+      xOffset = vparent.horizText.length();
+      yOffset = -8; // hoist badges back up even with text baseline.
+      // baseX is the position on the right side of the parent that the badges should start drawing from
+      // it draws right-justified, like rtl text.
+      baseX = x + xOffset - m_pad * 3;
+      baseY = y + yOffset + m_pad * 2;
     } else {
       // VProp
-      baseElement = vparent.visBG; // position of the base prop rectangle
+      let baseElement = vparent.visBG; // position of the base prop rectangle
+      x = baseElement.x();
+      y = baseElement.y();
       xOffset = this.width;
       yOffset = -4;
+      baseX = x + xOffset - m_pad;
+      baseY = y + yOffset + m_pad * 2;
     }
-    const x = baseElement.x();
-    const y = baseElement.y();
-    const baseX = x + xOffset - m_pad;
-    const baseY = y + yOffset + m_pad * 2;
-    let xx = 0;
 
-    // FIXME Hack
-    // For VMechs, if baseElement is at 0,0 that means the pathLabel is not drawn yet.
-    // If pathLabel is not drawn yet, we can't get the position of the badges, so
-    // don't draw them.  (Without this, the VBadges will get drawn at 0,0)
-    if (isVMech && x === 0 && y === 0) {
-      // also hide horizText and sticky button offscreen
-      // horiztext appraoch vparent.horizText.move(-100, -100);
-      this.gStickyButtons.move(-100, -100);
-      return;
-    }
+    // counter offset for each badge
+    let xx = 0;
 
     // draw evidence link badges
     // -- first clear the group in case objects have changed
@@ -162,7 +161,13 @@ class VBadge {
       evlinks.forEach(evlink => {
         const badge = VBadge.SVGEvLink(evlink, vparent);
         this.gEvLinkBadges.add(badge);
-        badge.move(baseX + xx - badge.width() - m_pad, baseY);
+        if (isVMech) {
+          // Draw left-justified
+          badge.move(baseX + xx + badge.width(), baseY);
+        } else {
+          // Draw right-justified
+          badge.move(baseX + xx - badge.width() - m_pad, baseY);
+        }
         xx += badge.width() + m_pad;
       });
     }
@@ -197,7 +202,13 @@ class VBadge {
     }
 
     // Move gStickyButtons only AFTER setting display state, otherwise, the icon will get drawn at 0,0
-    this.gStickyButtons.move(baseX + xx - this.gStickyButtons.bbox().w - m_pad, baseY); // always move in case evlink badges change
+    if (isVMech) {
+      // left-justified
+      this.gStickyButtons.move(baseX + xx + this.gStickyButtons.bbox().w + m_pad, baseY); // always move in case evlink badges change      
+    } else {
+      // right-justified
+      this.gStickyButtons.move(baseX + xx - this.gStickyButtons.bbox().w - m_pad, baseY); // always move in case evlink badges change
+    }
 
     // adjust for width of vprop
     if (!isVMech) {
@@ -268,14 +279,16 @@ VBadge.SVGEvLink = (evlink, vparent) => {
   // create vbadge sub elements
   const gBadge = root.group().click(onClick);
   gBadge.gCircle = gBadge.circle(radius).fill('#4db6ac');
+  gBadge.gCircle.attr({ cursor: 'pointer' });
 
   gBadge.gLabel = gBadge
     .text(evlink.numberLabel)
     .font({ fill: '#fff', size: '1em', anchor: 'middle' })
-    .move(m_pad, m_pad / 2);
+    .move(m_pad, m_pad / 2)
+    .attr({ cursor: 'pointer' });
 
   gBadge.gRating = VBadge.SVGRating(evlink, gBadge).move(
-    (3 - Math.abs(Math.max(1, evlink.rating))) * 4, // always shift at least 1 symbol, since no rating is 0
+    (3 - Math.max(1, Math.abs(evlink.rating))) * 4, // always shift at least 1 symbol, since no rating is 0
     radius
   );
 
@@ -322,6 +335,10 @@ VBadge.SVGRating = (evlink, gBadge) => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  Creates and returns a sticky button group object with three buttons to turn on/off
+ * 
+ *  Click Events
+ *  VProp's drag handler prevents click and mouseup events from propagating
+ *  down to the gStickyButtons group.
  */
 VBadge.SVGStickyButton = (vparent, x, y) => {
   const onClick = customEvent => {
@@ -340,6 +357,10 @@ VBadge.SVGStickyButton = (vparent, x, y) => {
   let gStickyButtons = vparent.gRoot
     .group()
     .move(x, y)
+    .attr({
+      id: 'gStickyNoteBtn',
+      cursor: 'pointer'
+    })
     .click(onClick);
 
   // Create SVG Icons

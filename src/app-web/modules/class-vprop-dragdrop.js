@@ -17,6 +17,7 @@
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import DATA from './data';
 import UR from '../../system/ursys';
+import UTILS from './utils';
 // import { cssinfo } from './console-styles';
 
 /// PRIVATE DECLARATIONS //////////////////////////////////////////////////////
@@ -150,12 +151,25 @@ const AddDragDropHandlers = vprop => {
 
       // check children
       // and pass click to children
-      const gBadges = vprop.vBadge.gBadges;
+      const gStickyButton = vprop.vBadge.gStickyButtons;
       const mouseEvent = event.detail.event; // mouseEvent has clientX and clientY
-      const { offsetX, offsetY } = mouseEvent;
-      if (gBadges.inside(offsetX, offsetY)) {
+
+      // Convert click's screen coordinates to svg coordinates (zoomed and panned)
+      // https://www.sitepoint.com/how-to-translate-from-dom-to-svg-coordinates-and-back-again/
+      let svg = document.getElementById('modelSVG');
+      let pt = svg.createSVGPoint();
+      pt.x = mouseEvent.clientX;
+      pt.y = mouseEvent.clientY;
+      let svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
+      if (DBG) console.log('Clicked at screen', pt, ' / SVG coordinate', svgPt);
+      
+      // gStickyNoteButton is actually just a group object
+      // but it does have a bbox with the right coordinates.
+      // NOTE testing for 'inside' with the chat/chatBubble/chatOutline svg icons doesn't work
+      // because their bbox is at 0,0 if they're not visible.
+      if (gStickyButton.inside(svgPt.x, svgPt.y)) {
         // Handle as click and pass to VBadge
-        gBadges.fire('click', { event: mouseEvent });
+        gStickyButton.fire('click', { event: mouseEvent });
       } else {
         // Handle as selection
         DATA.VM_ToggleProp(vprop);
@@ -171,6 +185,8 @@ const AddDragDropHandlers = vprop => {
 
     // it did move, so do drop target magic
     const dropId = DATA.VM_PropsMouseOver().pop();
+    
+    const dropXY = `(${DragState(vprop).gRootXY.x},${DragState(vprop).gRootXY.y})`;
 
     if (dropId) {
       // there is a drop target
@@ -180,6 +196,7 @@ const AddDragDropHandlers = vprop => {
       // this has to come last because this automatically fires layout
       DATA.PMC_SetPropParent(vpropId, dropId);
       if (DBG) console.log(`[${vpropId}] moved to [${dropId}]`);
+      UTILS.RLog('PropertyDrag', `Drag property id=${vprop.id} onto id=${dropId} at ${dropXY}`);
     } else {
       // dropped on the desktop, no parent
       const parent = DATA.PropParent(vpropId);
@@ -188,11 +205,13 @@ const AddDragDropHandlers = vprop => {
         vprop.LayoutDisabled(true);
         const { x, y } = DragState(vprop).gRootXY;
         vprop.Move(x + dx, y + dy);
+        UTILS.RLog('PropertyDrag', `Drag property id=${vprop.id} from id=${parent} to ${dropXY}`);
       } else {
         if (DBG) console.log(`[${vpropId}] moved on desktop`);
         vprop.LayoutDisabled(true);
         const { x, y } = DragState(vprop).gRootXY;
         vprop.Move(x + dx, y + dy);
+        UTILS.RLog('PropertyDrag', `Drag property id=${vprop.id} to ${dropXY}`);
       }
       // this has to come last because this automatically fires layout
       DATA.PMC_SetPropParent(vpropId, undefined);

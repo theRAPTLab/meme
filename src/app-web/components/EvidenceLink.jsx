@@ -59,6 +59,7 @@ class EvidenceLink extends React.Component {
       ratingDefs: [],
       isBeingEdited: false,
       isExpanded: false,
+      isHovered: false,
       listenForSourceSelection: false
     };
 
@@ -88,7 +89,9 @@ class EvidenceLink extends React.Component {
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
   }
 
-  componentDidMount() { }
+  componentDidMount() {
+    this.DoDataUpdate(); // Force load ratingDefs
+  }
 
   componentWillUnmount() {
     UR.Unsubscribe('DATA_UPDATED', this.DoDataUpdate);
@@ -248,7 +251,7 @@ class EvidenceLink extends React.Component {
     }
   }
 
-  // User has clicked on a different component/property/mechanism
+  // User has selected a different component/property/mechanism as the source
   DoSelectionChange() {
     if (this.state.listenForSourceSelection) {
       let sourceId;
@@ -336,13 +339,14 @@ class EvidenceLink extends React.Component {
       ratingDefs,
       isBeingEdited,
       isExpanded,
+      isHovered,
       listenForSourceSelection
     } = this.state;
     if (id === '') return '';
 
     let sourceType;
     let sourceLabel;
-    if (propId !== undefined && DATA.Prop(propId)) {
+    if (propId !== undefined && DATA.HasProp(propId) && DATA.Prop(propId)) {
       sourceType = 'prop';
       sourceLabel = DATA.Prop(propId).name;
     } else if (mechId !== undefined && DATA.Mech(mechId)) {
@@ -359,11 +363,14 @@ class EvidenceLink extends React.Component {
           className={ClassNames(
             classes.evidenceLinkPaper,
             isExpanded ? classes.evidenceLinkPaperExpanded : '',
-            isBeingEdited ? classes.evidenceLinkPaperEditting : ''
+            isBeingEdited ? classes.evidenceLinkPaperEditting : '',
+            isHovered ? classes.evidenceLinkPaperHover : ''
           )}
           onClick={this.DoToggleExpanded}
           key={`${rsrcId}`}
           elevation={isExpanded ? 5 : 1}
+          onMouseEnter={() => this.setState({ isHovered: true })}
+          onMouseLeave={() => this.setState({ isHovered: false })}
         >
           {/* Title Bar */}
           <Button

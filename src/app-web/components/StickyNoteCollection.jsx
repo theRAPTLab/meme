@@ -5,7 +5,7 @@ Sticky Note Collection
 state
     parent      We don't update the parent object directly, 
                 we call PMC to do the update.
-                The parent object is just used to rretrive comments
+                The parent object is just used to retrieve comments
                 and the parentId.
 
 props
@@ -17,7 +17,7 @@ props
 
 ABOUT THE STICKY NOTE SYSTEM
 
-    There are three components to the Sticky Note System:
+    There are four components to the Sticky Note System:
     
     1. StickyNoteButton
     2. VBadge
@@ -30,10 +30,10 @@ StickyNoteButton
     1. Display the read/unread/blank status of a sticky note
     2. Clicking on the button will open up the sticky note display
     
-    StickyNoteButtons are designed to be attachable to any object (though 
-    currently they only attach to EvidenceLinks).
+    StickyNoteButtons are designed to be attachable to any React component
+    (including Evidence and the model itself).
     
-    They retain only a minimal amount of data: parentId and
+    They retain only a minimal amount of data (parentId) and
     retrieve status updates directly from PMCData.
     
     When they open a StickyNoteCollection, they use an URSYS.Publish call.
@@ -43,16 +43,16 @@ VBadge
     VBadges play the role of StickyNoteButtons for VProps and VMechs
     i.e. SVG objects (StickyNoteButton is used for React Components).
     
-    VBadges independtly display the read/unread status of comments,
+    VBadges independently display the read/unread status of comments,
     creating new comments, and updating existing comments.
     
-    They trigger StickyNoteColleciton via the same STICKY:OPEN
+    They trigger StickyNoteCollection via the same STICKY:OPEN call.
     
     VBadges also maintain an array of Evidence Link badges.
 
 StickyNoteCollection
     
-    A StickNotesCollection is the container component for StickyNotes.
+    A StickyNoteCollection is the container component for StickyNotes.
     Each StickyNoteCollection can contain any number of StickyNotes.
     StickyNotes display individual comments from different authors.
     
@@ -86,8 +86,8 @@ StickyNote
       by the StickNote.
       
       onStartEdit -- This is called whenever the user clicks on the edit button. 
-      This is passed to StickyNote so that StickyNote can hide buttons that
-      shouldn't be shown during edit (e.g. Reply)
+      This is passed to StickyNoteCollection so that StickyNoteCollection can hide 
+      buttons that shouldn't be shown during edit (e.g. Reply)
       
       onUpdateComment -- This is called whenever the user edits the comment text
       field or when the user is finished editing and ready to close the sticky.  
@@ -103,6 +103,7 @@ StickyNote
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import React from 'react';
 import PropTypes from 'prop-types';
+import Draggable from 'react-draggable';
 // Material UI components
 import Button from '@material-ui/core/Button';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
@@ -181,7 +182,7 @@ class StickyNoteCollection extends React.Component {
       isBeingEdited,
       comments,
       top: y,
-      left: x - 325, // width of stickyonotecard HACK!!!
+      left: x - 375, // width of stickyonotecard HACK!!!
       parentId
     });
   }
@@ -217,6 +218,8 @@ class StickyNoteCollection extends React.Component {
 
   DoCloseSticky() {
     if (DBG) console.log(PKG, 'DoCloseSticky');
+    
+    UR.Publish('STICKY_CLOSED');
 
     // Mark all comments read, then update comments
     this.setState(state => {
@@ -307,6 +310,8 @@ class StickyNoteCollection extends React.Component {
     // the ClickAwayListener seems to get a click event well after DoOpenSticky is called
     // so the StickyNoteCollection is closed immediately after opening.
     //
+    // The ClickAway listener should be placed directly on StickyNote instead.
+    //
     // console.log(PKG, 'OnClickAway isHidden', this.state.isHidden, 'isBeingEdited', this.state.isBeingEdited, 'close?', (!this.state.isHidden && !this.state.isBeingEdited))
     // if (!this.state.isHidden && !this.state.isBeingEdited) {
     //   this.DoCloseSticky();
@@ -320,47 +325,45 @@ class StickyNoteCollection extends React.Component {
     const { comments, isHidden, isBeingEdited, top, left, parentId } = this.state;
 
     return (
-      <div>
-        <ClickAwayListener onClickAway={this.OnClickAway}>
-          <Paper className={classes.stickynotePaper} hidden={isHidden} style={{ top, left }}>
-            <IconButton
-              size="small"
-              style={{ position: 'absolute', right: '-25px', top: '-25px' }}
-              onClick={this.OnCloseClick}
-            >
-              <CloseIcon />
-            </IconButton>
-            {comments.map(comment => {
-              return (
-                <StickyNote
-                  comment={comment}
-                  refId={parentId}
-                  key={parentId + comment.id}
-                  OnStartEdit={this.OnStartEdit}
-                  OnUpdateComment={this.OnUpdateComment}
-                />
-              );
-            })}
-            <Button
-              size="small"
-              style={{ margin: '5px' }}
-              variant="outlined"
-              hidden={isBeingEdited}
-              onClick={this.OnReplyClick}
-            >
-              Comment
-            </Button>
-            <Button
-              size="small"
-              style={{ float: 'right', margin: '5px' }}
-              variant="outlined"
-              onClick={this.OnCloseClick}
-            >
-              <CloseIcon /> Close
-            </Button>
-          </Paper>
-        </ClickAwayListener>
-      </div>
+      <Draggable>
+        <Paper className={classes.stickynotePaper} hidden={isHidden} style={{ top, left }}>
+          {/* <IconButton
+            size="small"
+            style={{ position: 'absolute', right: '-25px', top: '-25px' }}
+            onClick={this.OnCloseClick}
+          >
+            <CloseIcon />
+          </IconButton> */}
+          {comments.map(comment => {
+            return (
+              <StickyNote
+                comment={comment}
+                refId={parentId}
+                key={parentId + comment.id}
+                OnStartEdit={this.OnStartEdit}
+                OnUpdateComment={this.OnUpdateComment}
+              />
+            );
+          })}
+          <Button
+            size="small"
+            style={{ margin: '5px' }}
+            variant="outlined"
+            hidden={isBeingEdited}
+            onClick={this.OnReplyClick}
+          >
+            Comment
+          </Button>
+          <Button
+            size="small"
+            style={{ float: 'right', margin: '5px' }}
+            variant="outlined"
+            onClick={this.OnCloseClick}
+          >
+            <CloseIcon /> Close
+          </Button>
+        </Paper>
+      </Draggable>
     );
   }
 }

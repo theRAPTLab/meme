@@ -23,28 +23,24 @@ import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import List from '@material-ui/core/List';
 import Typography from '@material-ui/core/Typography';
-import Tooltip from '@material-ui/core/Tooltip';
-import Card from '@material-ui/core/Card';
 import Paper from '@material-ui/core/Paper';
 import Button from '@material-ui/core/Button';
 import Fab from '@material-ui/core/Fab';
 import TextField from '@material-ui/core/TextField';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-
 // Material UI Icons
 import AddIcon from '@material-ui/icons/Add';
 import ChatBubbleOutlineIcon from '@material-ui/icons/ChatBubbleOutline';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
 import EditIcon from '@material-ui/icons/Edit';
+import MenuIcon from '@material-ui/icons/Menu';
 // MEME App Components
+import DescriptionView from '../../components/DescriptionView';
 import HelpView from '../../components/HelpView';
 import Login from '../../components/Login';
 import MechDialog from '../../components/MechDialog';
 import ModelSelect from '../../components/ModelSelect';
+import PropDialog from '../../components/PropDialog';
 import ResourceView from '../../components/ResourceView';
 import ResourceItem from '../../components/ResourceItem';
 import RatingsDialog from '../../components/RatingsDialog';
@@ -64,16 +60,6 @@ import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DBG = false;
 const PKG = 'ViewMain:';
-
-// Customized TreeItem Component with smaller font
-const SmallTreeItem = withStyles(theme => ({
-  iconContainer: {
-    width: '16px'
-  },
-  label: {
-    fontSize: '11px'
-  }
-}))(props => <TreeItem {...props} />);
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -95,7 +81,6 @@ class ViewMain extends React.Component {
     this.DoModelTitleUpdate = this.DoModelTitleUpdate.bind(this);
     this.OnChangeModelTitle = this.OnChangeModelTitle.bind(this);
     this.DoSaveModelTitle = this.DoSaveModelTitle.bind(this);
-    this.OnPropDialogLabelChange = this.OnPropDialogLabelChange.bind(this);
     this.OnPropAdd = this.OnPropAdd.bind(this);
     this.OnPropDelete = this.OnPropDelete.bind(this);
     this.OnAddPropComment = this.OnAddPropComment.bind(this);
@@ -107,7 +92,6 @@ class ViewMain extends React.Component {
     this.DoMechClosed = this.DoMechClosed.bind(this);
     this.OnComponentAdd = this.OnComponentAdd.bind(this);
     this.OnPropDialogClose = this.OnPropDialogClose.bind(this);
-    this.OnPropDialogCreateClick = this.OnPropDialogCreateClick.bind(this);
     this.handleEvLinkSourceSelectRequest = this.handleEvLinkSourceSelectRequest.bind(this);
     this.DoSelectionChange = this.DoSelectionChange.bind(this);
     this.OnHelp = this.OnHelp.bind(this);
@@ -117,6 +101,7 @@ class ViewMain extends React.Component {
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Subscribe('MODEL_TITLE:UPDATED', this.DoModelTitleUpdate);
     UR.Subscribe('PROP_ADD', this.OnComponentAdd);
+    UR.Subscribe('PROPDIALOG_CLOSE', this.OnPropDialogClose);
     UR.Subscribe('MECH_ADD', this.OnMechAdd);
     UR.Subscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
     UR.Subscribe('MECHDIALOG:CLOSED', this.DoMechClosed);
@@ -129,10 +114,8 @@ class ViewMain extends React.Component {
       studentName: '',
       studentGroup: '',
       viewHeight: 0, // need to init this to prevent error with first render of resourceList
+      resourceLibraryIsOpen: true,
       addPropOpen: false,
-      addPropLabel: '',
-      addPropPropId: '', // The prop Id of the component being edited, if new component then ''
-      addPropIsProperty: false, // AddComponent dialog is adding a property (not a component)
       addEdgeOpen: false,
       addEdgeSource: '', // Add Mech Dialog
       addEdgeTarget: '', // Add Mech Dialog
@@ -158,6 +141,9 @@ class ViewMain extends React.Component {
     UR.Unsubscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Unsubscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Unsubscribe('MODEL_TITLE:UPDATED', this.DoModelTitleUpdate);
+    UR.Unsubscribe('PROP_ADD', this.OnComponentAdd);
+    UR.Unsubscribe('PROPDIALOG_CLOSE', this.OnPropDialogClose);
+    UR.Unsubscribe('MECH_ADD', this.OnMechAdd);
     UR.Unsubscribe('REQUEST_SELECT_EVLINK_SOURCE', this.handleEvLinkSourceSelectRequest);
     UR.Unsubscribe('MECHDIALOG:CLOSED', this.DoMechClosed);
   }
@@ -224,28 +210,19 @@ class ViewMain extends React.Component {
     ADM.ModelTitleUpdate(this.state.modelId, this.state.title);
   }
 
-  OnPropDialogLabelChange(e) {
-    this.setState({ addPropLabel: e.target.value });
-  }
-
   // User clicked on "(+) Add Component" drawer button
   OnComponentAdd() {
-    if (DBG) console.log('Add!');
+    UR.Publish('PROPDIALOG_OPEN', { isProperty: false });
     this.setState({
-      addPropOpen: true,
-      addPropLabel: '', // clear the old property name
-      addPropPropId: '', // new prop, so clear propId
-      addPropIsProperty: false // adding component, not property
+      addPropOpen: true
     });
   }
 
   // User selected component/prop and clicked on "(+) Add Property Button"
   OnPropAdd() {
+    UR.Publish('PROPDIALOG_OPEN', { isProperty: true });
     this.setState({
-      addPropOpen: true,
-      addPropLabel: '', // clear the old property name
-      addPropPropId: '', // new prop, so clear propId
-      addPropIsProperty: true
+      addPropOpen: true
     });
   }
 
@@ -255,13 +232,21 @@ class ViewMain extends React.Component {
     if (selectedPropIds.length > 0) {
       let propId = selectedPropIds[0];
       let prop = DATA.Prop(propId);
+      UR.Publish('PROPDIALOG_OPEN', {
+        label: prop.name,
+        propId,
+        description: prop.description,
+        isProperty: false
+      });
       this.setState({
-        addPropOpen: true,
-        addPropLabel: prop.name,
-        addPropPropId: propId,
-        addPropIsProperty: false
+        addPropOpen: true
       });
     }
+  }
+
+  OnPropDialogClose() {
+    if (DBG) console.log('close');
+    this.setState({ addPropOpen: false });
   }
 
   // User selected component/prop and clicked on "() Delete"
@@ -332,6 +317,7 @@ class ViewMain extends React.Component {
       let data = {
         id: mech.id, // we want db id, not graphlib mechId
         label: mech.name,
+        description: mech.description,
         sourceId: vw[0],
         targetId: vw[1]
       };
@@ -356,11 +342,6 @@ class ViewMain extends React.Component {
     this.setState({
       mechIsSelected: false
     });
-  }
-
-  OnPropDialogClose() {
-    if (DBG) console.log('close');
-    this.setState({ addPropOpen: false });
   }
 
   OnPropDialogCreateClick(e) {
@@ -455,8 +436,7 @@ class ViewMain extends React.Component {
       studentId,
       studentName,
       studentGroup,
-      addPropLabel,
-      addPropPropId,
+      resourceLibraryIsOpen,
       addPropOpen,
       addEdgeOpen,
       componentIsSelected,
@@ -493,7 +473,9 @@ class ViewMain extends React.Component {
               onBlur={this.DoSaveModelTitle}
             />
             <Typography variant="caption">&nbsp;&nbsp;by {modelAuthorGroupName} Group</Typography>
-            <div className={classes.appBarRight}>
+            <div
+              className={resourceLibraryIsOpen ? classes.appBarRight : classes.appBarRightExpanded}
+            >
               <StickyNoteButton parentId={modelId} />
               &nbsp;&nbsp; &nbsp;&nbsp;
               <Button onClick={ADM.CloseModel} color="inherit">
@@ -507,6 +489,13 @@ class ViewMain extends React.Component {
               </Button>
               <Button onClick={this.OnHelp} color="inherit">
                 ?
+              </Button>
+              <Button
+                onClick={() => this.setState({ resourceLibraryIsOpen: true })}
+                hidden={resourceLibraryIsOpen}
+                color="inherit"
+              >
+                <MenuIcon />
               </Button>
             </div>
           </Toolbar>
@@ -548,16 +537,25 @@ class ViewMain extends React.Component {
 
           <StickyNoteCollection />
           <RatingsDialog />
-
-          {/* Mech Dialog */}
           <MechDialog />
+          <DescriptionView />
         </main>
 
         {/* Resource Library */}
-        <Drawer variant="permanent" style={{ width: '300px' }} anchor="right">
+        <Drawer variant="persistent" anchor="right" open={resourceLibraryIsOpen}>
           {/*<div style={{ height: this.state.viewHeight + 64, overflowY: 'scroll', zIndex: 1250 }}>*/}
           <Paper className={classes.resourceList}>
-            <div className={classes.resourceListLabel}>RESOURCE LIBRARY</div>
+            <div className={classes.resourceListLabel}>
+              <Button
+                onClick={() => this.setState({ resourceLibraryIsOpen: false })}
+                color="inherit"
+                size="small"
+                style={{ width: '100%' }}
+              >
+                <div style={{ width: '100%', textAlign: 'left' }}>RESOURCE LIBRARY</div>
+                <ChevronRightIcon style={{ float: 'right' }} />
+              </Button>
+            </div>
             <List dense>
               {resources.map(resource => (
                 <ResourceItem key={resource.id} resource={resource} />
@@ -574,35 +572,7 @@ class ViewMain extends React.Component {
         <HelpView />
 
         {/* Prop Dialog -- Property label editing dialog */}
-        <Dialog
-          open={this.state.addPropOpen}
-          onClose={this.OnPropDialogClose}
-          aria-labelledby="form-dialog-title"
-        >
-          <form onSubmit={this.OnPropDialogCreateClick}>
-            <DialogTitle id="form-dialog-title">Add Component/Property</DialogTitle>
-            <DialogContent>
-              <DialogContentText>Type a name for your component or property.</DialogContentText>
-              <TextField
-                autoFocus
-                margin="dense"
-                id="propLabel"
-                label="Label"
-                fullWidth
-                onChange={this.OnPropDialogLabelChange}
-                value={addPropLabel}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={this.OnPropDialogClose} color="primary">
-                Cancel
-              </Button>
-              <Button type="submit" color="primary">
-                {addPropPropId === '' ? 'Create' : 'Save'}
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+        <PropDialog />
 
         {/* Component/Mech add/edit/delete buttons that respond to selection events */}
         <div
