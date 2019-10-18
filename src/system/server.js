@@ -19,7 +19,7 @@ const EXPRESS = require('./server-express');
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const PROMPTS = require('./util/prompts');
 //
-const { TERM_URSYS: CS, CCRIT: CC, CR } = PROMPTS;
+const { TERM_URSYS: CS, CCRIT: CC, CR, TR } = PROMPTS;
 const LPR = 'URSYS';
 const PR = `${CS}${PROMPTS.Pad(LPR)}${CR}`;
 const SERVER_INFO = {
@@ -38,7 +38,8 @@ let URSYS = {};
  */
 URSYS.Initialize = (options = {}) => {
   LOGGER.Write(LPR, `initializing network}`);
-  if (options.memehost) console.log(PR, `MEMEHOST:${options.memehost}`);
+  if (options.memehost) console.log(PR, `${CC}MEMEHOST${TR} ${options.memehost}`);
+  if (process.env.DATASET) console.log(PR, `${CC}DATASET=${TR} ${process.env.DATASET}`);
   console.log(PR, `${CS}STARTING UR SOCKET SERVER${CR}`);
   URSYS.RegisterHandlers();
   UDB.InitializeDatabase(options);

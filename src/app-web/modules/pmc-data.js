@@ -147,30 +147,31 @@ PMCData.InitializeModel = (model, admdb) => {
   const data = pmcData.find(data => data.id === pmcDataId);
   if (DBG) console.log('loaded data', data);
   if (DBG) console.log('data.entities start processing');
-  data.entities.forEach(obj => {
-    if (DBG) console.log(obj.type, obj.id, obj);
-    switch (obj.type) {
-      case 'prop':
-        g.setNode(obj.id, { name: obj.name });
-        if (obj.parent) {
-          g.setParent(obj.id, obj.parent);
-        }
-        break;
-      case 'mech':
-        if (obj.source && obj.target)
-          g.setEdge(obj.source, obj.target, {
-            name: obj.name,
-            id: obj.id
-          });
-        break;
-      case 'evidence':
-        obj.comments = obj.comments || [];
-        a_evidence.push(obj);
-        break;
-      default:
-        console.error('PMCData.InitializeModel could not map unknown type', obj);
-    }
-  });
+  if (data.entities)
+    data.entities.forEach(obj => {
+      if (DBG) console.log(obj.type, obj.id, obj);
+      switch (obj.type) {
+        case 'prop':
+          g.setNode(obj.id, { name: obj.name });
+          if (obj.parent) {
+            g.setParent(obj.id, obj.parent);
+          }
+          break;
+        case 'mech':
+          if (obj.source && obj.target)
+            g.setEdge(obj.source, obj.target, {
+              name: obj.name,
+              id: obj.id
+            });
+          break;
+        case 'evidence':
+          obj.comments = obj.comments || [];
+          a_evidence.push(obj);
+          break;
+        default:
+          console.error('PMCData.InitializeModel could not map unknown type', obj);
+      }
+    });
   if (DBG) console.log('data.entities processed');
 
   // Comments
@@ -592,7 +593,7 @@ PMCData.HasMech = (evo, ew) => {
 PMCData.Prop = nodeId => {
   const prop = m_graph.node(nodeId);
   if (prop) return prop;
-  console.error(`no prop with id '${nodeId}' exists`);
+  console.error(`no prop with id '${nodeId}' typeof ${typeof nodeId} exists`);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
@@ -664,12 +665,13 @@ PMCData.PMC_PropAdd = newPropObj => {
 PMCData.PMC_PropUpdate = (propId, newData) => {
   let numericId = propId;
   if (typeof propId !== 'number') {
-    console.log(
-      'PMCData.PMC_PropUpdate expected Number but got',
-      typeof propId,
-      propId,
-      '!  Coercing to Number!  Review the calling function to see why non-Number was passed.'
-    );
+    if (DBG)
+      console.log(
+        'PMCData.PMC_PropUpdate expected Number but got',
+        typeof propId,
+        propId,
+        '!  Coercing to Number!  Review the calling function to see why non-Number was passed.'
+      );
     numericId = Number(propId);
   }
   if (!DATAMAP.IsValidId(numericId)) throw Error('invalid id');
@@ -697,12 +699,13 @@ PMCData.PMC_PropUpdate = (propId, newData) => {
 PMCData.PMC_PropDelete = propId => {
   let numericId = propId;
   if (typeof propId !== 'number') {
-    console.log(
-      'PMCData.PMC_PropDelete expected Number but got',
-      typeof propId,
-      propId,
-      '!  Coercing to Number!  Review the calling function to see why non-Number was passed.'
-    );
+    if (DBG)
+      console.log(
+        'PMCData.PMC_PropDelete expected Number but got',
+        typeof propId,
+        propId,
+        '!  Coercing to Number!  Review the calling function to see why non-Number was passed.'
+      );
     numericId = Number(propId);
   }
   if (!DATAMAP.IsValidId(numericId)) throw Error('invalid id');
@@ -794,12 +797,18 @@ PMCData.PMC_SetPropParent = (nodeId, parentId) => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_MechAdd = (sourceId, targetId, label) => {
+  if (DBG) {
+    if (typeof sourceId !== 'number')
+      console.log('coercing sourceId to Number from', typeof sourceId);
+    if (typeof targetId !== 'number')
+      console.log('coercing targetId to Number from', typeof targetId);
+  }
   const modelId = ASET.selectedModelId;
   const mechObj = {
     type: 'mech',
     name: label,
-    source: sourceId,
-    target: targetId
+    source: Number(sourceId),
+    target: Number(targetId)
   };
   return UR.DBQuery('add', {
     'pmcData.entities': {
@@ -828,12 +837,19 @@ PMCData.PMC_MechUpdate = (origMech, newMech) => {
 
   // Update the data
   const { sourceId, targetId, label } = newMech;
+  if (DBG) {
+    if (typeof sourceId !== 'number')
+      console.log('coercing sourceId to Number from', typeof sourceId);
+    if (typeof targetId !== 'number')
+      console.log('coercing targetId to Number from', typeof targetId);
+  }
+
   const mechObj = {
     type: 'mech',
     id: origMech.id,
     name: label,
-    source: sourceId,
-    target: targetId
+    source: Number(sourceId),
+    target: Number(targetId)
   };
   return UR.DBQuery('update', {
     'pmcData.entities': {
@@ -895,11 +911,16 @@ PMCData.PMC_MechDelete = mechId => {
   // FIXME / REVIEW : Do we need to use `name` to distinguish between
   // multiple edges between the same source target?
   const mech = PMCData.Mech(mechId);
+
+  if (DBG) {
+    if (typeof mechId !== 'number') console.log('coercing mechId to Number from', typeof mechId);
+  }
+
   const modelId = ASET.selectedModelId;
   return UR.DBQuery('remove', {
     'pmcData.entities': {
       id: modelId,
-      entities: { id: mech.id }
+      entities: { id: Number(mech.id) }
     }
   });
 };
@@ -1064,12 +1085,13 @@ PMCData.PMC_GetEvLinksByPropId = propId => {
        use of a string id).  Changing this would require cascading changes across
        many different code areas.
     */
-    console.log(
-      'PMCData.PMC_GetEvLinksByPropId expected Number but got',
-      typeof propId,
-      propId,
-      '!  Coercing to Number!  Review the calling function to see why non-Number was passed.'
-    );
+    if (DBG)
+      console.log(
+        'PMCData.PMC_GetEvLinksByPropId expected Number but got',
+        typeof propId,
+        propId,
+        '!  Coercing to Number!  Review the calling function to see why non-Number was passed.'
+      );
     numericId = Number(propId);
   }
   if (!DATAMAP.IsValidId(numericId)) throw Error('invalid id');

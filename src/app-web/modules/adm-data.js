@@ -85,7 +85,7 @@ ADMData.SyncAddedData = data => {
   const syncitems = DATAMAP.ExtractSyncData(data);
   syncitems.forEach(item => {
     const { colkey, subkey, value } = item;
-    console.log('added', colkey, subkey || '', value);
+    if (DBG) console.log('added', colkey, subkey || '', value);
   });
   // the manual inspection way (more HACKY)
   if (data.teachers) {

@@ -23,10 +23,9 @@ const UNET = require('./server-network');
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-const { TERM_DB: CLR, TR, CCRIT } = PROMPTS;
+const { TERM_DB: CLR, TR, CCRIT: CC } = PROMPTS;
 const PR = `${CLR}${PROMPTS.Pad('UR_DB')}${TR}`;
 const RUNTIMEPATH = PATH.join(__dirname, '../../runtime');
-const DATASETPATH = PATH.join(__dirname, '/datasets/meme');
 
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -38,8 +37,10 @@ let recv_queue = []; // queue incoming requests
 
 /// API METHODS ///////////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-const DB_CONFIG = {
-  dataset: 'meme' // eventually this will be provided from somewhere
+const DB_DATASETS = {
+  init: '_blank',
+  electron: 'meme',
+  devserver: 'test'
 }; //
 const DB = {};
 
@@ -48,21 +49,19 @@ const DB = {};
 /** Initialize database, creating blank DB file if necessary.
  */
 DB.InitializeDatabase = (options = {}) => {
-  let dataset = DB_CONFIG.dataset || 'test';
+  // NOTE: to set env on commandline, use 'DATASET=dataset npm run dev'
+  let dataset = process.env.DATASET || DB_DATASETS[options.memehost] || 'test';
   let db_file = m_GetValidDBFilePath(dataset);
   FS.ensureDirSync(PATH.dirname(db_file));
   if (!FS.existsSync(db_file)) {
     console.log(PR, `CREATING NEW DATABASE FILE '${db_file}'`);
   }
-  if (options.memehost !== 'devserver') {
-    console.log(PR, `non-devserver mode:'${options.memehost}' will not overwrite dataset`);
-  }
 
   // initialize database with given options
-  console.log(PR, `loading database ${db_file}`);
+  console.log(PR, `${CC}DATABASE${TR} ${db_file}`);
   let ropt = {
     autoload: true,
-    autoloadCallback: f_DatabaseInitialize,
+    autoloadCallback: f_LoadDataset,
     autosave: true,
     autosaveCallback: f_AutosaveStatus,
     autosaveInterval: 3000 // save every four seconds
@@ -84,56 +83,56 @@ DB.InitializeDatabase = (options = {}) => {
   /* Local Utility Functions *************************************************/
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // callback on load
-  function f_DatabaseInitialize() {
+  function f_LoadDataset() {
     // on the first load of (non-existent database), we will have no
     // collections so we can detect the absence of our collections and
     // add (and configure) them now.
-    if (options.memehost === 'devserver') {
-      const fname = `'datasets/${DB_CONFIG.dataset}'`;
-      console.log(PR, `${CCRIT}DEV OVERRIDE${TR}...reloading database from ${fname}`);
-    }
+    // loop over all collections, initializing if necessary
     DATAMAP.Collections().forEach(name => f_LoadCollection(name));
+    // save database
     console.log(PR, `database ready`);
     console.log(PR, fout_CountCollections());
     m_db.saveDatabase();
-
-    // Call complete callback
-    if (typeof m_options.onLoadComplete === 'function') {
-      m_options.onLoadComplete();
-    }
-  } // end f_DatabaseInitialize
+  } // end f_LoadDataset
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   function f_AutosaveStatus() {
     const status = fout_CountCollections() || '(records updated)';
     console.log(PR, `AUTOSAVING! ${status}`);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  function f_EnsureCollection(col) {
-    if (m_db.getCollection(col) === null) {
+  function f_LoadCollection(col) {
+    // ensure collection exists
+    const isInit = m_db.getCollection(col) !== null ? false : true;
+    if (isInit) {
       m_db.addCollection(col, {
         asyncListeners: false,
         autoupdate: true,
         cloneObjects: true // IMPORTANT
       });
     }
-    return m_db.getCollection(col);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  function f_LoadCollection(col) {
-    const collection = f_EnsureCollection(col);
+    const collection = m_db.getCollection(col);
     // autoincrement enable
     collection.on('insert', u_CopyLokiId);
-    // if not running devserver, don't overwrite database
-    if (options.memehost !== 'devserver') {
-      console.log(PR, `${options.memehost}: using '${col}' w/ ${collection.count()} elements`);
+    // get datapath
+    const dpath = PATH.join(__dirname, `/datasets/${dataset}/${col}.db`);
+    const overridden = process.env.DATASET ? `(ENV.DATASET='${process.env.DATASET}')` : '';
+    // if running devserver, always overwrite
+    if (options.memehost === 'devserver') {
+      // otherwise...reset the dataset from template .db.js files
+      console.log(PR, `resetting dataset '${col}.db' ${overridden}`);
+      collection.clear();
+      collection.insert(require(dpath));
       return;
     }
-    // otherwise...reset the dataset from template .db.js files
-    const dpath = `${DATASETPATH}/${col}.db`;
-    console.log(PR, `resetting dataset '${col}.db'`);
-    collection.clear();
-    collection.insert(require(dpath));
-    // save collection reference
+    // got this far, then we're not running a devserver, so we need to
+    // initialize the collection ONLY if isInit is true
+    if (isInit) {
+      console.log(PR, `${options.memehost} fresh init: '${dataset}/${col}.db'`);
+      collection.insert(require(dpath));
+      return;
+    } else {
+      console.log(PR, `${options.memehost}: '${col}' has ${collection.count()} elements`);
+    }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   function fout_CountCollections() {
@@ -271,7 +270,7 @@ DB.PKT_Add = pkt => {
             return; // process error outside query loop
           }
 
-          const list = match[subkey];
+          const list = match[subkey] || [];
           if (!DATAMAP.HasValidIdObjs(list)) {
             error += `${reskey} list missing ids ${JSON.stringify(list)}`;
             return; // process error outside query loop
@@ -354,6 +353,7 @@ DB.PKT_Update = pkt => {
         if (subkey) {
           // if subkey, then do inside-field processing
           reskey = `${colkey}.${subkey}`;
+          if (!record[subkey]) record[subkey] = [];
           retval = DATAMAP.MutateObjectProp(record, subkey, value[subkey]);
           if (!retval) {
             if (subkey === 'visuals') {
@@ -447,6 +447,7 @@ DB.PKT_Remove = pkt => {
       found.update(record => {
         const reskey = `${colkey}.${subkey}`;
         results[reskey] = results[reskey] || [];
+        record[subkey] = record[subkey] || []; // make sure array exists in record
         const subrecord = record[subkey]; // this is what we want to modify
         if (!DATAMAP.IsValidId(value[subkey].id)) {
           error += `${reskey} no id in ${JSON.stringify(value[subkey])}`;

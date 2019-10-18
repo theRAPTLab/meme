@@ -71,6 +71,15 @@ $$$.PMC_IsDifferentPropParent = (propId, newParentId) => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if (!window.ur) window.ur = {};
 // - - - - - - - - - - - - - - - - - - - - -
+// get db
+window.ur.getdb = prop => {
+  UR.NetCall('NET:SRV_DBGET', {}).then(data => {
+    if (typeof prop === 'string') {
+      console.log(`DATABASE TABLE ${prop}:`, data[prop]);
+    } else console.log('DATABASE DUMP', data);
+  });
+  return 'dumping database';
+};
 // test update group
 window.ur.tupg = id => {
   const g = ADM.GetGroup(id);
