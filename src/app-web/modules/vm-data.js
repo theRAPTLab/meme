@@ -1,7 +1,9 @@
 import { cssinfo, cssreset, cssdata } from './console-styles';
 import DEFAULTS from './defaults';
+import DATAMAP from '../../system/common-datamap';
 import UR from '../../system/ursys';
 import UTILS from './utils';
+import ASET from './adm-settings';
 
 /// VIEWMODEL /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -18,7 +20,43 @@ let max_selections = 1; // Limit the number of objects that can be selected simu
 const DBG = false;
 const PKG = 'VMDATA';
 const { CoerceToPathId, CoerceToEdgeObj } = DEFAULTS;
-const MOD = {};
+const VM = {};
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** URSYS: DATABASE SYNC
+ *  Receive a list of ONLY changed objects to the specified collections so
+ *  adm_db can be updated in a single place. Afterwards, fire any necessary
+ *  UPDATE or BUILD or SELECT.
+ *  See common-datamap.js for the collection keys itemized in DBKEYS. Called from
+ *  data.js.
+ *  @param {Object} data - a collection object
+ */
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+VM.SyncUpdatedData = data => {
+  const syncitems = DATAMAP.ExtractSyncData(data);
+  syncitems.forEach(item => {
+    const { colkey, subkey, value } = item;
+    if (DBG) console.log('updated', colkey, subkey || '', value);
+    if (subkey === 'visuals') {
+      switch (value.type) {
+        case 'vprop':
+          const { id, pos } = value;
+          if (DBG) console.log(`vprop ${id} update ${pos.x},${pos.y}`);
+          const vprop = VM.VM_VProp(String(id));
+          if (!vprop) {
+            if (DBG) console.error(`vprop ${id} doesn't exist`);
+            break;
+          }
+          vprop.Move(pos);
+          vprop.LayoutDisabled(true);
+          UR.Publish('PROP_MOVED', { vprop: value });
+          break;
+        default:
+          console.log(`unhandled visual type ${value.type}`);
+      }
+    }
+  });
+};
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
@@ -26,7 +64,7 @@ const MOD = {};
  *  containing nodeId strings
  *  @return {object} - object { added, updated, removed }
  */
-MOD.VM_GetVPropChanges = all_props => {
+VM.VM_GetVPropChanges = all_props => {
   // remember that all_props is an array of string ids, not objects
   // therefore the returned arrays have values, not references! yay!
   const added = [];
@@ -57,7 +95,7 @@ MOD.VM_GetVPropChanges = all_props => {
  *  @param {string} nodeId - the property with nodeId to test
  *  @return {boolean} - true if the nodeId exists
  */
-MOD.VM_VPropExists = nodeId => {
+VM.VM_VPropExists = nodeId => {
   return map_vprops.has(nodeId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -66,7 +104,7 @@ MOD.VM_VPropExists = nodeId => {
  *  @param {string} nodeId - the property with nodeId to retrieve
  *  @return {VProp} - VProp instance, if it exists
  */
-MOD.VM_VProp = nodeId => {
+VM.VM_VProp = nodeId => {
   return map_vprops.get(nodeId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -74,7 +112,7 @@ MOD.VM_VProp = nodeId => {
  *  deletes the VProp corresponding to nodeId if it exists
  *  @param {string} nodeId - the property with nodeId to delete
  */
-MOD.VM_VPropDelete = nodeId => {
+VM.VM_VPropDelete = nodeId => {
   map_vprops.delete(nodeId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -83,7 +121,7 @@ MOD.VM_VPropDelete = nodeId => {
  *  @param {string} nodeId - the property with nodeId to add to viewmodel
  *  @param {VProp} vprop - the property with nodeId to add to viewmodel
  */
-MOD.VM_VPropSet = (nodeId, vprop) => {
+VM.VM_VPropSet = (nodeId, vprop) => {
   map_vprops.set(nodeId, vprop);
 };
 
@@ -92,7 +130,7 @@ MOD.VM_VPropSet = (nodeId, vprop) => {
  *  returns an object containing added, updated, removed string arrays
  *  containing pathIds.
  */
-MOD.VM_GetVMechChanges = all_mechs => {
+VM.VM_GetVMechChanges = all_mechs => {
   // remember that all_mechs is an array of { v, w } edgeObjects.
   const added = [];
   const updated = [];
@@ -125,7 +163,7 @@ MOD.VM_GetVMechChanges = all_mechs => {
  *  or a source/target pair of nodeId strings.
  *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
  *  @param {string|undefined} ew - if defined, nodeId string of the target prop */
-MOD.VM_VMechExists = (evo, ew) => {
+VM.VM_VMechExists = (evo, ew) => {
   const pathId = CoerceToPathId(evo, ew);
   return map_vmechs.has(pathId);
 };
@@ -138,7 +176,7 @@ MOD.VM_VMechExists = (evo, ew) => {
  *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
  *  @param {string|undefined} ew - if defined, nodeId string of the target prop
  */
-MOD.VM_VMech = (evo, ew) => {
+VM.VM_VMech = (evo, ew) => {
   const pathId = CoerceToPathId(evo, ew);
   return map_vmechs.get(pathId);
 };
@@ -151,7 +189,7 @@ MOD.VM_VMech = (evo, ew) => {
  *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
  *  @param {string|undefined} ew - if defined, nodeId string of the target prop
  */
-MOD.VM_VMechDelete = (evo, ew) => {
+VM.VM_VMechDelete = (evo, ew) => {
   const pathId = CoerceToPathId(evo, ew);
   map_vmechs.delete(pathId);
 };
@@ -165,7 +203,7 @@ MOD.VM_VMechDelete = (evo, ew) => {
  *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
  *  @param {string|undefined} ew - if defined, nodeId string of the target prop
  */
-MOD.VM_VMechSet = (vmech, evo, ew) => {
+VM.VM_VMechSet = (vmech, evo, ew) => {
   const pathId = CoerceToPathId(evo, ew);
   map_vmechs.set(pathId, vmech);
 };
@@ -174,14 +212,14 @@ MOD.VM_VMechSet = (vmech, evo, ew) => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function vm_DumpSelection(prompt) {
   if (prompt) console.log(prompt);
-  console.table(MOD.VM_SelectedPropsIds());
+  console.table(VM.VM_SelectedPropsIds());
 }
 /** API.VIEWMODEL:
- * add the vprop to the selection set. The vprop will be
- * updated in its appearance to reflect its new state.
- * @param {object} vprop - VProp instance with id property.
+ *  add the vprop to the selection set. The vprop will be
+ *  updated in its appearance to reflect its new state.
+ *  @param {object} vprop - VProp instance with id property.
  */
-MOD.VM_SelectAddProp = vprop => {
+VM.VM_SelectAddProp = vprop => {
   // set appropriate vprop flags
   vprop.visualState.Select();
   vprop.Draw();
@@ -192,17 +230,17 @@ MOD.VM_SelectAddProp = vprop => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * set the vprop to the selection set. The vprop will be
- * updated in its appearance to reflect its new state.
- * @param {object} vprop - VProp instance with id property.
+ *  set the vprop to the selection set. The vprop will be
+ *  updated in its appearance to reflect its new state.
+ *  @param {object} vprop - VProp instance with id property.
  */
-MOD.VM_SelectProp = vprop => {
+VM.VM_SelectProp = vprop => {
   // set appropriate vprop flags
   vprop.visualState.Select();
   vprop.Draw();
   // update viewmodel
   selected_vprops.forEach(id => {
-    const vp = MOD.VM_VProp(id);
+    const vp = VM.VM_VProp(id);
     vp.visualState.Deselect();
   });
   selected_vprops.clear();
@@ -212,46 +250,46 @@ MOD.VM_SelectProp = vprop => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** internal function:
- * Called by drag/drop when a mouseenter event occurs
+ *  Called by drag/drop when a mouseenter event occurs
  */
-MOD.VM_PropMouseEnter = vprop => {
+VM.VM_PropMouseEnter = vprop => {
   map_rollover.set(vprop.Id());
-  const topPropId = MOD.VM_PropsMouseOver().pop();
+  const topPropId = VM.VM_PropsMouseOver().pop();
   if (vprop.Id() === topPropId) vprop.HoverState(true);
 };
 /** internal function:
  * Called by drag/drop when a mouseexit event occurs
  */
-MOD.VM_PropMouseExit = vprop => {
+VM.VM_PropMouseExit = vprop => {
   if (vprop.posMode.isDragging) return;
   map_rollover.delete(vprop.Id());
   vprop.HoverState(false);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.UI:
- * Return the array of targets that are currently "hovered" over
- * @returns {array} propId array
+ *  Return the array of targets that are currently "hovered" over
+ *  @returns {array} propId array
  */
-MOD.VM_PropsMouseOver = () => {
+VM.VM_PropsMouseOver = () => {
   return [...map_rollover.keys()];
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * Set the maximum number of objects the user can select.
- * After the limit is reached, users can not select any additional objects
- * though they can still toggle existing objects.
- * @oaram {integer} max - Maximum number of selected objects allowed.
+ *  Set the maximum number of objects the user can select.
+ *  After the limit is reached, users can not select any additional objects
+ *  though they can still toggle existing objects.
+ *  @oaram {integer} max - Maximum number of selected objects allowed.
  */
-MOD.VM_SetSelectionLimit = max => {
+VM.VM_SetSelectionLimit = max => {
   max_selections = max;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * Remove the passed vprop from the selection set, if set. The vprop will be
- * updated in its appearance to reflect its new state.
- * @param {object} vprop - VProp instance with id property
+ *  Remove the passed vprop from the selection set, if set. The vprop will be
+ *  updated in its appearance to reflect its new state.
+ *  @param {object} vprop - VProp instance with id property
  */
-MOD.VM_DeselectProp = vprop => {
+VM.VM_DeselectProp = vprop => {
   // set appropriate vprop flags
   vprop.visualState.Deselect();
   vprop.Draw();
@@ -262,11 +300,11 @@ MOD.VM_DeselectProp = vprop => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * Select or deselect the passed vprop.  The vprop will be
- * updated in its appearance to reflect its new state.
- * @param {object} vprop - VProp instance with id property
+ *  Select or deselect the passed vprop.  The vprop will be
+ *  updated in its appearance to reflect its new state.
+ *  @param {object} vprop - VProp instance with id property
  */
-MOD.VM_ToggleProp = vprop => {
+VM.VM_ToggleProp = vprop => {
   // limit the number of selections, but allow toggle
   if (selected_vprops.size >= max_selections) {
     // If we hit the limit...
@@ -296,14 +334,13 @@ MOD.VM_ToggleProp = vprop => {
   if (DBG) vm_DumpSelection('ToggleProp');
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/**
- * Utility function
- * This is so we can deselect without triggering a UR event.
+/** Utility function
+ *  This is so we can deselect without triggering a UR event.
  */
 function DeselectAllProps() {
   // tell all vprops to clear themselves
   selected_vprops.forEach(vpid => {
-    const vprop = MOD.VM_VProp(vpid);
+    const vprop = VM.VM_VProp(vpid);
     vprop.visualState.Deselect();
     vprop.Draw();
   });
@@ -312,23 +349,23 @@ function DeselectAllProps() {
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * erase the selected properties set. Also calls affected vprops to
- * handle deselection update
+ *  erase the selected properties set. Also calls affected vprops to
+ *  handle deselection update
  */
-MOD.VM_DeselectAllProps = () => {
+VM.VM_DeselectAllProps = () => {
   DeselectAllProps();
   UR.Publish('SELECTION_CHANGED');
   if (DBG) vm_DumpSelection('DeselectAllProps');
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * Deselect all vmechs. The vmechs will be updated in its
- * appearance to reflect its new state
+ *  Deselect all vmechs. The vmechs will be updated in its
+ *  appearance to reflect its new state
  */
-MOD.VM_DeselectAllMechs = () => {
+VM.VM_DeselectAllMechs = () => {
   // tell all vprops to clear themselves
   selected_vmechs.forEach(vmid => {
-    const vmech = MOD.VM_VMech(vmid);
+    const vmech = VM.VM_VMech(vmid);
     vmech.visualState.Deselect();
     vmech.Draw();
   });
@@ -338,21 +375,21 @@ MOD.VM_DeselectAllMechs = () => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL
- * Delect all props and mechs. WARNING this is a method that is overly
- * broad.
+ *  Delect all props and mechs. WARNING this is a method that is overly
+ *  broad.
  */
-MOD.VM_DeselectAll = () => {
+VM.VM_DeselectAll = () => {
   console.warn(`VM_DeselectAll() is deprecated. Use more specific selection manager calls.`);
-  MOD.VM_DeselectAllProps();
-  MOD.VM_DeselectAllMechs();
+  VM.VM_DeselectAllProps();
+  VM.VM_DeselectAllMechs();
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * Select a single mechanism, clearing the existing selection.
+ *  Select a single mechanism, clearing the existing selection.
  */
-MOD.VM_SelectOneMech = vmech => {
+VM.VM_SelectOneMech = vmech => {
   // set appropriate vprop flags
-  MOD.VM_DeselectAllMechs();
+  VM.VM_DeselectAllMechs();
   vmech.visualState.Select();
   vmech.Draw();
   // update viewmodel
@@ -361,10 +398,10 @@ MOD.VM_SelectOneMech = vmech => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- * Select/deselect the passed vmech. The vmech will be updated in its
- * appearance to reflect its new state
+ *  Select/deselect the passed vmech. The vmech will be updated in its
+ *  appearance to reflect its new state
  */
-MOD.VM_ToggleMech = vmech => {
+VM.VM_ToggleMech = vmech => {
   // set appropriate vprop flags
   vmech.visualState.ToggleSelect();
   // update viewmodel
@@ -380,26 +417,44 @@ MOD.VM_ToggleMech = vmech => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- return array of all string ids that are currently selected PROPERTIES
- in order of insertion.
- Use VProp.visualState.IsSelected('first') to determine what the first
- selection is
+ *  return array of all string ids that are currently selected PROPERTIES
+ *  in order of insertion.
+ *  Use VProp.visualState.IsSelected('first') to determine what the first
+ *  selection is
  @returns {string[]} propIds - array of string ids of properties
  */
-MOD.VM_SelectedPropsIds = () => {
+VM.VM_SelectedPropsIds = () => {
   return Array.from(selected_vprops.values());
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.VIEWMODEL:
- return array of all string ids that are currently selected MECHANISMS
- in order of insertion. Unlike the Props version of this call, the selection
- is not tagged with any other meta data (e.g. 'first')
- @returns {string[]} mechIds - array of string ids of properties
+ *  return array of all string ids that are currently selected MECHANISMS
+ *  in order of insertion. Unlike the Props version of this call, the selection
+ *  is not tagged with any other meta data (e.g. 'first')
+ *  @returns {string[]} mechIds - array of string ids of properties
  */
-MOD.VM_SelectedMechIds = () => {
+VM.VM_SelectedMechIds = () => {
   return Array.from(selected_vmechs.values());
+};
+
+/// VIEWPROP POSITION SAVING //////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** API.VIEWMODEL
+ *  write to database
+ */
+VM.VM_SaveVPropPosition = vprop => {
+  const modelId = ASET.selectedModelId;
+  const id = Number(vprop.Id());
+  const x = Number(vprop.X());
+  const y = Number(vprop.Y());
+  const type = 'vprop';
+  if (DBG) console.log(`save positions`, id);
+  const visuals = { id, type, pos: { x, y } };
+  UR.DBQuery('update', {
+    'pmcData.visuals': { id: modelId, visuals }
+  });
 };
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-export default MOD;
+export default VM;

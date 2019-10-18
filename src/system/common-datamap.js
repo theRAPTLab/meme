@@ -29,7 +29,8 @@ const DBKEYS = [
   `resources`,
   `pmcData`,
   `pmcData.entities`,
-  `pmcData.commentThreads`
+  `pmcData.commentThreads`,
+  `pmcData.visuals`
 ];
 
 /// list of valid database change commands
@@ -256,7 +257,8 @@ function f_validateUpdate(value, key) {
   if (subkey) {
     if (typeof value[subkey] !== 'object') throw Error(`${key}.update expected sub object`);
     const subid = value[subkey].id;
-    if (!DataMap.IsValidId(subid)) throw Error(`${key}.update invalid id ${subid}`);
+    if (!DataMap.IsValidId(subid))
+      throw Error(`${key}.update invalid id ${subid} typeof ${typeof subid}`);
   }
   return true;
 }
@@ -322,10 +324,9 @@ DataMap.MutateObjectProp = (obj, propname, updObj) => {
   const id = updObj.id;
   const list = obj[propname];
   const found = list.find(el => el.id === id);
-  if (!found) {
-    console.warn(`couldn't find ${id} in obj[${propname}]`, list);
-    return undefined;
-  }
+  //
+  if (!found) return undefined;
+  //
   // if we got this far, mutate
   const sBefore = JSON.stringify(obj);
   const sIdObj = JSON.stringify(updObj);

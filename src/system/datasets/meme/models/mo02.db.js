@@ -5,5 +5,7 @@ module.exports = {
   entities: [
     { id: 10, type:'prop', name: 'tank' },
     { id: 11, type:'prop', name: 'fish' }
+  ],
+  visuals: [
   ]
 };

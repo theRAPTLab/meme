@@ -34,14 +34,17 @@ UR.Hook(__dirname, 'INITIALIZE', () => {
       case 'add':
         ADM.SyncAddedData(data);
         PMC.SyncAddedData(data);
+        // no VM.SyncAddedData
         break;
       case 'update':
         ADM.SyncUpdatedData(data);
         PMC.SyncUpdatedData(data);
+        VM.SyncUpdatedData(data);
         break;
       case 'remove':
         ADM.SyncRemovedData(data);
         PMC.SyncRemovedData(data);
+        // no VM.SyncRemovedData
         break;
       default:
         console.error('unrecognized command', cmd);
@@ -54,222 +57,31 @@ UR.Hook(__dirname, 'INITIALIZE', () => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// clone ADMData, PMC, VM into $ object
 const $$$ = Object.assign({}, { ...ADM }, { ...PMC }, { ...VM });
-const NEW = {};
 
+/// NEW METHOD PROTOTYPING AREA ///////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.Login = loginToken => {
-  const urs = window.URSESSION;
-  if (!urs) throw Error('unexpected missing URSESSION global');
-  return UR.NetCall('NET:SRV_SESSION_LOGIN', { token: loginToken }).then(rdata => {
-    if (DBG) console.log('login', rdata);
-    if (rdata.error) throw Error(rdata.error);
-    if (DBG) console.log('updating URSESSION with session data');
-    urs.SESSION_Token = rdata.token;
-    urs.SESSION_Key = rdata.key;
-    // also save globally
-    SESSION.DecodeAndSet(rdata.token);
-    SESSION.SetAccessKey(rdata.key);
-    //
-    ADM.GetSelectedStudentId();
-  });
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.Logout = () => {
-  const urs = window.URSESSION;
-  if (!urs) throw Error('unexpected missing URSESSION global');
-  if (!urs.SESSION_Key) throw Error('missing URSESSION session key');
-  return UR.NetCall('NET:SRV_SESSION_LOGOUT', { key: urs.SESSION_Key }).then(rdata => {
-    console.log('logout', rdata);
-    if (rdata.error) throw Error(rdata.error);
-    console.log('removing session data from URSESSION');
-    if (urs.SESSION_Token && urs.SESSION_Key) {
-      urs.SESSION_Token = '';
-      urs.SESSION_Key = '';
-      SESSION.Clear();
-    } else throw Error('URSESSION key or token was not set');
-  });
-};
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
-                                A D M - D A T A
-                                O V E R R I D E
-\* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.AddTeacher = name => {
-  console.log('addTeacher', name, typeof name);
-  if (typeof name !== 'string') throw Error('AddTeacher requires a single name');
-  return UR.DBQuery('add', {
-    teachers: { name }
-  });
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.SetClassesModelVisibility = isVisible => {};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.AddClassroom = name => {
-  // FIRES 'CLASSROOM_SELECT' classroomId, needsUpdating
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.AddGroup = groupName => {
-  // FIRES 'ADM_DATA_UPDATED'
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// this is a test routine; no ADMData routines require a delete group
-/// so this is here to just provide a stub.
-NEW.DeleteGroup = groupId => {
-  return UR.DBQuery('remove', {
-    groups: { id: groupId }
-  });
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** update groups collection with new data
+/** Return true if the prop designated by propId has a parent that is
+ *  different than newParentId
  */
-NEW.UpdateGroup = (groupId, group) => {
-  const groupData = Object.assign({}, group, { id: groupId });
-  return UR.DBQuery('update', {
-    groups: groupData
-  });
+$$$.PMC_IsDifferentPropParent = (propId, newParentId) => {
+  return $$$.PropParent(propId) !== newParentId;
 };
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** add a single student or a list of students to a group by Id
- */
-NEW.AddStudents = (groupId, students) => {
-  // Update the group
-  if (!Array.isArray(students)) students = [students];
-  let group = $$$.GetGroup(groupId);
-  if (group === undefined) {
-    console.error('AddStudent could not find group', groupId);
-    return;
-  }
-  students.forEach(student => {
-    if (student === undefined || student === '') {
-      console.error('AddStudent adding blank student', groupId);
-    }
-    group.students.push(student);
-  });
-  return NEW.UpdateGroup(groupId, group);
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** delete a student from a group by groupId
- */
-NEW.DeleteStudent = (groupId, student) => {
-  // Update the group
-  if (typeof student !== 'string') {
-    console.error('DeleteStudent arg2 must be string');
-    return;
-  }
-  let group = $$$.GetGroup(groupId);
-  if (group === undefined) {
-    console.error('DeleteStudent could not find group', groupId);
-    return;
-  }
-  // Remove the student
-  group.students = group.students.filter(stu => student !== stu);
-  // Now update groups, returning promise
-  return NEW.UpdateGroup(groupId, group);
-};
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
-                                P M C - D A T A
-                                O V E R R I D E
-\* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-NEW.PMC_PropAdd = name => {
-  const modelId = ASET.selectedModelId;
-  const propObj = { name, type: 'prop' };
-  return UR.DBQuery('add', {
-    'pmcData.entities': {
-      id: modelId,
-      entities: propObj
-    }
-  });
-}; // m_graph.setNode(propId, { name });
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.PMC_PropUpdate = (nodeId, newData) => {
-  const prop = m_graph.node(nodeId);
-  // make a copy of the prop with overwritten new data
-  // local data will be updated on DBSYNC event, so don't write it here
-  const propObj = Object.assign({}, prop, newData, { id: nodeId });
-  console.log('prop', prop, 'newdata', newData, 'propdata', propObj);
-  const modelId = ASET.selectedModelId;
-  // we need to update pmcdata which looks like
-  // { id, entities:[ { id, name } ] }
-  return UR.DBQuery('update', {
-    'pmcData.entities': {
-      id: modelId,
-      entities: propObj
-    }
-  });
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.PMC_PropDelete = propId => {
-  const modelId = ASET.selectedModelId;
-  const propObj = { id: propId };
-  return UR.DBQuery('remove', {
-    'pmcData.entities': {
-      id: modelId,
-      entities: propObj
-    }
-  });
-}; // m_graph.removeNode(propid)
-
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.PMC_SetPropParent = (node, parent) => {}; // m_graph.setParent(node, parent)
-NEW.PMC_MechAdd = (sourceId, targetId, label) => {}; // m_graph.setEdge
-NEW.PMC_MechUpdate = (origMech, newMech) => {}; // m_graph.setEdge()
-NEW.PMC_MechDelete = mechId => {}; // m_graph.removeEdge()
-NEW.PMC_AddEvidenceLink = (rsrcId, note) => {}; // a_evidence.push()
-NEW.PMC_DeleteEvidenceLink = evId => {}; // a_evidence.splice()
-NEW.SetEvidenceLinkPropId = (evId, propId) => {}; // a_evidence.find() evidence
-NEW.SetEvidenceLinkMechId = (evId, mechId) => {}; // a_evidence.find() evidence
-
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// STATE CALLS
-/// $$$.SelectTeacher(teacherId)
-/// $$$.SelectClassroom(classroomId = GetClassroomIdByStudent)
-/// $$$.Login sets .selectedStudentId
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
-                                   O T H E R
-                                O V E R R I D E
-\* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.ModelTitleUpdate = (modelId, title) => {
-  // FIRES 'MODEL_TITLE_UPDATED' title
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.NewModel = groupId => {
-  // FIRES 'ADM_DATA_UPDATED'
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.UpdateCriteria = criteria => {}; //
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.UpdateCriteriaList = criteria => {}; //
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.UpdateSentenceStarter = sstarter => {}; //
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW.UpdateRatingsDefinitions = (classId, rateDef) => {}; //
-
-/// MODULE HELPERS ////////////////////////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /// DEBUG /////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if (!window.ur) window.ur = {};
-window.ur.DATATEST = NEW;
 // - - - - - - - - - - - - - - - - - - - - -
 // test update group
 window.ur.tupg = id => {
   const g = ADM.GetGroup(id);
   g.name = `${g.name}${g.name}`;
-  NEW.UpdateGroup(id, g).then(data => {
+  $$$.UpdateGroup(id, g).then(data => {
     console.log('updategroup', data);
   });
 };
 // test add teacher
 window.ur.taddt = name => {
-  NEW.AddTeacher(name).then(data => {
+  $$$.AddTeacher(name).then(data => {
     console.log('addteacher', data);
     const teacher = data.teachers[0];
     UR.Publish('TEACHER_SELECT', { teacherId: teacher.id });
@@ -277,7 +89,7 @@ window.ur.taddt = name => {
 };
 // test add students to group
 window.ur.tadds = (groupId, students) => {
-  NEW.AddStudents(groupId, students).then(data => {
+  $$$.AddStudents(groupId, students).then(data => {
     console.log('addstudents', data);
     // FIRES 'ADM_DATA_UPDATED'
     UR.Publish('ADM_DATA_UPDATED');
@@ -286,7 +98,7 @@ window.ur.tadds = (groupId, students) => {
 };
 // test delete student from group
 window.ur.tdels = (groupId, student) => {
-  NEW.DeleteStudent(groupId, student).then(data => {
+  $$$.DeleteStudent(groupId, student).then(data => {
     console.log('deletestudent', data);
     // FIRES 'ADM_DATA_UPDATED'
     UR.Publish('ADM_DATA_UPDATED');
@@ -295,7 +107,7 @@ window.ur.tdels = (groupId, student) => {
 };
 // test remove group
 window.ur.trmg = groupId => {
-  NEW.DeleteGroup(groupId).then(data => {
+  $$$.DeleteGroup(groupId).then(data => {
     console.log('deletegroup', JSON.stringify(data));
     // FIRES 'ADM_DATA_UPDATED'
     UR.Publish('ADM_DATA_UPDATED');
@@ -305,14 +117,14 @@ window.ur.trmg = groupId => {
 // - - - - - - - - - - - - - - - - - - - - -
 // test pmc entity delete
 window.ur.tpropd = propId => {
-  NEW.PMC_PropDelete(propId).then(data => {
+  $$$.PMC_PropDelete(propId).then(data => {
     console.log('deleteprop', data);
   });
   return `deleting pmc prop`;
 };
 // - - - - - - - - - - - - - - - - - - - - -
 window.ur.tpropa = name => {
-  NEW.PMC_PropAdd(name).then(data => {
+  $$$.PMC_PropAdd(name).then(data => {
     console.log('addprop', data);
   });
   return `adding pmc prop`;
@@ -338,7 +150,3 @@ window.ur.tlogout = () => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// $ is the combined ADM, PMC, VM plus overrides
 export default $$$;
-/// export default MODULE; // import $ from './module'
-/// export default MyClass; // import MyClass from  './module'
-/// export { A, B }; // import { A, B } from './module'
-/// export { A as B }; // import { B } from './module'

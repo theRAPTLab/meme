@@ -101,7 +101,7 @@ ADMData.SyncUpdatedData = data => {
   const syncitems = DATAMAP.ExtractSyncData(data);
   syncitems.forEach(item => {
     const { colkey, subkey, value } = item;
-    console.log('updated', colkey, subkey || '', value);
+    if (DBG) console.log('updated', colkey, subkey || '', value);
   });
   // can add better logic to avoid updating too much
   // UR.Publish('ADM_DATA_UPDATED', data);
@@ -111,7 +111,7 @@ ADMData.SyncRemovedData = data => {
   const syncitems = DATAMAP.ExtractSyncData(data);
   syncitems.forEach(item => {
     const { colkey, subkey, value } = item;
-    console.log('removed', colkey, subkey || '', value);
+    if (DBG) console.log('removed', colkey, subkey || '', value);
   });
   // can add better logic to avoid updating too much
   // UR.Publish('ADM_DATA_UPDATED', data);

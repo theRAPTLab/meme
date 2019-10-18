@@ -352,9 +352,23 @@ DB.PKT_Update = pkt => {
           /*/
         let reskey = colkey;
         if (subkey) {
+          // if subkey, then do inside-field processing
           reskey = `${colkey}.${subkey}`;
           retval = DATAMAP.MutateObjectProp(record, subkey, value[subkey]);
+          if (!retval) {
+            if (subkey === 'visuals') {
+              // for visuals, we want updates to automatically add
+              // they don't require auto-assignment unique ids because
+              // they just mirror prop ids which are already unique
+              const visuals = record[subkey];
+              retval = value[subkey];
+              visuals.push(retval);
+            } else {
+              console.log(PR, `couldn't find ${id} in obj[${propname}]`, list);
+            } // if subkey==='visuals'
+          } // if !retval
         } else {
+          // if not subkey, then  just mutate
           retval = DATAMAP.MutateObject(record, value);
         }
         //

@@ -157,10 +157,11 @@ PMCData.InitializeModel = (model, admdb) => {
         }
         break;
       case 'mech':
-        if (obj.source && obj.target) g.setEdge(obj.source, obj.target, {
-          name: obj.name,
-          id: obj.id
-        });
+        if (obj.source && obj.target)
+          g.setEdge(obj.source, obj.target, {
+            name: obj.name,
+            id: obj.id
+          });
         break;
       case 'evidence':
         obj.comments = obj.comments || [];
@@ -193,7 +194,29 @@ PMCData.InitializeModel = (model, admdb) => {
   m_graph.nodes = () => Object.keys(m_graph._nodes);
 
   // update the essential data structures
+  // this also fires DATA_UPDATED
   PMCData.BuildModel();
+
+  // data and view are now stable
+  // on first load, move visuals to saved places
+  if (data.visuals) {
+    data.visuals.forEach(vstate => {
+      const id = String(vstate.id);
+      const pos = vstate.pos;
+      const vprop = VM.VM_VProp(id);
+      // only position components, not props
+      // because visuals array doesn't remove stuff
+      if (PMCData.PropParent()) return;
+      if (!vprop) {
+        if (DBG) console.warn(`InitializeModel data.visuals: skipping missing prop ${id}`);
+        return;
+      }
+      if (DBG) console.log(`init vprop ${id} to ${pos.x}, ${pos.y}`);
+      vprop.Move(pos);
+      vprop.LayoutDisabled(true);
+    });
+    UR.Publish('PROP_MOVED', { visuals: data.visuals });
+  }
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -209,15 +232,13 @@ PMCData.SyncAddedData = data => {
   const syncitems = DATAMAP.ExtractSyncData(data);
   syncitems.forEach(item => {
     const { colkey, subkey, value } = item;
-    console.log('added', colkey, subkey || '', value);
+    if (DBG) console.log('added', colkey, subkey || '', value);
 
     if (subkey === 'entities') {
       switch (value.type) {
         case 'prop':
           m_graph.setNode(value.id, { name: value.name });
-          if (value.parent) {
-            m_graph.setParent(value.id, value.parent);
-          }
+          f_NodeSetParent(value.id, value.parent); // enforces type
           break;
         case 'mech':
           m_graph.setEdge(value.source, value.target, {
@@ -228,8 +249,14 @@ PMCData.SyncAddedData = data => {
         case 'evidence':
           const { id, propId, mechId, rsrcId, numberLabel, rating, note } = value;
           a_evidence.push({
-            id, propId, mechId, rsrcId, numberLabel, rating, note
-          })
+            id,
+            propId,
+            mechId,
+            rsrcId,
+            numberLabel,
+            rating,
+            note
+          });
           break;
         default:
           throw Error('unexpected proptype');
@@ -246,9 +273,9 @@ PMCData.SyncAddedData = data => {
   });
 
   // old way
-  if (data['pmcData']) console.log('PMCData add');
-  if (data['pmcData.entities']) console.log('PMCData.entities add');
-  if (data['pmcData.commentThreads']) console.log('PMCData.commentThreads add');
+  // if (data['pmcData']) console.log('PMCData add');
+  // if (data['pmcData.entities']) console.log('PMCData.entities add');
+  // if (data['pmcData.commentThreads']) console.log('PMCData.commentThreads add');
   // do stuff here
 
   // can add better logic to avoid updating too much
@@ -259,16 +286,14 @@ PMCData.SyncUpdatedData = data => {
   const syncitems = DATAMAP.ExtractSyncData(data);
   syncitems.forEach(item => {
     const { colkey, subkey, value } = item;
-    console.log('updated', colkey, subkey || '', value);
+    if (DBG) console.log('updated', colkey, subkey || '', value);
 
     if (subkey === 'entities') {
       // has id, type, name
       switch (value.type) {
         case 'prop':
           m_graph.setNode(value.id, { name: value.name });
-          if (value.parent) {
-            m_graph.setParent(value.id, value.parent);
-          }
+          f_NodeSetParent(value.id, value.parent);
           break;
         case 'mech':
           m_graph.setEdge(value.source, value.target, {
@@ -307,7 +332,7 @@ PMCData.SyncUpdatedData = data => {
       UR.Publish('DATA_UPDATED');
     }
   }); // syncitems
-  if (data['pmcData.commentThreads']) console.log('PMCData.commentThreads update');
+  if (DBG && data['pmcData.commentThreads']) console.log('PMCData.commentThreads update');
   // do stuff here
 
   // can add better logic to avoid updating too much
@@ -318,7 +343,7 @@ PMCData.SyncRemovedData = data => {
   const syncitems = DATAMAP.ExtractSyncData(data);
   syncitems.forEach(item => {
     const { colkey, subkey, value } = item;
-    console.log('removed', colkey, subkey || '', value);
+    if (DBG) console.log('removed', colkey, subkey || '', value);
 
     if (subkey === 'entities') {
       // has id, type, name
@@ -348,6 +373,17 @@ PMCData.SyncRemovedData = data => {
   // can add better logic to avoid updating too much
   // PMCData.BuildModel();
 };
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** SyncData Utility Function.
+ *  Handles the case where parent may be undefined, and we still want to set it
+ */
+function f_NodeSetParent(nodeId, parent) {
+  let value = parent;
+  if (value === null) value = undefined;
+  if (typeof value === 'string') value = Number(value);
+  m_graph.setParent(nodeId, value);
+}
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
@@ -476,7 +512,6 @@ PMCData.BuildModel = () => {
       resource.links += mechs.length;
     }
   });
-
   UR.Publish('DATA_UPDATED');
 
   if (!DBG) return;
@@ -557,7 +592,7 @@ PMCData.HasMech = (evo, ew) => {
 PMCData.Prop = nodeId => {
   const prop = m_graph.node(nodeId);
   if (prop) return prop;
-  throw Error(`no prop with id '${nodeId}' exists`);
+  console.error(`no prop with id '${nodeId}' exists`);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
@@ -656,7 +691,7 @@ PMCData.PMC_PropUpdate = (propId, newData) => {
   /** THIS METHOD DID NOT EXIST BEFORE **/
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** 
+/**
  *  @param {Integer} propId - id of the prop being updated
  * */
 PMCData.PMC_PropDelete = propId => {
@@ -730,12 +765,24 @@ PMCData.PMC_PropDelete = propId => {
   **/
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** Return true if the prop designated by propId has a parent that is
+ *  different than newParentId
+ */
+PMCData.PMC_IsDifferentPropParent = (propId, newParentId) => {
+  return PMCData.PropParent(propId) !== newParentId;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_SetPropParent = (nodeId, parentId) => {
+  // NOTE: a parentId of value of 'undefined' because that's how
+  // graphlib removes a parent from a node
+  if (!PMCData.PMC_IsDifferentPropParent(nodeId, parentId)) return;
   // REVIEW/FIXME: Is this coercion necessary once we convert to ints?
   const id = Number(nodeId);
-  const pid = Number(parentId);  
-  PMCData.PMC_PropUpdate(id, { parent: pid });
+  const pid = Number(parentId);
   UTILS.RLog('PropertySetParent', id, pid);
+  return PMCData.PMC_PropUpdate(id, { parent: pid }).then(rdata => {
+    if (DBG) console.log('PropUpdate', JSON.stringify(rdata['pmcData.entities']));
+  });
 
   // round-trip will call BuildModel() for us
   /** OLD CODE
@@ -762,7 +809,7 @@ PMCData.PMC_MechAdd = (sourceId, targetId, label) => {
   });
 
   /** OLD CODE
-   * 
+   *
   m_graph.setEdge(sourceId, targetId, { name: label });
   PMCData.BuildModel();
   UTILS.RLog('MechanismAdd', sourceId, targetId, label);
@@ -867,10 +914,10 @@ function NumberLabelExists(numberLabel, evlinks) {
 /**
  *  Construct numberLabel, e.g. "2c".
  *  Called by PMCData.PMC_AddEvidenceLink, below.
- *  @param {string} rsrcId 
+ *  @param {string} rsrcId
  *  @return {string} - A new numberLabel, e.g. "2c"
  */
-function GenerateNumberLabel (rsrcId) {
+function GenerateNumberLabel(rsrcId) {
   // 1. Ordinal value of resource in resource library, e.g. "2"
   const prefix = PMCData.PMC_GetResourceIndex(rsrcId);
   // 2. Ordinal value of evlink in evlink list, e.g. "c"
@@ -882,15 +929,15 @@ function GenerateNumberLabel (rsrcId) {
     letter = String.fromCharCode(97 + numberOfEvLinks); // lower case for smaller footprint
     numberLabel = String(prefix) + letter;
     numberOfEvLinks++;
-  } while (NumberLabelExists(numberLabel, evlinks))
-  
+  } while (NumberLabelExists(numberLabel, evlinks));
+
   return numberLabel;
 }
 /**
  *  Adds a new evidence link object to the database and generates a new id for it.
  *  This also calculates the numberLabel automatically based on the assets already
  *  in the system.
- * 
+ *
  *  @param {string} rsrcId - string id of the parent resource
  *  @param {function} cb - callback function will be called with the new id as a parameter
  *                         e.g. cb(id);
@@ -931,9 +978,9 @@ PMCData.PMC_AddEvidenceLink = (rsrcId, cb, note = '') => {
             break;
         }
       }
-    })
+    });
   });
-  
+
   /** OLD CODE
   // Retrieve from db?!?
   // HACK!  FIXME!  Need to properly generate a unique ID.
@@ -991,12 +1038,13 @@ PMCData.PMC_DeleteEvidenceLink = evId => {
 /** API.MODEL:
  *  Given the passed evidence ID, returns the EvidenceLink object.
  *  NEVER access h_evidenceById directly!
- * 
+ *
  *  @param {string|undefined} rsrcId - if defined, id string of the resource object
  *  @return {evlink} An evidenceLink object.
  */
 PMCData.PMC_GetEvLinkByEvId = evId => {
-  if (typeof evId !== 'number') throw Error('PMCData.PMC_GetEvLinkByEvId requested evId with non-Number', evId, typeof evId);
+  if (typeof evId !== 'number')
+    throw Error('PMCData.PMC_GetEvLinkByEvId requested evId with non-Number', evId, typeof evId);
   return h_evidenceById.get(evId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1013,7 +1061,7 @@ PMCData.PMC_GetEvLinksByPropId = propId => {
     /* This is mostly to deal with calls from class-vbadge.Update()
        The issue is that VBadges get propIds from the parent vprop's id,
        but the VProp constructor requires a string id (mostly to match m_graphs'
-       use of a string id).  Changing this would require cascading changes across 
+       use of a string id).  Changing this would require cascading changes across
        many different code areas.
     */
     console.log(
@@ -1044,7 +1092,7 @@ PMCData.PMC_GetEvLinksByMechId = mechId => {
  */
 PMCData.PMC_EvidenceUpdate = (evId, newData) => {
   if (typeof evId === 'string') {
-    console.warn('got string evId')
+    console.warn('got string evId');
   }
   const ev = PMCData.PMC_GetEvLinkByEvId(evId);
   // db wants int ids, so replace existing string id with int id
@@ -1053,7 +1101,7 @@ PMCData.PMC_EvidenceUpdate = (evId, newData) => {
   // local data will be updated on DBSYNC event, so don't write it here
 
   // data validation to make sure Object assign doesn't die.
-  if (typeof ev !== 'object') throw Error('ev is not an object', typeof ev)
+  if (typeof ev !== 'object') throw Error('ev is not an object', typeof ev);
   if (typeof newData !== 'object') throw Error('newData is not an object', typeof newData);
   if (typeof numericEvId !== 'number')
     throw Error('numericEvId is not an number', typeof numericEvId);
@@ -1132,7 +1180,7 @@ PMCData.SetEvidenceLinkNote = (evId, note) => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkRating = (evId, rating) => {
-  console.error('setting ev rating to',evId,rating)
+  console.error('setting ev rating to', evId, rating);
   const newData = {
     rating
   };
@@ -1195,7 +1243,7 @@ PMCData.NewComment = (author, sentenceStarter) => {
  *  Add or Update individual comment item, then the thread itself
  */
 PMCData.CommentAdd = (refId, newComment) => {
-  console.log('PMCData.CommentAdd', refId, newComment);
+  if (DBG) console.log('PMCData.CommentAdd', refId, newComment);
   const comments = PMCData.GetCommentThreadComments(refId);
   if (comments.length < 1) {
     // Add new comment to new comment thread
@@ -1209,7 +1257,7 @@ PMCData.CommentAdd = (refId, newComment) => {
  *  Update individual comment item, then the thread itself
  */
 PMCData.CommentUpdate = (refId, newComment) => {
-  console.log('PMCData.CommentUpdate', refId, newComment);
+  if (DBG) console.log('PMCData.CommentUpdate', refId, newComment);
   const comments = PMCData.GetCommentThreadComments(refId);
   if (comments < 1) throw Error(`Trying to update a non-existent thread refId=${refId}`);
 
@@ -1226,7 +1274,7 @@ PMCData.CommentUpdate = (refId, newComment) => {
   let thread = PMCData.GetCommentThread(refId);
   thread.comments = comments;
   const modelId = ASET.selectedModelId;
-  console.log('updating model', modelId, 'with commentThread', thread);
+  if (DBG) console.log('updating model', modelId, 'with commentThread', thread);
   // we need to update pmcdata which looks like
   // { id, entities:[ { id, name } ] }
   return UR.DBQuery('update', {
@@ -1251,7 +1299,13 @@ PMCData.CommentThreadAdd = (refId, newComments) => {
   // local data will be updated on DBSYNC event, so don't write it here
   const threadData = Object.assign({ refId }, { comments: newComments });
   const modelId = ASET.selectedModelId;
-  console.log('PMCData.CommentThreadAdd: adding model', modelId, 'with commentThread', threadData);
+  if (DBG)
+    console.log(
+      'PMCData.CommentThreadAdd: adding model',
+      modelId,
+      'with commentThread',
+      threadData
+    );
   // we need to update pmcdata which looks like
   // { id, entities:[ { id, name } ] }
   return UR.DBQuery('add', {
@@ -1287,7 +1341,7 @@ PMCData.CommentThreadUpdate = (refId, newComments) => {
   // local data will be updated on DBSYNC event, so don't write it here
   const threadData = Object.assign(thread, { comments: newComments });
   const modelId = ASET.selectedModelId;
-  console.log('updating model', modelId, 'with commentThread', threadData);
+  if (DBG) console.log('updating model', modelId, 'with commentThread', threadData);
   // we need to update pmcdata which looks like
   // { id, entities:[ { id, name } ] }
   return UR.DBQuery('update', {
@@ -1298,11 +1352,9 @@ PMCData.CommentThreadUpdate = (refId, newComments) => {
   });
   // round-trip will call BuildModel() for us
 
-
-
-  /* OLD CODE 
+  /* OLD CODE
   return;
-  
+
   let index;
   let commentThread;
   index = a_commentThreads.findIndex(c => {

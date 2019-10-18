@@ -142,9 +142,11 @@ const AddDragDropHandlers = vprop => {
     if (vprop.DragEnd) vprop.DragEnd(event);
 
     const { d, dx, dy } = DragMetrics(vprop);
+    // NOTE: vpropid always mirrors propid, though a prop is
+    // not the same as a vprop
     const vpropId = vprop.Id();
 
-    // see if the prop moved by a minimum amount (5 pixels)
+    // see if the prop moved by a minimum amount (10 pixels)
     // if it didn't move much, then it's a click
     if (d < 10) {
       if (DBG) console.log(`[${vpropId}] didn't move enough, so snapping back`);
@@ -215,6 +217,7 @@ const AddDragDropHandlers = vprop => {
       }
       // this has to come last because this automatically fires layout
       DATA.PMC_SetPropParent(vpropId, undefined);
+      DATA.VM_SaveVPropPosition(vprop);
     }
   });
   //

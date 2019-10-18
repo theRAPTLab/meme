@@ -21,7 +21,7 @@ import SESSION from './common-session';
 
 /// PRIVATE DECLARATIONS //////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = true; // module-wide debug flag
+const DBG = false; // module-wide debug flag
 const PR = 'URSYS';
 const ULINK = NewConnection(PR);
 
@@ -69,11 +69,14 @@ const { NetCall, NetSignal } = ULINK;
 function DBQuery(cmd, data) {
   if (!data.key) {
     const accessKey = SESSION.AccessKey() || NetMessage.IsLocalhost();
-    console.log('setting access key', accessKey);
+    if (DBG) console.log('inserting current access key', accessKey);
     data.key = accessKey;
   }
   // returns a promise that resolves to data
-  return ULINK._DBQuery(cmd, data);
+  return ULINK._DBQuery(cmd, data).catch(err => {
+    console.error(`DBQUERY '${cmd}' failed:`, err);
+    console.warn(`DBQUERY data was:`, data);
+  });
 }
 
 const { Define, GetVal, SetVal } = CENTRAL;
