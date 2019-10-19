@@ -152,7 +152,10 @@ PMCData.InitializeModel = (model, admdb) => {
       if (DBG) console.log(obj.type, obj.id, obj);
       switch (obj.type) {
         case 'prop':
-          g.setNode(obj.id, { name: obj.name });
+          g.setNode(obj.id, {
+            name: obj.name,
+            description: obj.description
+          });
           if (obj.parent) {
             g.setParent(obj.id, obj.parent);
           }
@@ -160,8 +163,9 @@ PMCData.InitializeModel = (model, admdb) => {
         case 'mech':
           if (obj.source && obj.target)
             g.setEdge(obj.source, obj.target, {
+              id: obj.id,
               name: obj.name,
-              id: obj.id
+              description: obj.description
             });
           break;
         case 'evidence':
@@ -238,13 +242,17 @@ PMCData.SyncAddedData = data => {
     if (subkey === 'entities') {
       switch (value.type) {
         case 'prop':
-          m_graph.setNode(value.id, { name: value.name });
+          m_graph.setNode(value.id, {
+            name: value.name,
+            description: value.description
+          });
           f_NodeSetParent(value.id, value.parent); // enforces type
           break;
         case 'mech':
           m_graph.setEdge(value.source, value.target, {
             id: value.id,
-            name: value.name
+            name: value.name,
+            description: value.description
           });
           break;
         case 'evidence':
@@ -293,13 +301,22 @@ PMCData.SyncUpdatedData = data => {
       // has id, type, name
       switch (value.type) {
         case 'prop':
-          m_graph.setNode(value.id, { name: value.name });
+          m_graph.setNode(value.id, {
+            name: value.name,
+            description: value.description
+          });
           f_NodeSetParent(value.id, value.parent);
           break;
         case 'mech':
+          // 1. Remove the old edge first.
+          const oldMechPathObj = PMCData.MechById(value.id);
+          m_graph.removeEdge(oldMechPathObj);
+
+          // 2. Then create the updated edge as a new edge
           m_graph.setEdge(value.source, value.target, {
             id: value.id,
-            name: value.name
+            name: value.name,
+            description: value.description
           });
           break;
         case 'evidence':
@@ -617,14 +634,33 @@ PMCData.PropParent = nodeId => {
  *
  *  This function can accept one of three formats: an edgeObject, a pathId,
  *  or a source/target pair of nodeId strings.
- *  @param {object|string} evo - edgeObj {w,v}, pathId, or nodeId string of source
+ *  @param {object|string} evo - edgeObj {v,w}, pathId, or nodeId string of source
  *  @param {string|undefined} ew - if defined, nodeId string of the target prop
  */
 PMCData.Mech = (evo, ew) => {
   const eobj = CoerceToEdgeObj(evo, ew);
   return m_graph.edge(eobj);
 };
-
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  Return the mech pathObj matching the db id.
+ *  This is necessary during SyncUpdateData to remove an old edge that has
+ *  changed its source/target (since the old source/target path is not known
+ *  to SyncUpdateData).
+ * 
+ *  An alternative approach would be to trigger a deletion in MechUpdate, but
+ *  that would cause another server roundtrip.
+ * 
+ *  @param {Integer} id - The mech id of the db record (not a pathId)
+ *  @return {Object} A pathObj {v,w}}
+ */
+PMCData.MechById = id => {
+  const all_mechs = PMCData.AllMechs();
+  return all_mechs.find(pathObj => {
+    const edgeAttr = PMCData.Mech(pathObj);
+    if (edgeAttr.id === id) return pathObj;
+  });
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  @param {Object} newPropObj - {name, description, parent} for the property
@@ -796,7 +832,7 @@ PMCData.PMC_SetPropParent = (nodeId, parentId) => {
   **/
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PMCData.PMC_MechAdd = (sourceId, targetId, label) => {
+PMCData.PMC_MechAdd = (sourceId, targetId, label, description) => {
   if (DBG) {
     if (typeof sourceId !== 'number')
       console.log('coercing sourceId to Number from', typeof sourceId);
@@ -808,7 +844,8 @@ PMCData.PMC_MechAdd = (sourceId, targetId, label) => {
     type: 'mech',
     name: label,
     source: Number(sourceId),
-    target: Number(targetId)
+    target: Number(targetId),
+    description
   };
   return UR.DBQuery('add', {
     'pmcData.entities': {
@@ -833,66 +870,62 @@ PMCData.PMC_MechAdd = (sourceId, targetId, label) => {
  *  assets over from the old mech to the new mech.
  */
 PMCData.PMC_MechUpdate = (origMech, newMech) => {
-  const modelId = ASET.selectedModelId;
-
   // Update the data
-  const { sourceId, targetId, label } = newMech;
+  const { sourceId, targetId, label, description } = newMech;
   if (DBG) {
+    console.log('MechUpdate: Updating', origMech.sourceId, '=>', sourceId, 'and', origMech.targetId, '=>', targetId)
     if (typeof sourceId !== 'number')
       console.log('coercing sourceId to Number from', typeof sourceId);
     if (typeof targetId !== 'number')
       console.log('coercing targetId to Number from', typeof targetId);
   }
-
+  const modelId = ASET.selectedModelId;
   const mechObj = {
     type: 'mech',
     id: origMech.id,
     name: label,
     source: Number(sourceId),
-    target: Number(targetId)
+    target: Number(targetId),
+    description
   };
   return UR.DBQuery('update', {
     'pmcData.entities': {
       id: modelId,
       entities: mechObj
     }
+  }).then(() => {
+    // If source or target changed,  move evidence and comments
+    if (origMech.sourceId !== newMech.sourceId || origMech.targetId !== newMech.targetId) {
+      const origMechId = CoerceToPathId(origMech.sourceId, origMech.targetId);
+      const newMechId = CoerceToPathId(newMech.sourceId, newMech.targetId);
+
+      // 2a. Move evidence over.
+      const evlinks = PMCData.PMC_GetEvLinksByMechId(origMechId);
+      if (evlinks) {
+        evlinks.forEach(evlink => {
+          PMCData.SetEvidenceLinkMechId(evlink.id, newMechId);
+        });
+      }
+      // 2b. Move comments over
+      const comments = PMCData.GetCommentThreadComments(origMechId);
+      PMCData.CommentThreadUpdate(newMechId, comments);
+
+      UTILS.RLog(
+        'MechanismEdit',
+        `from "${origMechId}" to "${newMechId}" with label "${newMech.label}"`
+      );
+
+      // 3. Show review dialog alert.
+      // HACK: Delay the alert so the system has a chance to redraw first.
+      if (evlinks || comments.length > 0) {
+        setTimeout(() => {
+          alert(
+            'Please review the updated mechanism to make sure the Evidence Links and comments are still relevant.'
+          );
+        }, 500);
+      }
+    }
   });
-
-  // Did we change source or target?  Then move evidence and comments
-  if (origMech.sourceId !== newMech.sourceId || origMech.targetId !== newMech.targetId) {
-    // 2. Update the old mech
-    const origMechId = `${origMech.sourceId}:${origMech.targetId}`;
-    const newMechId = `${newMech.sourceId}:${newMech.targetId}`;
-
-    // 2a. Move evidence over.
-    const evlinks = PMCData.PMC_GetEvLinksByMechId(origMechId);
-    if (evlinks) {
-      evlinks.forEach(evlink => {
-        PMCData.SetEvidenceLinkMechId(evlink.id, newMechId);
-      });
-    }
-    // 2b. Move comments over
-    const comments = PMCData.GetCommentThreadComments(origMechId);
-    PMCData.CommentThreadUpdate(newMechId, comments);
-    // 2c. Remove the old mech
-    PMCData.PMC_MechDelete(origMechId);
-
-    UTILS.RLog(
-      'MechanismEdit',
-      `from "${origMechId}" to "${newMechId}" with label "${newMech.label}"`
-    );
-
-    // 3. Show review dialog alert.
-    // HACK: Delay the alert so the system has a chance to redraw first.
-    if (evlinks || comments.length > 0) {
-      setTimeout(() => {
-        alert(
-          'Please review the updated mechanism to make sure the Evidence Links and comments are still relevant.'
-        );
-      }, 500);
-    }
-  }
-  return `updated edge`;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_MechDelete = mechId => {
@@ -1350,6 +1383,7 @@ PMCData.CommentThreadAdd = (refId, newComments) => {
  *  comment text.
  */
 PMCData.CommentThreadUpdate = (refId, newComments) => {
+  
   const thread = PMCData.GetCommentThread(refId);
   if (thread === undefined) {
     // When a StickyNote is created, the note doesn't know if there is a parent

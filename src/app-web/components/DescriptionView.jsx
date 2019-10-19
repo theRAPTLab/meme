@@ -5,6 +5,8 @@ Description View
 This displays a `description` information for both components and mechanisms
 at the bottom of the ViewMain view.
 
+MarkDown is supported for the description.
+
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * /////////////////////////////////////*/
 
 /// LIBRARIES /////////////////////////////////////////////////////////////////
@@ -41,13 +43,7 @@ class DescriptionView extends React.Component {
       isOpen: false,
       propId: '',
       label: '',
-      text: '*no description*',
-      lorem: `Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
+      text: undefined
     };
 
     UR.Subscribe('PROP_HOVER_START', this.DoOpen);
@@ -96,20 +92,18 @@ proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
   }
 
   render() {
-    const { isOpen, propId, text, label, lorem } = this.state;
+    const { isOpen, propId, text, label } = this.state;
     const { classes } = this.props;
 
     // Fake some text
-    const descriptionText =
-      text !== '*no description*' && text !== undefined
-        ? text
-        : lorem.slice(Math.random() * lorem.length - 5);
+    const descriptionText = text || '*no description*';
 
     return (
-      <Paper className={ClassNames(
-        classes.descriptionViewPaper,
-        propId ? classes.descriptionViewPaperPropColor : classes.descriptionViewPaperMechColor
-      )}
+      <Paper
+        className={ClassNames(
+          classes.descriptionViewPaper,
+          propId ? classes.descriptionViewPaperPropColor : classes.descriptionViewPaperMechColor
+        )}
         hidden={!isOpen}
         elevation={24}
       >

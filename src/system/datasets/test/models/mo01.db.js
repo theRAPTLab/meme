@@ -4,7 +4,7 @@ module.exports = {
   // entities
   entities: [
     // props
-    { id: 10, type:'prop', name: 'fertilizer' },
+    { id: 10, type:'prop', name: 'fertilizer', description: 'Runoff from farms' },
     { id: 11, type:'prop', name: 'nutrients', parent: 10 },
     { id: 12, type:'prop', name: 'algae' },
     { id: 13, type:'prop', name: 'dead stuff' },
@@ -13,9 +13,9 @@ module.exports = {
     { id: 16, type:'prop', name: 'fish' },
     { id: 17, type:'prop', name: 'population', parent: 16 },
     // mechs
-    { id: 20, type:'mech', source: 10, target: 11, name: 'increase' },
+    { id: 20, type:'mech', source: 10, target: 11, name: 'increase', description: 'An increase is good' },
     { id: 21, type:'mech', source: 11, target: 12, name: 'increase' },
-    { id: 22, type:'mech', source: 12, target: 13, name: 'die (incrase)' },
+    { id: 22, type:'mech', source: 12, target: 13, name: 'die (increase)', description: 'Fish die with an increase' },
     { id: 23, type:'mech', source: 14, target: 13, name: 'eat' },
     { id: 24, type:'mech', source: 14, target: 15, name: 'breath (decrease)' },
     { id: 25, type:'mech', source: 15, target: 17, name: 'if too low, decreases' },
@@ -29,7 +29,7 @@ module.exports = {
       rsrcId: 1,
       numberLabel: '1a',
       rating: 3,
-      note: 'ghoti ghoti gothi need food'
+      note: 'fish need food'
     },
     {
       id: 33,
