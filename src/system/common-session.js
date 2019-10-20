@@ -32,6 +32,7 @@ const HASH_MINLEN = 3;
 const HASH_SALT = 'MEMESALT/2019';
 /// UUID_NAMESPACE was arbitrarily generated with 'npx uuid v4' (access keys)
 const UUID_NAMESPACE = '1abc839d-b04f-481e-87fe-5d69bd1907b2';
+let ADMIN_KEY = ''; // set to non-falsy to disable admin checks
 
 /// MODULE DECLARATIONS ///////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -41,7 +42,7 @@ let m_access_key = ''; // global access key (saved only for browsers)
 
 /// SESSION ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-let SESSION = {};
+const SESSION = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /*/ Given a token of form NAME-HASHED_DATA, return an object
     containing as many decoded values as possible. Check isValid for
@@ -193,6 +194,21 @@ SESSION.AccessKey = () => {
   if (DBG) console.log('AccessKey() returning', m_access_key);
   return m_access_key;
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SESSION.SetAdminKey = key => {
+  ADMIN_KEY = key || ADMIN_KEY;
+  return ADMIN_KEY;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * This is TOTALLY INSECURE and not even trying for the prototype
+ */
+SESSION.AdminKey = () => {
+  const is = ADMIN_KEY || false;
+  if (DBG) console.warn('INFO: requested AdminKey()');
+  return is;
+};
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  * Return the global StudentName that was set using DecodeAndSet(). Don't use

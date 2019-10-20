@@ -223,8 +223,9 @@ const Execute = async phase => {
 const SetScopeFromRoutes = routes => {
   // get current hash, without trailing parameters and # char
   const hashbits = window.location.hash.substring(1).split('/');
-  const loc = `/${hashbits[1] || ''}`;
-  console.log(`%cHASH_XLATE%c '${window.location.hash}' --> '${loc}'`, cssinfo, cssreset);
+  const hash = `/${hashbits[1] || ''}`;
+  const loc = hash.split('?')[0];
+  if (DBG) console.log(`%cHASH_XLATE%c '${window.location.hash}' --> '${loc}'`, cssinfo, cssreset);
   const matches = routes.filter(route => {
     return route.path === loc;
   });

@@ -68,6 +68,7 @@ class ViewMain extends React.Component {
   constructor(props) {
     super(props);
     UR.ReactPreflight(ViewMain, module);
+    UR.DisableAdminPowers();
 
     this.displayName = this.constructor.name;
     this.refMain = React.createRef();

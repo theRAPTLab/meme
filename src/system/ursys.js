@@ -21,15 +21,25 @@ import SESSION from './common-session';
 
 /// PRIVATE DECLARATIONS //////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = false; // module-wide debug flag
+const DBG = true; // module-wide debug flag
+const OPEN_ADMIN = false; // set to false to disable open admin
 const PR = 'URSYS';
 const ULINK = NewConnection(PR);
 
-/// RUNTIME FLAGS /////////////////////////////////////////////////////////////
+/// RUNTIME SETUP /////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // ur_legacy_publish is used to make DATALINK.Publish() work like Broadcast, so
 // messages will mirror back to itself
 CENTRAL.Define('ur_legacy_publish', true);
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// do session overrides  React does first render in phase after CONFIGURE
+EXEC.Hook(__dirname, 'CONFIGURE', () => {
+  if (document.location.hash.includes('danishgodmode')) {
+    console.warn('INFO: DANISH BYPASS POWERS ACTIVATED');
+    SESSION.SetAdminKey('danishgodmode');
+  }
+});
 
 /// PUBLIC METHODS ////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -68,19 +78,38 @@ const { NetCall, NetSignal } = ULINK;
 
 function DBQuery(cmd, data) {
   if (!data.key) {
-    const accessKey = SESSION.AccessKey() || NetMessage.IsLocalhost();
-    if (DBG) console.log('inserting current access key', accessKey);
+    const accessKey = SESSION.AccessKey() || SESSION.AdminKey();
+    if (DBG) console.log(`DBQuery using access key '${accessKey}'`);
     data.key = accessKey;
   }
   // returns a promise that resolves to data
-  return ULINK._DBQuery(cmd, data).catch(err => {
-    console.error(`DBQUERY '${cmd}' failed:`, err);
-    console.warn(`DBQUERY data was:`, data);
-  });
+  return ULINK._DBQuery(cmd, data)
+    .then(rdata => {
+      console.log(rdata);
+    })
+    .catch(err => {
+      console.error(`DBQUERY '${cmd}' failed:`, err);
+      console.warn(`DBQUERY data was:`, data);
+    });
 }
 
 const { Define, GetVal, SetVal } = CENTRAL;
 
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function IsLocalhost() {
+  return NetMessage.IsLocalhost();
+}
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function IsAdminLoggedIn() {
+  return SESSION.AdminKey() || IsLocalhost();
+}
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function DisableAdminPowers() {
+  const hbits = window.location.href.split('?');
+  if (hbits.length > 1) {
+    window.location.href = hbits[0];
+  }
+}
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // TEMP: return the number of peers on the network
 function PeerCount() {
@@ -118,6 +147,9 @@ const UR = {
   GetVal, // CENTRAL
   SetVal, // CENTRAL
   ReloadOnViewChange, // UTIL
+  IsLocalhost,
+  IsAdminLoggedIn,
+  DisableAdminPowers,
   PeerCount,
   ReactPreflight,
   RoutePreflight,

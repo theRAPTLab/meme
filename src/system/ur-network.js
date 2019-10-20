@@ -266,6 +266,8 @@ NETWORK.SocketUADDR = () => {
 NETWORK.IsStandaloneMode = () => {
   return m_status === M_STANDALONE;
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NETWORK.IsLocalhost = () => NetMessage.IsLocalhost();
 
 /// EXPORT MODULE DEFINITION //////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

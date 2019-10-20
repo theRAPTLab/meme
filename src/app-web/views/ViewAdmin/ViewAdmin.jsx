@@ -50,7 +50,7 @@ class ViewAdmin extends React.Component {
   // constructor
   constructor(props) {
     super(props);
-    UR.ReloadOnViewChange();
+    UR.ReactPreflight(ViewAdmin, module);
     this.cstrName = this.constructor.name;
 
     // FIXME: This will go away when UR.DB_Susbscribe('ADMIN:UPDATED') is implemented
@@ -66,6 +66,16 @@ class ViewAdmin extends React.Component {
 
   render() {
     const { classes } = this.props;
+
+    if (!UR.IsAdminLoggedIn()) return (
+      <div className={classes.root}>
+        <Paper className={classes.paper}>
+          <p>The admin panel is accessible on the server machine at</p>
+          <pre>http://localhost:3000/#/admin</pre>
+          <p>If you can't access the server as localhost, apply DANISH BYPASS PROTOCOL</p>
+        </Paper>
+      </div>
+    );
 
     return (
       <div className={classes.root}>
@@ -116,7 +126,7 @@ ViewAdmin.defaultProps = {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// propTypes are declared. Note "vague" propstypes are
-/// disallowed by eslint, so use shape({ prop:ProtType })
+/// disallowed by eslint, so use shape({prop:ProtType })
 /// to describe them in more detail
 ViewAdmin.propTypes = {
   classes: PropTypes.shape({})
