@@ -83,16 +83,10 @@ function DBQuery(cmd, data) {
     data.key = accessKey;
   }
   // returns a promise that resolves to data
-  return ULINK._DBQuery(cmd, data)
-    .then(rdata => {
-      console.log(rdata);
-    })
-    .catch(err => {
-      console.error(`DBQUERY '${cmd}' failed:`, err);
-      console.warn(`DBQUERY data was:`, data);
-    });
+  return ULINK._DBQuery(cmd, data);
 }
 
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const { Define, GetVal, SetVal } = CENTRAL;
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
