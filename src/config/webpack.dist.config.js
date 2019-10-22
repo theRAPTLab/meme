@@ -126,7 +126,7 @@ const electronConfiguration = env => {
         ignore: ['.*', 'console.*']
       },
       {
-        from: DIR_SYSTEM,
+        from: `${DIR_SYSTEM}/**`,
         to: `${DIR_OUTPUT}/system`
         // have to also copy the system directory
         // that contains URSYS, because this will be

@@ -25,6 +25,7 @@ const argv = require('minimist')(process.argv.slice(1));
 const PROMPTS = require('./src/system/util/prompts');
 const URSERVER = require('./src/system/server.js');
 const MTERM = require('./src/cli/meme-term');
+const notarize = require('electron-notarize');
 
 if (!shell.which('git')) {
   shell.echo(`\x1b[30;41m You must have git installed to run the MEME devtool \x1b[0m`);
@@ -45,6 +46,8 @@ const PR = PROMPTS.Pad('MEME EXEC');
 const P_ERR = `${TB}${CR}!ERROR!${TR}`;
 
 const PATH_WEBPACK = `./node_modules/webpack/bin`;
+const PATH_APP = `./dist/meme-darwin-x64/meme.app`;
+const APP_BUNDLE_ID = 'com.davidseah.inquirium.meme';
 
 switch (param1) {
   case 'dev':
@@ -64,6 +67,9 @@ switch (param1) {
     break;
   case 'appsign':
     f_SignApp();
+    break;
+  case 'appcheck':
+    f_InspectSignedApp();
     break;
   case 'debugapp':
     f_DebugApp();
@@ -140,7 +146,7 @@ function f_PackageApp() {
   shell.exec('npm install', { silent: true });
   console.log(PR, `using electron-packager to write 'meme.app' to ./dist`);
   res = shell.exec(
-    'npx electron-packager . meme --out ../dist --overwrite --app-bundle-id com.davidseah.inquirium.meme',
+    `npx electron-packager . meme --out ../dist --overwrite --app-bundle-id ${APP_BUNDLE_ID}`,
     { silent: true }
   );
   // u_checkError(res); // electron-packager stupidly emits status to stderr
@@ -153,7 +159,7 @@ function f_SignApp() {
   console.log(`\n`);
   console.log(PR, `using electron-osx-sign to ${CY}securely sign${TR} 'meme.app'`);
   const { stderr, stdout } = shell.exec(
-    `npx electron-osx-sign ./dist/meme-darwin-x64/meme.app --platform=darwin --type=distribution`,
+    `npx electron-osx-sign ${PATH_APP} --platform=darwin --type=distribution --version=3.13 --strict`,
     { silent: true }
   );
   if (stderr) {
@@ -170,17 +176,47 @@ function f_SignApp() {
   }
 }
 
+async function f_Notarize() {
+  await notarize({
+    appBundleId,
+    appPath,
+    appId,
+    appleId,
+    Password,
+    ascProvider
+  });
+}
+
+function f_InspectSignedApp() {
+  console.log(`\n`);
+  console.log(PR, `spctl - showing ${CY}system policy status${TR} for 'meme.app'`);
+  console.log(PR, `(look for ${CY}'source=Notarized Developer ID'${TR})`);
+  let { stderr, stdout } = shell.exec(`spctl -a -vvv -t install ${PATH_APP}`, {
+    silent: true
+  });
+  if (stderr) splitPrint(stderr);
+  if (stdout) splitPrint(stdout);
+  //
+  console.log(PR, `codesign - showing verbose ${CY}flags${TR} and ${CY}entitlement${TR} (if any)`);
+  console.log(PR, `(look for ${CY}'flags=(runtime)'${TR} to indicate hardened runtime)`);
+  ({ stderr, stdout } = shell.exec(`codesign --display --verbose ${PATH_APP}`, {
+    silent: true
+  }));
+  if (stderr) splitPrint(stderr);
+  if (stdout) splitPrint(stdout);
+}
+
 function f_DebugApp() {
   console.log(`\n`);
   console.log(PR, `running meme.app with ${CY}console output${TR} to terminal`);
   console.log(PR, `verifying code signature`);
-  const { code, stderr } = shell.exec('codesign -dvv ./dist/meme-darwin-x64/meme.app', {
+  const { code, stderr } = shell.exec(`codesign -dvv ${PATH_APP}`, {
     silent: true
   });
   if (code === 0) {
     console.log(PR, `${CY}console output${TR} from meme.app will appear below`);
     console.log(PR, `${CY}CTRL-C${TR} or ${CY}close app window${TR} to terminate\n`);
-    shell.exec('./dist/meme-darwin-x64/meme.app/Contents/MacOS/meme');
+    shell.exec(`${PATH_APP}/Contents/MacOS/meme`);
   } else {
     console.log(`\n${stderr.trim()}\n`);
     console.log(PR, `${CR}ERROR${TR} from codesign check`);
@@ -215,4 +251,9 @@ function f_Clean(opt) {
     // shell.exec('npm ci', { silent: true });
   }
   console.log(PR, `operation complete!`);
+}
+
+function splitPrint(lfstring) {
+  const out = lfstring.trim().split('\n');
+  out.forEach(line => console.log(PR, '   ', line));
 }
