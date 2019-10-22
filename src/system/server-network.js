@@ -298,11 +298,13 @@ UNET.PKT_Session = pkt => {
     if (DBG.client) console.log(PR, `${uaddr} access key is not set`);
     return { error: `sock.${uaddr} access key is not set` };
   }
-  if (key === 'danishgodmode') {
+  const evil_backdoor = SESSION.AdminPlaintextPassphrase();
+  if (key === evil_backdoor) {
     // do some hacky bypassing...yeep
     if (!sock.USESS) {
-      LOGGER.Write(uaddr, 'non-localhost login via DGM protocol');
-      console.log(PR, `${uaddr} ^..^ 'danishgodmode' activated for admin access :O`);
+      const warning = `non-localhost admin '${evil_backdoor}' logged-in`;
+      LOGGER.Write(uaddr, warning);
+      console.log(PR, `${uaddr} WARN ${warning}`);
       const adminToken = SESSION.MakeToken('Admin', { groupId: 0, classroomId: 0 });
       sock.USESS = SESSION.DecodeToken(adminToken);
       sock.UKEY = key;

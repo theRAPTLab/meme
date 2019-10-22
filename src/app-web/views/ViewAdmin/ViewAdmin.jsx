@@ -72,7 +72,7 @@ class ViewAdmin extends React.Component {
         <Paper className={classes.paper}>
           <p>The admin panel is accessible on the server machine at</p>
           <pre>http://localhost:3000/#/admin</pre>
-          <p>If you can't access the server as localhost, apply DANISH BYPASS PROTOCOL</p>
+          <p>If you are unable to use localhost, use ADMIN_QSTRING override</p>
         </Paper>
       </div>
     );

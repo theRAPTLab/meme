@@ -35,9 +35,16 @@ CENTRAL.Define('ur_legacy_publish', true);
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // do session overrides  React does first render in phase after CONFIGURE
 EXEC.Hook(__dirname, 'CONFIGURE', () => {
-  if (document.location.hash.includes('danishgodmode')) {
-    console.warn('INFO: DANISH BYPASS POWERS ACTIVATED');
-    SESSION.SetAdminKey('danishgodmode');
+  const qs = SESSION.AdminPlaintextPassphrase();
+  if (document.location.hash.includes(qs)) {
+    console.warn(`INFO: ADMIN ACTIVATED VIA '${qs.toUpperCase()}' OVERRIDE`);
+    SESSION.SetAdminKey(qs);
+    return;
+  }
+  if (IsLocalhost()) {
+    console.warn(`INFO: LOCALHOST ADMIN MODE`);
+    SESSION.SetAdminKey('localhost');
+    return;
   }
 });
 
@@ -76,6 +83,7 @@ const { Call, Signal } = ULINK;
 const { NetPublish, NetSubscribe, NetUnsubscribe } = ULINK;
 const { NetCall, NetSignal } = ULINK;
 
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function DBQuery(cmd, data) {
   if (!data.key) {
     const accessKey = SESSION.AccessKey() || SESSION.AdminKey();
@@ -83,16 +91,10 @@ function DBQuery(cmd, data) {
     data.key = accessKey;
   }
   // returns a promise that resolves to data
-  return ULINK._DBQuery(cmd, data)
-    .then(rdata => {
-      console.log(rdata);
-    })
-    .catch(err => {
-      console.error(`DBQUERY '${cmd}' failed:`, err);
-      console.warn(`DBQUERY data was:`, data);
-    });
+  return ULINK._DBQuery(cmd, data);
 }
 
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const { Define, GetVal, SetVal } = CENTRAL;
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
