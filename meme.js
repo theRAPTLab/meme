@@ -5,7 +5,7 @@ npm run myscript -- --myoptions=something
 alternatively you'll just write your own script that does it
 /*/
 const fs = require('fs');
-
+const DBG = false;
 if (!fs.existsSync('./node_modules/ip')) {
   console.log(`\x1b[30;41m\x1b[37m MEME STARTUP ERROR \x1b[0m\n`);
   let out = '';
@@ -25,7 +25,7 @@ const argv = require('minimist')(process.argv.slice(1));
 const PROMPTS = require('./src/system/util/prompts');
 const URSERVER = require('./src/system/server.js');
 const MTERM = require('./src/cli/meme-term');
-const notarize = require('electron-notarize');
+const { notarize } = require('electron-notarize');
 
 if (!shell.which('git')) {
   shell.echo(`\x1b[30;41m You must have git installed to run the MEME devtool \x1b[0m`);
@@ -48,6 +48,7 @@ const P_ERR = `${TB}${CR}!ERROR!${TR}`;
 const PATH_WEBPACK = `./node_modules/webpack/bin`;
 const PATH_APP = `./dist/meme-darwin-x64/meme.app`;
 const APP_BUNDLE_ID = 'com.davidseah.inquirium.meme';
+const ELECTRON_VERSION = '3.1.13'; // https://github.com/electron/electron/releases?after=v3.1.0-beta.4
 
 switch (param1) {
   case 'dev':
@@ -67,6 +68,9 @@ switch (param1) {
     break;
   case 'appsign':
     f_SignApp();
+    break;
+  case 'appnotarize':
+    f_Notarize();
     break;
   case 'appcheck':
     f_InspectSignedApp();
@@ -122,7 +126,7 @@ function f_RunElectron() {
   let res = shell.exec(
     // note: to pass an enviroment setting to the webpack config script, add --env.MYSETTING='value'
     `${PATH_WEBPACK}/webpack.js --mode development --config ./src/config/webpack.console.config.js`,
-    { silent: true }
+    { silent: DBG }
   );
   u_checkError(res);
   shell.exec(`npx electron ./built/console/console-main`);
@@ -138,16 +142,17 @@ function f_PackageApp() {
   let res = shell.exec(
     // note: to pass an enviroment setting to the webpack config script, add --env.MYSETTING='value'
     `${PATH_WEBPACK}/webpack.js --mode development --config ./src/config/webpack.dist.config.js`,
-    { silent: true }
+    { silent: DBG }
   );
   u_checkError(res);
   console.log(PR, `installing node dependencies into ./built`);
   shell.cd('built');
-  shell.exec('npm install', { silent: true });
+  shell.exec('npm install', { silent: DBG });
   console.log(PR, `using electron-packager to write 'meme.app' to ./dist`);
+  const env = DBG ? 'DEBUG=electron-packager ' : '';
   res = shell.exec(
-    `npx electron-packager . meme --out ../dist --overwrite --app-bundle-id ${APP_BUNDLE_ID}`,
-    { silent: true }
+    `${env}npx electron-packager . meme --out ../dist --overwrite --electron-version ${ELECTRON_VERSION} --app-bundle-id ${APP_BUNDLE_ID}`,
+    { silent: DBG }
   );
   // u_checkError(res); // electron-packager stupidly emits status to stderr
   console.log(PR, `electron app written to ${CY}dist/meme-darwin-x64$/meme.app${TR}`);
@@ -158,17 +163,14 @@ function f_PackageApp() {
 function f_SignApp() {
   console.log(`\n`);
   console.log(PR, `using electron-osx-sign to ${CY}securely sign${TR} 'meme.app'`);
+  const env = DBG ? 'DEBUG=electron-osx-sign ' : '';
   const { stderr, stdout } = shell.exec(
-    `npx electron-osx-sign ${PATH_APP} --platform=darwin --type=distribution --version=3.13 --strict`,
-    { silent: true }
+    `${env}npx electron-osx-sign ${PATH_APP} --platform=darwin --type=distribution --version=${ELECTRON_VERSION} --strict --hardened-runtime --entitlements=package-macos/meme.entitlements --entitlements-inherited=package-macos/meme-inherit.entitlements`,
+    { silent: DBG }
   );
   if (stderr) {
     console.log(`\n${stderr.trim()}\n`);
     console.log(PR, `${CR}ERROR${TR} signing app with electron-osx-sign`);
-    console.log(
-      PR,
-      `this command requires valid Apple DeveloperId certificates installed in your keychain`
-    );
   }
   if (stdout) {
     console.log(PR, `${stdout.trim()}`);
@@ -177,14 +179,23 @@ function f_SignApp() {
 }
 
 async function f_Notarize() {
-  await notarize({
-    appBundleId,
-    appPath,
-    appId,
-    appleId,
-    Password,
-    ascProvider
+  console.log(`\n`);
+  console.log(PR, `using electron-notarize to ${CY}submit app for notarization${TR}`);
+  console.log(PR, `(this may take a while as it requires Apple servers to respond`);
+  const { AC_USER, AC_PASS } = process.env;
+  if (!(AC_USER && AC_PASS)) {
+    console.log(PR, `${CR}ERROR${TR} AC_USER and AC_PASS must be set in notarize command.`);
+    console.log(PR, `e.g. ${CY}AC_USER=appleid AC_PASS=password npm run notarize${TR}`);
+    return;
+  }
+  console.log('user:', AC_USER, 'pass:', AC_PASS);
+  let res = await notarize({
+    appBundleId: APP_BUNDLE_ID,
+    appPath: PATH_APP,
+    appleId: AC_USER,
+    Password: AC_PASS
   });
+  console.log('notarized? submitted?', JSON.stringify(res));
 }
 
 function f_InspectSignedApp() {
@@ -248,7 +259,7 @@ function f_Clean(opt) {
     shell.rm('-rf', 'node_modules');
     console.log(PR, `you will have to reinstall them with the`);
     console.log(PR, `${TERM.FgYellow}npm ci${TERM.Reset} command.`);
-    // shell.exec('npm ci', { silent: true });
+    // shell.exec('npm ci', { silent: DBG });
   }
   console.log(PR, `operation complete!`);
 }

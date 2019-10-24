@@ -439,6 +439,51 @@ FRIDAY CODE-ALONG
         collection.field: { id, subkey: {...props} }
     }
 
+---
+
+trying adding --electron-version to packager to see if it still builds
+
+[X] - FIXED BUG to refer to 3.1.13, not 3.13 in both packager and appsign
+[X] - npm run package
+[X] - npm run appsign
+[X] - npm run app - noticed that CPU use is normal now!
+[X] - double-click app - noticed that CPU use is normal now!
+
+try osx sign now with new options --hardened, --entitlements
+
+Crashes experienced!
+Looking at CONSOLE by running app from Finder to get insight into errors.
+Also using npm run app to see what crash messages are available, if any
+
+1. EXC_CRASH (Code Signature Invalid) - needed to add entitlement 'com.apple.security.cs.allow-unsigned-executable-memory'
+
+2. Check failed: "SetPermissions(area_start, area_side, PageAllocator::kReadWriteExcute) in Electron Framework ScopedDirCloseTraits libnode.dylib V8 fatal
+- ??? need to sign libraries too?
+
+added com.apple.security.cs.allow-jit -
+added com.apple.security.cs.allow-unsigned-executable-memory -
+added com.apple.security.automation.apple-events - (missing entitlement) still failure
+added com.apple.security.cs.disable-library-validation - still failure
+
+Q. Do I need to find the osx notarize thing?
+
+here's the actual line number for the codesign, which shows what arguments are passed to codesign
+https://github.com/electron/electron-osx-sign/blob/17c7f0e491291eba9f71984a3ef8e657e64feffc/sign.js#L121
+and here's the codesign verifier
+https://github.com/electron/electron-osx-sign/blob/17c7f0e491291eba9f71984a3ef8e657e64feffc/sign.js#L82
+
+Q. Maybe I need to use --entitlements-inherit instead of --entitlements ?
+tried it, and got different problem: Check Failed SetPermissions()
+running from desktop: EXC_BAD_INSTRUCTION (SIGILL) Exception Codes: 0x0000000000000001, 0x000000000000
+
+IDEA...try using both entitlements and entitlements-inherit...OMG IT WORKED!
+IT WORKED
+IT WORKED
+IT WORKED
+
+Notarization next...
+* ugh, you can't notarize an app by itself. It has to be in a package (dmg or zip). But you can't actually staple tickets to zip archives. So we need to make a dmg.
+* i'm not sure what osx-notarize actually does, but need to study the code
 
 
 
