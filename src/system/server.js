@@ -37,7 +37,7 @@ let URSYS = {};
 /** API: Main Entry Point
  */
 URSYS.Initialize = (options = {}) => {
-  LOGGER.Write(LPR, `initializing network}`);
+  LOGGER.Write(LPR, `initializing network`);
   if (options.memehost) console.log(PR, `${CC}MEMEHOST${TR} ${options.memehost}`);
   if (process.env.DATASET) console.log(PR, `${CC}DATASET=${TR} ${process.env.DATASET}`);
   console.log(PR, `${CS}STARTING UR SOCKET SERVER${CR}`);

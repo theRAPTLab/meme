@@ -34,6 +34,8 @@ const HASH_SALT = 'MEMESALT/2019';
 const UUID_NAMESPACE = '1abc839d-b04f-481e-87fe-5d69bd1907b2';
 let ADMIN_KEY = ''; // set to non-falsy to disable admin checks
 const ADMIN_QSTRING = 'danishpowers'; // used to bypass admin localhost test
+const SSHOT_URL = '/screenshots';
+const UPLOAD_URL = `${SSHOT_URL}/upload`;
 
 /// MODULE DECLARATIONS ///////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -228,6 +230,10 @@ SESSION.Ids = () => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SESSION.AdminPlaintextPassphrase = () => ADMIN_QSTRING;
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SESSION.ScreenshotURL = () => SSHOT_URL;
+SESSION.ScreenshotPostURL = () => UPLOAD_URL;
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /// EXPORT MODULE /////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

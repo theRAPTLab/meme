@@ -1,6 +1,6 @@
 /*//////////////////////////////////////// NOTES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
-  server-express creates an express instance and
+  server-express creates an express instance serving a webapp on port 3000
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * ////////////////////////////////////////*/
 
@@ -11,21 +11,48 @@ const wpack_mid = require('webpack-dev-middleware'); //webpack hot reloading mid
 const wpack_hot = require('webpack-hot-middleware');
 const express = require('express'); //your original BE server
 const path = require('path');
+const fs = require('fs-extra');
 const IP = require('ip');
 const cookiep = require('cookie-parser');
+const multer = require('multer'); // handle multipart form data (images)
 //
 const configWebApp = require('../config/webpack.webapp.config');
 const PROMPTS = require('../system/util/prompts');
+const SESSION = require('../system/common-session');
+
+/// DEBUG /////////////////////////////////////////////////////////////////////
+///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const DBG = false;
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const { TERM_EXP: CLR, TERM_WPACK, TR } = PROMPTS;
 const PORT = 3000;
 const PR = `${CLR}${PROMPTS.Pad('UR_EXPRESS')}${TR}`;
+const SCREENSHOT_POST_URL = SESSION.ScreenshotPostURL();
+const SCREENSHOT_URL = SESSION.ScreenshotURL();
+const RUNTIMEPATH = path.join(__dirname, '../../runtime');
+const UPLOADPATH = path.join(RUNTIMEPATH, SCREENSHOT_URL);
 
 /// SERVER DECLARATIONS ///////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const app = express();
+
+/*** STORAGE ***/
+const storage = multer.diskStorage({
+  destination: (req, file, callback) => {
+    if (DBG) console.log(PR, 'destination', UPLOADPATH);
+    callback(null, UPLOADPATH);
+  },
+  filename: (req, file, callback) => {
+    const ext = path.extname(file.originalname);
+    const fname = Date.now().toString(36);
+    callback(null, fname + ext);
+  }
+});
+/*** STORAGE ***/
+
+const upload = multer({ storage }); // form data saver to disk
 let server; // server object returned by app.listen()
 let DOCROOT; // docroot (changes based on dev or standalone mode)
 
@@ -117,6 +144,8 @@ function Start() {
 
   // RESUME WITH COMMON SERVER SETUP //
 
+  // make sure upload path exists
+  fs.ensureDirSync(UPLOADPATH);
   // configure cookies middleware (appears in req.cookies)
   app.use(cookiep());
   // configure headers to allow cross-domain requests of media elements
@@ -135,6 +164,15 @@ function Start() {
   });
   // for everything else...
   app.use('/', express.static(DOCROOT));
+  // handle image uploads
+  app.post(SCREENSHOT_POST_URL, upload.single('screenshot'), function(req, res, next) {
+    const { originalname, mimetype, destination, filename } = req.file;
+    const data = { originalname, filename };
+    res.header('Content-Type', mimetype);
+    res.type('json').send(data);
+  });
+  // handle image serving
+  app.use(SCREENSHOT_URL, express.static(UPLOADPATH));
 
   // return promise for async users
   return promise;

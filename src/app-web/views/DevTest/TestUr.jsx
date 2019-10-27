@@ -1,22 +1,25 @@
 /*///////////////////////////////// ABOUT \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
-  TestRoot
+  TestUR - rudimentary network tests
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * /////////////////////////////////////*/
 
-/// LIBRARIES /////////////////////////////////////////////////////////////////
+/// REACT STUFF ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
+
+/// MODULES ///////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import UR from '../../../system/ursys';
 import NETTEST from './network-tests';
-import { cssinfo, cssalert } from '../../modules/console-styles';
 
 /// CSS IMPORTS ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+import { cssinfo, cssalert } from '../../modules/console-styles';
 
 /// DEBUG CONTROL /////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -38,16 +41,16 @@ const styles = theme => ({
 /// MODULE HOOKS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 UR.Hook(__dirname, 'INITIALIZE', function () {
-  console.log('TestRoot Initialized');
+  console.log('Initialized');
 });
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-class ViewTest extends React.Component {
+class TestUR extends React.Component {
   // constructor
   constructor(props) {
     super(props);
-    UR.ReactPreflight(ViewTest, module);
+    UR.ReactPreflight(TestUR, module);
 
     this.cstrName = this.constructor.name;
     this.feature = undefined;
@@ -69,7 +72,6 @@ class ViewTest extends React.Component {
   componentDidMount() {
     console.log(`<${this.cstrName}> mounted`);
     this._mounted = true;
-    this.AddTestResult("componentDidMount");
     this.Test();
   }
 
@@ -80,27 +82,12 @@ class ViewTest extends React.Component {
   Test(feature) {
     // construction time
     if (!this.feature) {
-      if (!feature) {
-        alert(`ERROR: test requires 'match.params.feature' passed to it on construct`);
-        return;
-      }
       this.feature = feature;
-      switch (this.feature) {
-        case 'ur':
-          NETTEST.DoConstructionTests(this);
-          break;
-        default:
-      }
+      NETTEST.DoConstructionTests(this);
       return;
     }
     // after construction, this.feature is set
-    switch (this.feature) {
-      case 'ur':
-        NETTEST.DoMountTests(this);
-        break;
-      default:
-        console.log('no matching test run for', this.feature);
-    }
+    NETTEST.DoMountTests(this);
   }
 
   AddTestResult(name, error) {
@@ -150,8 +137,9 @@ class ViewTest extends React.Component {
       <div className={classes.root}>
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <Paper className={classes.paper}>test: {this.feature}</Paper>
+            <Paper className={classes.paper}>Module:{this.cstrName}</Paper>
           </Grid>
+
           {this.state.tests.map((test, i) => {
             let bgcolor = (test.status === 'OK') ? 'white' : 'red';
             if (test.status === 'PASS') bgcolor = 'limegreen';
@@ -165,25 +153,25 @@ class ViewTest extends React.Component {
       </div>
     );
   }
-} // ViewTest component
+} // TestUR component
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// default props are expect properties that we expect
 /// and are declared for validation
-ViewTest.defaultProps = {
+TestUR.defaultProps = {
   classes: { isDefaultProps: true }
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// propTypes are declared. Note "vague" propstypes are
 /// disallowed by eslint, so use shape({prop: ProtType })
 /// to describe them in more detail
-ViewTest.propTypes = {
+TestUR.propTypes = {
   classes: PropTypes.shape({})
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path
-ViewTest.MOD_ID = __dirname;
+TestUR.MOD_ID = __dirname;
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-export default withStyles(styles)(ViewTest);
+export default withStyles(styles)(TestUR);

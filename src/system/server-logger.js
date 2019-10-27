@@ -25,7 +25,7 @@ const PR = PROMPTS.Pad('LOGGER');
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-const LOG_DIR = '../../runtime/logs';
+const LOG_DIR = PATH.join(__dirname, '../../runtime/logs');
 
 const LOG_DELIMITER = '\t';
 const LOG_CONFIG = {
@@ -42,7 +42,7 @@ const e_weekday = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 function StartLogging() {
   // initialize event logger
-  let dir = PATH.resolve(PATH.join(__dirname, LOG_DIR));
+  let dir = PATH.resolve(LOG_DIR);
   try {
     console.log(PR, `logging to ${dir}`);
     FSE.ensureDirSync(dir);

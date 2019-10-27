@@ -2,12 +2,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Canvas from '../../components/Canvas';
-import D3SVG from '../../components/D3SVG';
-import CytosView from '../../components/CytoView';
 import SVGView from '../../components/SVGView';
 import SVGViewDev from '../../components/SVGViewDev';
-import PaperView from '../../components/PaperView';
-import DB from '../../modules/prototype.model';
 import { cssalert } from '../../modules/console-styles';
 
 const DBG = false;
@@ -33,21 +29,14 @@ class RoutedView extends React.Component {
     const routedProps = {
       mode,
       viewWidth: this.props.viewWidth,
-      viewHeight: this.props.viewHeight,
-      DB
+      viewHeight: this.props.viewHeight
     };
     //
     switch (mode) {
-      case 'cyto':
-        return <CytosView {...routedProps} />;
-      case 'd3':
-        return <D3SVG {...routedProps} />;
       case 'canvas':
         return <Canvas {...routedProps} />;
       case 'svg':
         return <SVGView {...routedProps} />;
-      case 'paper':
-        return <PaperView {...routedProps} />;
       case 'dev':
         return <SVGViewDev {...routedProps} />;
       default:
