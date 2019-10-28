@@ -520,7 +520,7 @@ NetMessage.GlobalOfflineMode = () => {
   if (m_netsocket) {
     console.warn(PR, 'STANDALONE MODE: NetMessage disabling network');
     m_netsocket = null;
-    let event = new CustomEvent('UNISYSDisconnect', {});
+    let event = new CustomEvent('URSYSDisconnect', {});
     console.log('dispatching event to', document, event);
     document.dispatchEvent(event);
   }

@@ -456,6 +456,20 @@ VM.VM_SaveVPropPosition = vprop => {
     'pmcData.visuals': { id: modelId, visuals }
   });
 };
+VM.VM_ClearVPropPosition = vprop => {
+  const modelId = ASET.selectedModelId;
+  const id = Number(vprop.Id());
+  if (DBG) console.log(`clear positions`, id);
+  const visuals = { id };
+  UR.DBQuery('remove', {
+    'pmcData.visuals': { id: modelId, visuals }
+  });
+};
+
+/// DEBUG UTILS //////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+if (!window.ur) window.ur = {};
+window.ur.VM = VM;
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

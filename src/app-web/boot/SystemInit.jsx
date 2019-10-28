@@ -67,6 +67,11 @@ function Init() {
       if (DBG) console.groupEnd();
     })();
   });
+  document.addEventListener('URSYSDisconnect', () => {
+    UR.Publish('URSYS_DISCONNECTED');
+    alert('MEME SERVER HAS DISCONNECTED');
+    document.location.reload();
+  });
 }
 /// STARTUP HELPER FUNCTIONS
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

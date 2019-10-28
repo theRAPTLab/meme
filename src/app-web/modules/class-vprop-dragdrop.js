@@ -39,10 +39,18 @@ const SaveEventCoordsToBox = (ev, box) => {
   if (box.x === undefined || box.y === undefined) {
     throw Error(`arg2 box has undefined x or y prop`);
   }
+
+  // hack for transform
+  let svg = document.getElementById('modelSVG');
+  let inverse = svg.getScreenCTM().inverse();
+  let pt = svg.createSVGPoint();
+  pt.x = ev.detail.event.clientX;
+  pt.y = ev.detail.event.clientY;
+  const { x, y } = pt.matrixTransform(inverse);
   // eslint-disable-next-line no-param-reassign
-  box.x = ev.detail.event.clientX;
+  box.x = x;
   // eslint-disable-next-line no-param-reassign
-  box.y = ev.detail.event.clientY;
+  box.y = y;
 };
 /**
  * Utility to find the distance of the drag operation
@@ -54,6 +62,7 @@ const DragMetrics = vprop => {
   if (!boxes) throw Error(`VProp ${vprop.Id()} doesn't implement VEX.DragDrop`);
   let { x: x1, y: y1 } = boxes.startPt;
   let { x: x2, y: y2 } = boxes.endPt;
+
   const dx = x2 - x1;
   const dy = y2 - y1;
   const d = Math.sqrt(dx * dx + dy * dy);
@@ -164,7 +173,7 @@ const AddDragDropHandlers = vprop => {
       pt.y = mouseEvent.clientY;
       let svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
       if (DBG) console.log('Clicked at screen', pt, ' / SVG coordinate', svgPt);
-      
+
       // gStickyNoteButton is actually just a group object
       // but it does have a bbox with the right coordinates.
       // NOTE testing for 'inside' with the chat/chatBubble/chatOutline svg icons doesn't work
@@ -181,13 +190,8 @@ const AddDragDropHandlers = vprop => {
       return;
     }
 
-    // for every move, move vprop back to root to 'reset' it
-    // before subsequent reparenting
-    vprop.ToRoot();
-
     // it did move, so do drop target magic
     const dropId = DATA.VM_PropsMouseOver().pop();
-    
     const dropXY = `(${DragState(vprop).gRootXY.x},${DragState(vprop).gRootXY.y})`;
 
     if (dropId) {
@@ -196,11 +200,20 @@ const AddDragDropHandlers = vprop => {
       vparent.LayoutDisabled(true);
       vprop.LayoutDisabled(true);
       // this has to come last because this automatically fires layout
-      DATA.PMC_SetPropParent(vpropId, dropId);
+      if (!DATA.PMC_SetPropParent(vpropId, dropId)) {
+        if (DBG) console.log(`parent didn't change! moving back`);
+        const { x, y } = DragState(vprop).gRootXY;
+        vprop.Move(x, y);
+        return;
+      }
+      // move vprop back to root to 'reset' it before subsequent reparenting
+      vprop.ToRoot();
+      DATA.VM_ClearVPropPosition(vprop);
       if (DBG) console.log(`[${vpropId}] moved to [${dropId}]`);
       UTILS.RLog('PropertyDrag', `Drag property id=${vprop.id} onto id=${dropId} at ${dropXY}`);
     } else {
       // dropped on the desktop, no parent
+      vprop.ToRoot();
       const parent = DATA.PropParent(vpropId);
       if (parent) {
         if (DBG) console.log(`[${vpropId}] moved from [${parent}]`);

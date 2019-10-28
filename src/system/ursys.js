@@ -21,7 +21,7 @@ import SESSION from './common-session';
 
 /// PRIVATE DECLARATIONS //////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = true; // module-wide debug flag
+const DBG = false; // module-wide debug flag
 const OPEN_ADMIN = false; // set to false to disable open admin
 const PR = 'URSYS';
 const ULINK = NewConnection(PR);

@@ -155,7 +155,7 @@ class VProp {
   }
 
   /**
-   * @returns {SVG.Container} - The SVG Container object that the badge should attach to 
+   * @returns {SVG.Container} - The SVG Container object that the badge should attach to
    */
   GetVBadgeParent() {
     return this.gRoot;
@@ -215,7 +215,7 @@ class VProp {
    * @returns { id, w, h }
    */
   DataSize() {
-    let { w, h } = this.gDataName.rbox();
+    let { w, h, x, y } = this.gDataName.bbox();
     if (w < m_minWidth) w = m_minWidth;
     if (h < m_minHeight) h = m_minHeight;
     return {
