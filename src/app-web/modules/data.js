@@ -161,7 +161,7 @@ NEW.DB_ModelTitleUpdate = (modelId = ASET.selectedModelId, title) => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NEW.DB_NewModel = groupId => {
   // new pmcData, then read the id and make new model
-  return UR.DBQuery('add', { pmcData: { entities: [], visuals: [], commentThreads: [] } }).then(
+  return UR.DBQuery('add', { pmcData: { entities: [], visuals: [], comments: [], markedread: [] } }).then(
     rdata => {
       if (rdata.error) throw Error(rdata.error);
       //
@@ -279,7 +279,7 @@ window.ur.tlogout = () => {
 // - - - - - - - - - - - - - - - - - - - - -
 window.ur.tnewmodel = title => {
   // first create the pmcData
-  return UR.DBQuery('add', { pmcData: { entities: [], visuals: [], commentThreads: [] } })
+  return UR.DBQuery('add', { pmcData: { entities: [], visuals: [], comments: [], markedread: [] } })
     .then(rdata => {
       if (rdata.error) throw Error(rdata.error);
       //

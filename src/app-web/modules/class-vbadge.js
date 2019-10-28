@@ -175,16 +175,14 @@ class VBadge {
     // Set Current Read/Unreaad status
     let hasNoComments;
     let hasUnreadComments;
-    const comments = PMC.GetCommentThreadComments(vparent.id);
+    const comments = PMC.GetComments(vparent.id);
     if (comments === undefined) {
       hasNoComments = true;
       hasUnreadComments = false;
     } else {
       hasNoComments = comments.length < 1;
       const author = ADM.GetSelectedStudentId(); // FIXME: This should read from session
-      hasUnreadComments = comments.find(comment => {
-        return comment.readBy ? !comment.readBy.includes(author) : false;
-      });
+      hasUnreadComments = PMC.HasUnreadComments(comments, author);
     }
     if (hasNoComments) {
       this.gStickyButtons.chat.attr('display', 'none');
@@ -347,7 +345,7 @@ VBadge.SVGStickyButton = (vparent, x, y) => {
     e.stopPropagation();
     if (DBG) console.log(`${e.target} clicked e=${e}`);
     UR.Publish('STICKY:OPEN', {
-      parentId: vparent.id,
+      refId: vparent.id,
       x: e.clientX,
       y: e.clientY
     });

@@ -63,6 +63,7 @@ import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
+import DATAMAP from '../../system/common-datamap';
 import ADM from '../modules/data';
 import PMC from '../modules/pmc-data';
 
@@ -105,10 +106,7 @@ class StickyNote extends React.Component {
     this.DoOpenSticky();
   }
 
-  componentWillUnmount() {
-    // Save data just in case?
-    if (this.state.isBeingEdited) this.OnEditFinished();
-  }
+  componentWillUnmount() {}
 
   DoOpenSticky() {
     const { comment } = this.props;
@@ -124,8 +122,13 @@ class StickyNote extends React.Component {
       allowedToDelete: isAuthor // REVIEW: Only teachers are allowed to delete?
     });
     if (comment.text === '') {
-      // automatically turn on editing if this is a new empty comment
-      this.DoEditStart();
+      if (comment.author === ADM.GetSelectedStudentId()) {
+        // automatically turn on editing if this is a new empty comment
+        // AND we are the author
+        this.DoEditStart();
+      } else {
+        comment.placeholder = '...'; // show that someone else is writing
+      }
     }
   }
 
@@ -137,15 +140,43 @@ class StickyNote extends React.Component {
   }
   
   DoSave() {
-    PMC.CommentAdd(this.props.refId, this.state.comment);
-    this.props.OnUpdateComment({ comment: this.state.comment });
+    // Automatically mark read by author
+    const comment = this.state.comment;
+    const author = ADM.GetSelectedStudentId();
+    
+    if (this.state.isBeingEdited) {
+      // save
+      PMC.DB_CommentUpdate(
+        this.props.refId,
+        comment,
+        rdata => {
+          // retrieve the comment.id so we can mark it read
+          const syncitems = DATAMAP.ExtractSyncData(rdata);
+          syncitems.forEach(item => {
+            const { colkey, subkey, value } = item;
+            if (subkey === 'comments') {
+              if (value.id !== undefined) {
+                // save it locally
+                comment.id = value.id;
+                PMC.DB_MarkRead(value.id, author);
+              }
+            }
+          });
+          // then tell StickyNoteCollection to exit edit mode
+          this.props.OnUpdateComment();
+        }
+      );  
+    } else {
+      // just mark read
+      // but first make sure the comment is valid (has been saved and already established an id)
+      if (comment.id === undefined) throw Error('StickyNote.DoSave trying to mark read a comment with no id', comment.text);
+      PMC.DB_MarkRead(comment.id, author);
+    }
   }
 
   DoDelete() {
-    this.props.OnUpdateComment({
-      action: 'delete',
-      comment: this.state.comment
-    });
+    PMC.DB_CommentDelete(this.state.comment.id);    
+    this.props.OnUpdateComment(); // tell StickyNoteCollection to exit edit mode
   }
 
   OnEditClick(e) {
@@ -165,13 +196,6 @@ class StickyNote extends React.Component {
   }
 
   OnEditFinished() {
-    // Automatically mark read by author
-    // NOTE: This is only called if the note was being edited
-    const author = ADM.GetSelectedStudentId();
-    let comment = this.state.comment;
-    if (!comment.readBy.includes(author)) {
-      comment.readBy.push(author);
-    }
     this.DoSave();
     // stop editing and close
     this.setState({
@@ -261,9 +285,7 @@ class StickyNote extends React.Component {
       comment
     } = this.state;
     const { classes } = this.props;
-    const hasBeenRead = this.props.comment.readBy
-      ? this.props.comment.readBy.includes(ADM.GetSelectedStudentId())
-      : false;
+    const hasBeenRead = PMC.HasBeenRead(this.props.comment.id, ADM.GetSelectedStudentId());
     const date = new Date(comment.date);
     const timestring = date.toLocaleTimeString('en-Us', {
       hour: '2-digit',

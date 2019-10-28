@@ -76,8 +76,8 @@ class GroupsList extends React.Component {
   componentDidMount() { }
 
   componentWillUnmount() {
-    UR.Unubscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
-    UR.Unubscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
+    UR.Unsubscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
+    UR.Unsubscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
   }
 
   DoClassroomSelect(data) {

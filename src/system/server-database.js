@@ -277,7 +277,7 @@ DB.PKT_Add = pkt => {
           }
           // we're only handling entities with magic inserts
           // because these aren't automatically handled by loki
-          if (subkey === 'entities' || subkey === 'commentThreads') {
+          if (subkey === 'entities' || subkey === 'comments' || subkey === 'markedread') {
             // HACKY ensure that entityids are not reused during a server run
             // so researchers can clearly see the user behaviors in the log
             let maxid = list.reduce((acc, cv) => {

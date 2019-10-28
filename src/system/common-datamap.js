@@ -29,7 +29,8 @@ const DBKEYS = [
   `resources`,
   `pmcData`,
   `pmcData.entities`,
-  `pmcData.commentThreads`,
+  `pmcData.comments`,
+  `pmcData.markedread`,
   `pmcData.visuals`
 ];
 

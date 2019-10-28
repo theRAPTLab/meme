@@ -71,7 +71,7 @@ ADMObj.Model = data => {
  *  Returns a new pmcData data object (used in models)
  */
 ADMObj.ModelPMCData = () => {
-  return { entities: [], commentThreads: [], visuals: [] };
+  return { entities: [], comments: [], markedread: [], visuals: [] };
 };
 
 /**

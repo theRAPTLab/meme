@@ -67,97 +67,10 @@ module.exports = {
     { id: 10, type:'vprop', pos:{x:0,y:0}, state:{} }
   ],
   // commentTreads do not share ids since they are not referenceable by other elements
-  commentThreads: [
-    {
-      id: 51,
-      refId: 33,
-      comments: [
-        {
-          id: 0,
-          time: 0,
-          author: 'Bob',
-          date: 'DateStringHere',
-          text: 'Comment on "fish need food"',
-          criteriaId: 1,
-          readBy: ['Bob', 'Bill']
-        }
-      ]
-    },
-    {
-      id: 52,
-      refId: 14,
-      comments: [
-        {
-          id: 0,
-          time: 0,
-          author: 'Bob',
-          date: 'DateStringHere',
-          text: 'Decomposers decompose',
-          criteriaId: 1,
-          readBy: ['Bob', 'Bill']
-        },
-        {
-          id: 1,
-          time: 10,
-          author: 'Bill',
-          date: 'DateStringHere',
-          text: 'Suppose decompose',
-          criteriaId: 2,
-          readBy: []
-        }
-      ]
-    },
-    {
-      id: 53,
-      refId: 12,
-      comments: [
-        {
-          id: 0,
-          author: 'Bob',
-          date: 'DateStringHere',
-          text: 'Algae green',
-          criteriaId: 1,
-          readBy: ['Bob', 'Bill']
-        },
-        {
-          id: 1,
-          author: 'Bill',
-          date: 'DateStringHere',
-          text: 'Algae seein you',
-          criteriaId: 2,
-          readBy: []
-        },
-        {
-          id: 2,
-          author: 'Mary',
-          date: 'DateStringHere',
-          text: 'You can call me Algae',
-          criteriaId: 2,
-          readBy: []
-        }
-      ]
-    },
-    {
-      id: 54,
-      refId: '15:17',
-      comments: [
-        {
-          id: 0,
-          author: 'Bill',
-          date: 'DateStringHere',
-          text: 'Fish need O2',
-          criteriaId: 1,
-          readBy: ['Bob', 'Bill']
-        },
-        {
-          id: 1,
-          author: 'Bill',
-          date: 'DateStringHere',
-          text: 'Fish pop pop',
-          criteriaId: 2,
-          readBy: []
-        }
-      ]
-    }
+  comments: [
+
+  ],
+  markread: [
+    
   ]
 };

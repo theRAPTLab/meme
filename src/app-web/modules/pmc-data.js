@@ -6,6 +6,8 @@ import UR from '../../system/ursys';
 import VM from './vm-data';
 import UTILS from './utils';
 import ASET from './adm-settings';
+import ADMObj from './adm-objects';
+import PMCObj from './pmc-objects';
 
 const { CoerceToPathId, CoerceToEdgeObj } = DEFAULTS;
 
@@ -71,7 +73,8 @@ const PR = 'PMCDATA';
 let m_graph; // dagresjs/graphlib instance
 let a_props = []; // all properties (strings)
 let a_mechs = []; // all mechanisms (pathId strings)
-let a_commentThreads = []; // all prop and mech comments
+let a_comments = []; // all comments
+let a_markedread = []; // ids of comments that have been read by students
 //
 let a_components = []; // top-level props with no parents, derived
 let h_children = new Map(); // children hash of each prop by id (string)
@@ -106,7 +109,8 @@ PMCData.Graph = () => {
 PMCData.ClearModel = () => {
   a_props = [];
   a_mechs = [];
-  a_commentThreads = [];
+  a_comments = [];
+  a_markedread = [];
   a_resources = [];
   a_evidence = [];
 };
@@ -180,12 +184,17 @@ PMCData.InitializeModel = (model, admdb) => {
 
   // Comments
   // Clean up data: Make sure refIds are strings.
-  if (data.commentThreads) {
-    a_commentThreads = data.commentThreads.map(c => {
+  if (data.comments) {
+    a_comments = data.comments.map(c => {
       return Object.assign({ refId: String(c.refId) }, c);
     });
   } else {
-    a_commentThreads = [];
+    a_comments = [];
+  }
+  if (data.markedread) {
+    a_markedread = data.markedread.slice(0);
+  } else {
+    a_markedread = [];
   }
 
   // test serial write out, then serial read back in
@@ -237,6 +246,7 @@ PMCData.InitializeModel = (model, admdb) => {
  * @param {Object} data - a collection object
  */
 PMCData.SyncAddedData = data => {
+  if (DBG) console.log('PMCData.SyncAddedData data', data);
   // skip update if no model is loaded
   if (ASET.selectedModelId === '' || m_graph === undefined) return;
   // skip update if data is for a different model
@@ -280,10 +290,15 @@ PMCData.SyncAddedData = data => {
       PMCData.BuildModel();
     }
 
-    if (subkey === 'commentThreads') {
-      const { id, refId, comments } = value;
-      const thread = { id, refId, comments };
-      a_commentThreads.push(thread);
+    if (subkey === 'comments') {
+      const comment = PMCObj.Comment(value);
+      console.log('....adding comment', comment);
+      a_comments.push(comment);
+      UR.Publish('DATA_UPDATED');
+    }
+
+    if (subkey === 'markedread') {
+      a_markedread.push(value);
       UR.Publish('DATA_UPDATED');
     }
   });
@@ -351,22 +366,23 @@ PMCData.SyncUpdatedData = data => {
       PMCData.BuildModel();
     }
 
-    if (subkey === 'commentThreads') {
-      const { id, refId, comments } = value;
-      const newThread = { id, refId, comments };
-      const i = a_commentThreads.findIndex(c => c.refId === refId);
-      if (i < 0) throw Error('Trying to update non-existent commentThread');
-      const oldThread = a_commentThreads[i];
-      const thread = Object.assign(oldThread, newThread);
-      a_commentThreads.splice(i, 1, thread);
+    if (subkey === 'comments') {
+      const newComment = PMCObj.Comment(value);
+      const i = a_comments.findIndex(c => c.id === value.id);
+      if (i < 0) throw Error('Trying to update non-existent comments');
+      const comment = Object.assign(a_comments[i], newComment);
+      a_comments.splice(i, 1, comment); 
       UR.Publish('DATA_UPDATED');
     }
+
+    if (subkey === 'markedread') {
+      // marked read really doesn't get updates
+    }
   }); // syncitems
-  if (DBG && data['pmcData.commentThreads']) console.log('PMCData.commentThreads update');
+  if (DBG && data['pmcData.comments']) console.log('PMCData.comments update');
   // do stuff here
 
   // can add better logic to avoid updating too much
-  // PMCData.BuildModel();
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SyncRemovedData = data => {
@@ -408,15 +424,18 @@ PMCData.SyncRemovedData = data => {
       }
       PMCData.BuildModel();
     }
-  });
-  // oldway
-  // if (data['pmcData']) console.log('PMCData remove');
-  // if (data['pmcData.entities']) console.log('PMCData.entities remove');
-  // if (data['pmcData.commentThreads']) console.log('PMCData.commentThreads remove');
-  // // do stuff here
 
-  // can add better logic to avoid updating too much
-  // PMCData.BuildModel();
+    if (subkey === 'comments') {
+      let i = a_comments.findIndex(c => c.id === value.id);
+      a_comments.splice(i, 1);
+      // no need to build model, just send a data update
+      UR.Publish('DATA_UPDATED');
+    }
+
+    if (subkey === 'markedread') {
+      // marked read really doesn't get removed
+    }
+  });
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -708,17 +727,6 @@ PMCData.PMC_PropAdd = newPropObj => {
     }
   });
   // round-trip will call BuildModel() for us
-
-  /** OLD STUFF
-  // FIXME
-  // Temporarily insert a random numeric prop id
-  // This will get replaced with a server promise once that's implemented
-  const propId = Math.trunc(Math.random() * 10000000000).toString();
-  m_graph.setNode(propId, { name });
-  PMCData.BuildModel();
-  UTILS.RLog('PropertyAdd', name);
-  return `added node:name ${name}`;
-  **/
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** update through database
@@ -807,28 +815,6 @@ PMCData.PMC_PropDelete = propId => {
       entities: { id: propId }
     }
   });
-
-  /** OLD CODE
-  // Deselect the prop first, otherwise the deleted prop will remain selected
-  VM.VM_DeselectAll();
-  // Unlink any evidence
-  const evlinks = PMCData.PMC_GetEvLinksByPropId(propId);
-  if (evlinks)
-    evlinks.forEach(evlink => {
-      PMCData.SetEvidenceLinkPropId(evlink.id, undefined);
-    });
-  // Delete any children nodes
-  const children = PMCData.Children(propId);
-  if (children)
-    children.forEach(cid => {
-      PMCData.PMC_SetPropParent(cid, undefined);
-    });
-  // Then remove propId
-  m_graph.removeNode(propId);
-  PMCData.BuildModel();
-  UTILS.RLog('PropertyDelete', propId);
-  return `deleted propId ${propId}`;
-  **/
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** Return true if the prop designated by propId has a parent that is
@@ -853,14 +839,6 @@ PMCData.PMC_SetPropParent = (nodeId, parentId) => {
   return PMCData.PMC_PropUpdate(id, { parent: pid }).then(rdata => {
     if (DBG) console.log('PropUpdate', JSON.stringify(rdata['pmcData.entities']));
   });
-
-  // round-trip will call BuildModel() for us
-  /** OLD CODE
-  m_graph.setParent(nodeId, parentId);
-  PMCData.BuildModel();
-  UTILS.RLog('PropertySetParent', nodeId, parent);
-  return `set parentId ${parentId} to node ${nodeId}`;
-  **/
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.PMC_MechAdd = (sourceId, targetId, label, description) => {
@@ -893,14 +871,6 @@ PMCData.PMC_MechAdd = (sourceId, targetId, label, description) => {
       entities: mechObj
     }
   });
-
-  /** OLD CODE
-   *
-  m_graph.setEdge(sourceId, targetId, { name: label });
-  PMCData.BuildModel();
-  UTILS.RLog('MechanismAdd', sourceId, targetId, label);
-  return `added edge ${sourceId} ${targetId} ${label}`;
-   */
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
@@ -956,7 +926,7 @@ PMCData.PMC_MechUpdate = (origMech, newMech) => {
         });
       }
       // 2b. Move comments over
-      const comments = PMCData.GetCommentThreadComments(origMechId);
+      const comments = PMCData.GetComments(origMechId);
       PMCData.CommentThreadUpdate(newMechId, comments);
 
       UTILS.RLog(
@@ -1060,6 +1030,7 @@ PMCData.PMC_AddEvidenceLink = (rsrcId, cb, note = '') => {
     rating: undefined,
     note
   };
+  UTILS.RLog('EvidenceCreate', rsrcId); // note is empty at this point
   return UR.DBQuery('add', {
     'pmcData.entities': {
       id: pmcDataId,
@@ -1083,27 +1054,6 @@ PMCData.PMC_AddEvidenceLink = (rsrcId, cb, note = '') => {
       }
     });
   });
-
-  /** OLD CODE
-  // Retrieve from db?!?
-  // HACK!  FIXME!  Need to properly generate a unique ID.
-  let id = `ev${Math.trunc(Math.random() * 10000)}`;
-
-  // Construct number, e.g. "2c"
-  // 1. Ordinal value of resource in resource library, e.g. "2"
-  const prefix = PMCData.PMC_GetResourceIndex(rsrcId);
-  // 2. Ordinal value of evlink in evlink list, e.g. "c"
-  const evlinks = PMCData.GetEvLinksByResourceId(rsrcId);
-  const numberOfEvLinks = evlinks.length;
-  const count = String.fromCharCode(97 + numberOfEvLinks); // lower case for smaller footprint
-
-  const number = String(prefix) + count;
-  a_evidence.push({ id, propId: undefined, rsrcId, number, note });
-  PMCData.BuildModel();
-
-  UTILS.RLog('EvidenceCreate', rsrcId); // note is empty at this point
-  return id;
-  */
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:
@@ -1244,14 +1194,6 @@ PMCData.SetEvidenceLinkPropId = (evId, propId) => {
   if (propId !== undefined)
     // Only log when setting, not when programmatically clearing
     UTILS.RLog('EvidenceSetTarget', `Attaching evidence "${evId}" to Property "${propId}"`);
-
-  /** old code
-  let evlink = h_evidenceById.get(evId);
-  evlink.propId = propId;
-  evlink.mechId = undefined; // clear this in case it was set
-  // Call BuildModel to rebuild hash tables since we've added a new propId
-  PMCData.BuildModel(); // DATA_UPDATED called by BuildModel()
-  */
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
@@ -1263,17 +1205,6 @@ PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
   if (mechId !== undefined)
     // Only log when setting, not when programmatically clearing
     UTILS.RLog('EvidenceSetTarget', `Attaching evidence "${evId}" to Mechanism "${mechId}"`);
-
-  /** old code
-  let evlink = h_evidenceById.get(evId);
-  evlink.mechId = mechId;
-  evlink.propId = undefined; // clear this in case it was set
-  // Call BuildModel to rebuild hash tables since we've added a new mechId
-  PMCData.BuildModel(); // DATA_UPDATED called by BuildModel()
-  if (mechId !== undefined)
-    // Only log when setting, not when programmatically clearing
-    UTILS.RLog('EvidenceSetTarget', `Attaching evidence "${evId}" to Mechanism "${mechId}"`);
-  */
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkNote = (evId, note) => {
@@ -1282,13 +1213,6 @@ PMCData.SetEvidenceLinkNote = (evId, note) => {
   };
   PMCData.PMC_EvidenceUpdate(evId, newData);
   UTILS.RLog('EvidenceSetNote', `Set evidence note to "${note}"`);
-
-  /** old data
-  let evlink = h_evidenceById.get(evId);
-  evlink.note = note;
-  UR.Publish('DATA_UPDATED');
-  UTILS.RLog('EvidenceSetNote', `Set evidence note to "${evlink.note}"`);
-   */
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkRating = (evId, rating) => {
@@ -1298,196 +1222,146 @@ PMCData.SetEvidenceLinkRating = (evId, rating) => {
   };
   PMCData.PMC_EvidenceUpdate(evId, newData);
   UTILS.RLog('EvidenceSetRating', `Set evidence "${evId}" to "${rating}"`);
-
-  /** old data
-  let evlink = h_evidenceById.get(evId);
-  if (evlink) {
-    evlink.rating = rating;
-    UR.Publish('DATA_UPDATED');
-    UTILS.RLog('EvidenceSetRating', `Set evidence "${evlink.note}" to "${rating}"`);
-    return;
-  }
-  throw Error(`no evidence link with evId '${evId}' exists`);
-  */
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// STICKIES //////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.VIEWMODEL:
- * @param {string||number} refId - id of Property (Number) or Mechanism (String)
- * @return {object} Comment thread object, or [] if none defined.
-// or undefined
- */
-PMCData.GetCommentThread = refId => {
-  return a_commentThreads.find(c => {
-    return c.refId === refId;
-  });
-};
-/** API.VIEWMODEL:
- * @param {string||number} refId - id of Property (Number) or Mechanism (String)
- * @return [array] Array of comment objects, or [] if none defined.
-// or undefined
- */
-PMCData.GetCommentThreadComments = refId => {
-  const result = PMCData.GetCommentThread(refId);
-  return result ? result.comments : [];
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.MODEL:
- *  Returns an empty sticky with the current student info
- *  @param {string} author - author's studentId
- *  @param {string} sentenceStarter - placeholder text for a new comment
- * */
-PMCData.NewComment = (author, sentenceStarter) => {
-  const id = `co${new Date().getTime()}`;
-  return {
-    id,
-    author,
-    date: new Date().toJSON(),
-    text: '',
-    placeholder: sentenceStarter,
-    criteriaId: '',
-    readBy: []
-  };
-};
 /**
- *  Add or Update individual comment item, then the thread itself
+ *  Adds a new comment item to the database
+ *  @param {String} refId - id of the parent object the comment is pointing to
+ *  @param {Object} commentData - a PMCObj.Comment-like object with NO id
+ *                                three optional parameters: text, criteriaId
  */
-PMCData.CommentAdd = (refId, newComment) => {
-  if (DBG) console.log('PMCData.CommentAdd', refId, newComment);
-  const comments = PMCData.GetCommentThreadComments(refId);
-  if (comments.length < 1) {
-    // Add new comment to new comment thread
-    PMCData.CommentThreadAdd(refId, [newComment]);
-  } else {
-    // Add/Update comment to existing comment thread
-    PMCData.CommentUpdate(refId, newComment);
-  }
-};
-/**
- *  Update individual comment item, then the thread itself
- */
-PMCData.CommentUpdate = (refId, newComment) => {
-  if (DBG) console.log('PMCData.CommentUpdate', refId, newComment);
-  const comments = PMCData.GetCommentThreadComments(refId);
-  if (comments < 1) throw Error(`Trying to update a non-existent thread refId=${refId}`);
-
-  // update existing comment or add a new comment?
-  const i = comments.findIndex(c => c.id === newComment.id);
-  if (i > -1) {
-    // existing comment
-    comments.splice(i, 1, newComment);
-  } else {
-    // new comment
-    comments.push(newComment);
-  }
-
-  let thread = PMCData.GetCommentThread(refId);
-  thread.comments = comments;
-  const pmcDataId = ASET.selectedPMCDataId;
-  if (DBG) console.log('updating model', modelId, 'with commentThread', thread);
-  // we need to update pmcdata which looks like
-  // { id, entities:[ { id, name } ] }
-  return UR.DBQuery('update', {
-    'pmcData.commentThreads': {
-      id: pmcDataId,
-      commentThreads: thread
-    }
+PMCData.DB_CommentAdd = (refId, commentData, cb) => {
+  if (refId === undefined || refId === "") throw Error(`refId is required for a new comment object! refId="${refId}`);
+  if (commentData.id) throw Error('comment id should not be passed to a new comment object!');
+  const newComment = PMCObj.Comment({
+    refId: commentData.refId,
+    author: commentData.author,
+    text: commentData.text,
+    criteriaId: commentData.criteriaId,
+    placeholder: commentData.placeholder
   });
-  // round-trip will call BuildModel() for us
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.MODEL:
- *  Adds a mew comment thread to refId
- *  @param {string} refId - if defined, id string of the target of the comment
- *                  propId, mechId, or evId
- *  @param [object] newComments - Array of comment objects
- *
- *  This is primarily used by the Sticky Notes system to save chagnes to
- *  comment text.
- */
-PMCData.CommentThreadAdd = (refId, newComments) => {
-  // local data will be updated on DBSYNC event, so don't write it here
-  const threadData = Object.assign({ refId }, { comments: newComments });
+  UTILS.RLog(
+    'CommentAdd',
+    `"${commentData.text}" with criteria "${commentData.criteriaId}" on "${refId}"`
+  );
   const pmcDataId = ASET.selectedPMCDataId;
-  if (DBG)
-    console.log(
-      'PMCData.CommentThreadAdd: adding model',
-      pmcDataId,
-      'with commentThread',
-      threadData
-    );
-  // we need to update pmcdata which looks like
-  // { id, entities:[ { id, name } ] }
   return UR.DBQuery('add', {
-    'pmcData.commentThreads': {
+    'pmcData.comments': {
       id: pmcDataId,
-      commentThreads: threadData
+      comments: newComment
+    }
+  }).then(rdata => {
+    if (cb && typeof cb === 'function') cb(rdata);
+  });
+};
+/**
+ *  Updates an array of comment items
+ *  @param {String} refId - id of the parent object the comment is pointing to
+ *  @param {Object} comment - a PMCObj.Comment-like object with
+ *                                three optional parameters: text, criteriaId
+ *  @param {Function} cb - a callback function
+ *  */
+PMCData.DB_CommentUpdate = (refId, comment, cb) => {
+  if (DBG) console.log('PMCData.CommentUpdateReadBy', refId, comment);
+  // merge into old comments
+  const origComment = PMCData.GetComment(comment.id);
+  if (origComment === undefined) {
+    // new comment
+    return PMCData.DB_CommentAdd(refId, comment, cb);
+  }
+
+  // update existing comment
+  const updatedComment = Object.assign(origComment, comment);
+  
+  UTILS.RLog(
+    'CommentUpdate',
+    `"${comment.text}" with criteria "${comment.criteriaId}" on "${refId}"`
+  );
+
+  const pmcDataId = ASET.selectedPMCDataId;
+  return UR.DBQuery('update', {
+    'pmcData.comments': {
+      id: pmcDataId,
+      comments: updatedComment
+    }
+  }).then(rdata => {
+    if (cb && typeof cb === 'function') cb(rdata);
+  });
+};
+/**
+ *  Remove comment from the db
+ *  @param {String} id - id of the comment object (not refId)
+ */
+PMCData.DB_CommentDelete = commentId => {
+  const pmcDataId = ASET.selectedPMCDataId;
+  UTILS.RLog('CommentDelete', `"${commentId}" from model "${pmcDataId}"`);
+  return UR.DBQuery('remove', {
+    'pmcData.comments': {
+      id: pmcDataId,
+      comments: { id: commentId }
     }
   });
-  // round-trip will call BuildModel() for us
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/** API.MODEL:
- *  Updates the respective data structure (a_commentThreads or a_evidence) with the
- *  updated comment text.
- *  @param {string} refId - if defined, id string of the target of the comment
- *                  propId, mechId, or evId
- *  @param [object] newComments - Array of comment objects
- *
- *  This is primarily used by the Sticky Notes system to save changes to
- *  comment text.
+/**
+ *  Retrieves the comment object in the database matching the comment id
+ *  @param {String} id - database id of the comment object (not refId)
+ *  @return {Array} Array of comment objects, or undefined if not found
  */
-PMCData.CommentThreadUpdate = (refId, newComments) => {
-  const thread = PMCData.GetCommentThread(refId);
-  if (thread === undefined) {
-    // When a StickyNote is created, the note doesn't know if there is a parent
-    // thread or not, it just calls CommentThreadUpdate
-    // If there's no existing thread, we need to create one.
-    PMCData.CommentThreadAdd(refId, newComments);
-    return;
-  }
-
-  // make a copy of the prop with overwritten new data
-  // local data will be updated on DBSYNC event, so don't write it here
-  const threadData = Object.assign(thread, { comments: newComments });
+PMCData.GetComment = id => {
+  return a_comments.find(c => c.id === id);
+};
+/**
+ *  Retrieves all of the comment objects in the database related to refId
+ *  @param {String} refId - id of Property(Number) or Mechanism(String)
+ *  @return {Array} Array of comment objects, or [] if none defined.
+ */
+PMCData.GetComments = refId => {
+  return a_comments.filter(c => c.refId === refId);
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  Adds a new markedread item to the database
+ *  @param {String} commentId - id of the coment object that is being marked read
+ *  @param {Object} author - id of the author who read the comment
+ */
+PMCData.DB_MarkRead = (commentId, author) => {
+  if (DBG) console.log('PMCData.DB_MarkRead', commentId, authors);
+  const newMarkedRead = PMCObj.MarkedRead({
+    commentId,
+    author: author
+  });
+  UTILS.RLog('CommentMarkedRead', `"${commentId}" read by "${author}"`);
   const pmcDataId = ASET.selectedPMCDataId;
-  if (DBG) console.log('updating model', modelId, 'with commentThread', threadData);
-  // we need to update pmcdata which looks like
-  // { id, entities:[ { id, name } ] }
-  return UR.DBQuery('update', {
-    'pmcData.commentThreads': {
+  return UR.DBQuery('add', {
+    'pmcData.markedread': {
       id: pmcDataId,
-      commentThreads: threadData
+      markedread: newMarkedRead
     }
   });
-  // round-trip will call BuildModel() for us
-
-  /* OLD CODE
-  return;
-
-  let index;
-  let commentThread;
-  index = a_commentThreads.findIndex(c => {
-    return c.refId === refId;
-  });
-  if (index > -1) {
-    // existing comment
-    commentThread = a_commentThreads[index];
-    commentThread.comments = comments;
-    a_commentThreads.splice(index, 1, commentThread);
-  } else {
-    // new comment
-    // FIXME
-    // Temporarily insert a random numeric prop id
-    // This will get replaced with a server promise once that's implemented
-    const id = Math.trunc(Math.random() * 10000000000).toString();
-    commentThread = { id, refId: refId, comments };
-    a_commentThreads.push(commentThread);
-  }
-  UR.Publish('DATA_UPDATED');
-  */
+};
+/**
+ *  Checks if the comment referenced by commentId has been read by the author
+ *  @param {Integer} commentId - db id of the comment object
+ *  @param {String} author - token 
+ */
+PMCData.HasBeenRead = (commentId, author) => {
+  return a_markedread.find(m => {
+    return m.commentId === commentId && m.author === author;
+  })
+};
+/**
+ *  Checks if the comment referenced by commentId has been read by the author
+ *  Used to set StickyNoteButton status.
+ *  @param {Array} comments - an array of Comment objects
+ *  @param {String} author - token 
+ */
+PMCData.HasUnreadComments = (comments, author) => {
+  if (!Array.isArray(comments)) throw Error('comments is not an array')
+  return comments.find(c => !PMCData.HasBeenRead(c.id, author));
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API.MODEL:

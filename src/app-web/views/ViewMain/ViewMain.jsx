@@ -272,7 +272,7 @@ class ViewMain extends React.Component {
     if (selectedPropIds.length > 0) {
       let propId = selectedPropIds[0];
       UR.Publish('STICKY:OPEN', {
-        parentId: propId,
+        refId: propId,
         // FIXME: Set position according to parent prop?
         x: 600, // stickynote hack moves it by -325
         y: 100
@@ -285,7 +285,7 @@ class ViewMain extends React.Component {
     if (selectedMechIds.length > 0) {
       let mechId = selectedMechIds[0];
       UR.Publish('STICKY:OPEN', {
-        parentId: mechId,
+        refId: mechId,
         // FIXME: Set position according to parent prop?
         x: 600, // stickynote hack moves it by -325
         y: 100
@@ -477,7 +477,7 @@ class ViewMain extends React.Component {
             <div
               className={resourceLibraryIsOpen ? classes.appBarRight : classes.appBarRightExpanded}
             >
-              <StickyNoteButton parentId={modelId} />
+              <StickyNoteButton refId={modelId} />
               &nbsp;&nbsp; &nbsp;&nbsp;
               <Button onClick={ADM.CloseModel} color="inherit">
                 <div>{studentName}</div>

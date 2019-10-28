@@ -937,6 +937,15 @@ ADMData.GetSentenceStartersByClassroom = (classroomId = ADMData.GetSelectedClass
   }
   return result;
 };
+// Returns a single sentenceStarter object for the current classroom, if not found ''
+ADMData.GetSentenceStarter = () => {
+  const sentenceStarter = ADMData.GetSentenceStartersByClassroom();
+  if (sentenceStarter === undefined || sentenceStarter.sentences === undefined) {
+    return '';
+  } else {
+    return sentenceStarter.sentences;    
+  }
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ADMData.UpdateSentenceStarter = sentenceStarter => {

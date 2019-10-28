@@ -6,7 +6,7 @@ Sticky Note Icon Button
 
 props
 
-    parentId    This is used to load the parent object.
+    refId       This is used to load the parent object.
                 e.g. if the parent object is an evidence link, this
                 points to the evId.
 
@@ -69,6 +69,7 @@ class StickyNoteButton extends React.Component {
 
   componentWillUnmount() {
     UR.Unsubscribe('DATA_UPDATED', this.DoDataUpdate);
+    UR.Unsubscribe('STICKY_CLOSED', this.DoSetClosed);
   }
 
   DoDataUpdate() {
@@ -90,13 +91,13 @@ class StickyNoteButton extends React.Component {
    */
   OnUpdateReadStatus() {
     let comments;
-    comments = PMC.GetCommentThreadComments(this.props.parentId);
+    comments = PMC.GetComments(this.props.refId);
     const author = ADM.GetSelectedStudentId();
+    const hasNoComments = comments ? comments.length < 1 : true;
+    const hasUnreadComments = PMC.HasUnreadComments(comments, author);
     this.setState({
-      hasNoComments: comments ? comments.length < 1 : true,
-      hasUnreadComments: comments ? comments.find(comment => {
-        return comment.readBy ? !comment.readBy.includes(author) : false;
-      }) : false
+      hasNoComments,
+      hasUnreadComments
     });
   }
 
@@ -107,7 +108,7 @@ class StickyNoteButton extends React.Component {
     this.setState({ isOpen: true });
     
     UR.Publish('STICKY:OPEN', {
-      parentId: this.props.parentId,
+      refId: this.props.refId,
       x: e.clientX,
       y: e.clientY
       // windowWidth: e.view.window.innerWidth, // not used
@@ -144,7 +145,7 @@ StickyNoteButton.propTypes = {
 
 StickyNoteButton.defaultProps = {
   classes: {},
-  parentId: undefined
+  refId: undefined
 };
 
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
