@@ -44,6 +44,7 @@ import PropDialog from '../../components/PropDialog';
 import ResourceView from '../../components/ResourceView';
 import ResourceItem from '../../components/ResourceItem';
 import RatingsDialog from '../../components/RatingsDialog';
+import ScreenshotView from '../../components/ScreenshotView';
 import StickyNoteButton from '../../components/StickyNoteButton';
 import StickyNoteCollection from '../../components/StickyNoteCollection';
 import ToolsPanel from './ToolsPanel';
@@ -540,6 +541,7 @@ class ViewMain extends React.Component {
           <RatingsDialog />
           <MechDialog />
           <DescriptionView />
+          <ScreenshotView />
         </main>
 
         {/* Resource Library */}

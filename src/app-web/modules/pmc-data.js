@@ -347,7 +347,7 @@ PMCData.SyncUpdatedData = data => {
           });
           break;
         case 'evidence':
-          const { id, propId, mechId, rsrcId, numberLabel, rating, note } = value;
+          const { id, propId, mechId, rsrcId, numberLabel, rating, note, imageURL } = value;
           const evlink = {
             id,
             propId,
@@ -355,7 +355,8 @@ PMCData.SyncUpdatedData = data => {
             rsrcId,
             numberLabel,
             rating,
-            note
+            note,
+            imageURL
           };
           const i = a_evidence.findIndex(e => e.id === id);
           a_evidence.splice(i, 1, evlink);

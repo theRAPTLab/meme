@@ -114,13 +114,8 @@ class StickyNote extends React.Component {
     const currentGroup = ADM.GetGroupByStudent();
     const authorGroup = ADM.GetGroupByStudent(comment.author);
     const isAuthor = currentGroup === authorGroup;
-    this.setState({
-      criteria,
-      comment,
-      // selectedCriteriaId: this.props.comment.criteriaId,
-      allowedToEdit: isAuthor,
-      allowedToDelete: isAuthor // REVIEW: Only teachers are allowed to delete?
-    });
+    let allowedToEdit = isAuthor;
+    let allowedToDelete = isAuthor; // REVIEW: Only teachers are allowed to delete?
     if (comment.text === '') {
       if (comment.author === ADM.GetSelectedStudentId()) {
         // automatically turn on editing if this is a new empty comment
@@ -128,8 +123,17 @@ class StickyNote extends React.Component {
         this.DoEditStart();
       } else {
         comment.placeholder = '...'; // show that someone else is writing
+        allowedToEdit = false; // you're not allowed to delete someone else's edit
+        allowedToDelete = false; // you're not allowed to delete someone else's edit
       }
     }
+    this.setState({
+      criteria,
+      comment,
+      // selectedCriteriaId: this.props.comment.criteriaId,
+      allowedToEdit,
+      allowedToDelete
+    });
   }
 
   DoEditStart() {

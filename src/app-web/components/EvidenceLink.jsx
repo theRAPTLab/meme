@@ -39,6 +39,8 @@ import UR from '../../system/ursys';
 import StickyNoteButton from './StickyNoteButton';
 import RatingButton from './RatingButton';
 import LinkButton from './LinkButton';
+import { Dropzone } from './Dropzone';
+import PMCData from '../modules/pmc-data';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -82,6 +84,7 @@ class EvidenceLink extends React.Component {
     this.DoSelectionChange = this.DoSelectionChange.bind(this);
     this.DoToggleExpanded = this.DoToggleExpanded.bind(this);
     this.OnRatingButtonClick = this.OnRatingButtonClick.bind(this);
+    this.OnDrop = this.OnDrop.bind(this);
 
     UR.Subscribe('DATA_UPDATED', this.DoDataUpdate);
     UR.Subscribe('SHOW_EVIDENCE_LINK_SECONDARY', this.DoEvidenceLinkOpen);
@@ -143,7 +146,12 @@ class EvidenceLink extends React.Component {
 
   OnScreenShotClick(e) {
     e.stopPropagation();
-    alert('Screenshot opening is not implemented yet!');
+    // show screenshot large
+    // give option of reseting imageURL
+    UR.Publish('SCREENSHOT_OPEN', {
+      evId: this.props.evlink.id,
+      imageURL: this.props.evlink.imageURL
+    });
   }
 
   OnCancelButtonClick(e) {
@@ -306,6 +314,10 @@ class EvidenceLink extends React.Component {
     const data = { evId: this.props.evlink.id, rating: this.props.evlink.rating };
     UR.Publish('RATING:OPEN', data);
   }
+  
+  OnDrop(href) {
+    DATA.PMC_EvidenceUpdate(this.props.evlink.id, { imageURL: href });
+  }
 
   render() {
     // theme overrides
@@ -331,7 +343,7 @@ class EvidenceLink extends React.Component {
 
     // evidenceLinks is an array of arrays because there might be more than one?!?
     const { classes, evlink } = this.props;
-    const { id, rsrcId, propId, mechId } = evlink;
+    const { id, rsrcId, propId, mechId, imageURL } = evlink;
     const {
       note,
       rating,
@@ -513,16 +525,19 @@ class EvidenceLink extends React.Component {
                 </Typography>
               </Grid>
               <Grid item xs>
-                <Button
-                  className={classes.evidenceScreenshotButton}
-                  onClick={this.OnScreenShotClick}
-                >
-                  <img
-                    src="../static/screenshot_sim.png"
-                    alt="screenshot"
-                    className={classes.evidenceScreenshot}
-                  />
-                </Button>
+                {imageURL === undefined
+                  ? <Dropzone onDrop={this.OnDrop} />
+                  : <Button
+                      className={classes.evidenceScreenshotButton}
+                      onClick={this.OnScreenShotClick}
+                    >
+                      <img
+                        src={imageURL}
+                        alt="screenshot"
+                        className={classes.evidenceScreenshot}
+                      />
+                    </Button>
+                }
               </Grid>
             </Grid>
           </Grid>

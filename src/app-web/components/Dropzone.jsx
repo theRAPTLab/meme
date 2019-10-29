@@ -40,7 +40,7 @@ const UPLOAD_URL = SESSION.ScreenshotPostURL()
 
 /// DEBUG FLAGS ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = true;
+const DBG = false;
 
 /// DROPAREA STYLING //////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -134,9 +134,8 @@ function StyledDropzone(props) {
     <div className="container">
       <div {...getRootProps({ style })}>
         <input {...getInputProps()} />
-        <p>Drag 'n' drop some files here, or click to select files</p>
+        <p>Drag 'n' drop screenshot here, or click to select file</p>
         <aside>
-          <h4>Files</h4>
           <ul>{files}</ul>
         </aside>
       </div>
