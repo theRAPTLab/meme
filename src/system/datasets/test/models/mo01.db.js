@@ -66,11 +66,13 @@ module.exports = {
   visuals: [
     { id: 10, type:'vprop', pos:{x:0,y:0}, state:{} }
   ],
+  // locks are model-specific lockout objects { name, id, lockedBy }
+  locks: [],
   // commentTreads do not share ids since they are not referenceable by other elements
   comments: [
 
   ],
   markread: [
-    
+
   ]
 };

@@ -123,11 +123,11 @@ ADMData.SyncAddedData = data => {
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
       case 'pmcData':
-        // ignore pmcData updates
-        // console.log('SyncAddedData got pmcData', value);
+      // ignore pmcData updates
+      // console.log('SyncAddedData got pmcData', value);
       default:
-        // ignore any other updates
-        // throw Error('unexpected colkey', colkey);
+      // ignore any other updates
+      // throw Error('unexpected colkey', colkey);
     }
   });
   /** Old code
@@ -176,11 +176,11 @@ ADMData.SyncUpdatedData = data => {
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
       case 'pmcData':
-        // ignore pmcData updates
-        // console.log('SyncUpdatedData got pmcData', value);
+      // ignore pmcData updates
+      // console.log('SyncUpdatedData got pmcData', value);
       default:
-        // ignore any other updates
-        // throw Error('unexpected colkey', colkey);
+      // ignore any other updates
+      // throw Error('unexpected colkey', colkey);
     }
   });
   // can add better logic to avoid updating too much
@@ -272,7 +272,6 @@ ADMData.SelectTeacher = teacherId => {
   UR.Publish('TEACHER_SELECT', { teacherId });
 };
 
-
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// CLASSROOMS ////////////////////////////////////////////////////////////////
 ///
@@ -291,7 +290,7 @@ ADMData.DB_AddClassroom = name => {
     ADMData.SelectClassroom(rdata.classrooms[0].id);
   });
 
-/** old/
+  /** old/
   const classroom = {};
   classroom.id = GenerateUID('tc');
   classroom.name = name;
@@ -592,7 +591,7 @@ ADMData.GetToken = (groupId, studentName) => {
 ADMData.Login = hashedToken => {
   const urs = window.URSESSION;
   if (!urs) throw Error('unexpected missing URSESSION global');
-  UR.NetCall('NET:SRV_SESSION_LOGIN', { token: hashedToken }).then(rdata => {
+  return UR.NetCall('NET:SRV_SESSION_LOGIN', { token: hashedToken }).then(rdata => {
     if (DBG) console.log('login', rdata);
     if (rdata.error) throw Error(rdata.error);
     if (DBG) console.log('updating URSESSION with session data');
@@ -608,6 +607,7 @@ ADMData.Login = hashedToken => {
     ADMData.SelectClassroom();
     UR.Publish('ADM_DATA_UPDATED');
     UR.Publish('MODEL_SELECT_OPEN');
+    return rdata;
   });
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -615,7 +615,7 @@ ADMData.Logout = () => {
   const urs = window.URSESSION;
   if (!urs) throw Error('unexpected missing URSESSION global');
   if (!urs.SESSION_Key) throw Error('missing URSESSION session key');
-  UR.NetCall('NET:SRV_SESSION_LOGOUT', { key: urs.SESSION_Key }).then(rdata => {
+  return UR.NetCall('NET:SRV_SESSION_LOGOUT', { key: urs.SESSION_Key }).then(rdata => {
     console.log('logout', rdata);
     if (rdata.error) throw Error(rdata.error);
     console.log('removing session data from URSESSION');
@@ -626,6 +626,7 @@ ADMData.Logout = () => {
       ASET.selectedStudentId = '';
       ADMData.SelectClassroom('');
       UR.Publish('ADM_DATA_UPDATED');
+      return rdata;
     } else throw Error('URSESSION key or token was not set');
   });
 };
@@ -686,7 +687,7 @@ ADMData.DB_NewModel = (data, cb) => {
         adm_db.models.push(model);
       } else {
         // Usually SyncAddedData fires before this so the model is already added
-        if (DBG) console.error(`DB_NewModel model id ${model.id} already exits. Skipping add.`)
+        if (DBG) console.error(`DB_NewModel model id ${model.id} already exits. Skipping add.`);
       }
       UTILS.RLog('ModelCreate');
       cb(rdata2);
@@ -711,7 +712,7 @@ ADMData.DB_NewModel = (data, cb) => {
  */
 ADMData.DB_ModelTitleUpdate = (modelId, title) => {
   return UR.DBQuery('update', {
-    'models': {
+    models: {
       id: modelId,
       title: title,
       dateModified: new Date()
@@ -832,7 +833,8 @@ ADMData.DB_RefreshPMCData = cb => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ADMData.LoadModel = modelId => {
   let model = ADMData.GetModelById(modelId);
-  if (model === undefined) throw Error(`${PKG}.LoadModel could not find a valid modelId ${modelId}`);
+  if (model === undefined)
+    throw Error(`${PKG}.LoadModel could not find a valid modelId ${modelId}`);
   PMCData.ClearModel();
   UR.Publish('SVG_PANZOOM_RESET');
   ADMData.SetSelectedModelId(modelId, model.pmcDataId); // Remember the selected modelId locally
@@ -946,7 +948,7 @@ ADMData.GetSentenceStarter = () => {
   if (sentenceStarter === undefined || sentenceStarter.sentences === undefined) {
     return '';
   } else {
-    return sentenceStarter.sentences;    
+    return sentenceStarter.sentences;
   }
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

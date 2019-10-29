@@ -161,16 +161,16 @@ NEW.DB_ModelTitleUpdate = (modelId = ASET.selectedModelId, title) => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NEW.DB_NewModel = groupId => {
   // new pmcData, then read the id and make new model
-  return UR.DBQuery('add', { pmcData: { entities: [], visuals: [], comments: [], markedread: [] } }).then(
-    rdata => {
-      if (rdata.error) throw Error(rdata.error);
-      //
-      const groupId = ASET.selectedGroupId;
-      const pmcDataId = rdata.pmcData[0].id;
-      const title = 'untitled model';
-      return UR.DBQuery('add', { models: { title, groupId, pmcDataId } });
-    }
-  );
+  return UR.DBQuery('add', {
+    pmcData: { entities: [], visuals: [], comments: [], markedread: [] }
+  }).then(rdata => {
+    if (rdata.error) throw Error(rdata.error);
+    //
+    const groupId = ASET.selectedGroupId;
+    const pmcDataId = rdata.pmcData[0].id;
+    const title = 'untitled model';
+    return UR.DBQuery('add', { models: { title, groupId, pmcDataId } });
+  });
   // FIRES 'ADM_DATA_UPDATED'
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -262,16 +262,16 @@ window.ur.tpropa = name => {
 
 // - - - - - - - - - - - - - - - - - - - - -
 // test login
-window.ur.tlogin = token => {
-  $$$.Login(token).then(() => {
-    window.ur.clientinfo();
+window.ur.Login = token => {
+  $$$.Login(token).then(rdata => {
+    ur.clientinfo();
   });
   return 'logging in...';
 };
 // test logout
-window.ur.tlogout = () => {
-  $$$.Logout().then(() => {
-    window.ur.clientinfo();
+window.ur.Logout = () => {
+  $$$.Logout().then(rdata => {
+    ur.clientinfo();
   });
   return 'logging out...';
 };

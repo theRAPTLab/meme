@@ -663,5 +663,15 @@ function m_CheckRMode(mode) {
 
 /// EXPORT CLASS DEFINITION ///////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NetMessage.CODE_OK = 0;
+NetMessage.CODE_NO_MESSAGE = 1; // requested message doesn't exist
+NetMessage.CODE_SOC_NOSOCK = -100;
+NetMessage.CODE_SES_REQUIRE_KEY = -200; // access key not set
+NetMessage.CODE_SES_REQUIRE_LOGIN = -201; // socket was not logged-in
+NetMessage.CODE_SES_INVALID_KEY = -202; // provided key didn't match socket key
+NetMessage.CODE_SES_RE_REGISTER = -203; // session attempted to login again
+NetMessage.CODE_SES_INVALID_TOKEN = -204; // session attempted to login again
+NetMessage.CODE_REG_DENIED = -300; // registration of handler denied
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// using CommonJS format on purpose for node compatibility
 module.exports = NetMessage;

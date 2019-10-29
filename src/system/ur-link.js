@@ -294,6 +294,28 @@ class URLink {
     // returns promise that resolve to data object
     return this.NetCall(opmsg, data);
   }
+  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /** Cooperative database element lock on server
+   */
+  _DBLock(data) {
+    const { dbkey, dbids, key } = data;
+    if (!DATAMAP.IsValidKey(dbkey)) return Promise.reject(`invalid dbkey ${dbkey}`);
+    if (!DATAMAP.IsValidIdsArray(dbids)) return Promise.reject(`dbids must be array of ints`);
+    if (!data.key) return Promise.reject(`data must have access key 'key' defined`);
+    if (!data.uaddr) return Promise.reject(`data must have uaddr defined`);
+    return this.NetCall('NET:SRV_DBLOCK', data);
+  }
+  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /** Cooperative database element release on server
+   */
+  _DBRelease(data) {
+    const { dbkey, dbids, key } = data;
+    if (!DATAMAP.IsValidKey(dbkey)) return Promise.reject(`invalid dbkey ${dbkey}`);
+    if (!DATAMAP.IsValidIdsArray(dbids)) return Promise.reject(`dbids must be array of ints`);
+    if (!data.key) return Promise.reject(`data must have access key 'key' defined`);
+    if (!data.uaddr) return Promise.reject(`data must have uaddr defined`);
+    return this.NetCall('NET:SRV_DBRELEASE', data);
+  }
 } // class URLink
 
 /// EXPORT CLASS DEFINITION ///////////////////////////////////////////////////

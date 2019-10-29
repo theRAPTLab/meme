@@ -303,11 +303,17 @@ DataMap.IsValidId = id => {
   let test = Number.parseInt(id) === id;
   return test && id >= 0;
 };
-/** given an array of idsObjs, insure that it is an int >=0
+/** given an array of idsObjs, report that all that it is an int >=0
  */
 DataMap.HasValidIdObjs = ids => {
   if (!Array.isArray(ids)) throw Error(`arg1 must be array of objects`);
   return ids.every(idObj => DataMap.IsValidId(idObj.id));
+};
+/** given an array of ids, report if all vonfirm
+ */
+DataMap.IsValidIdsArray = ids => {
+  if (!Array.isArray(ids)) throw Error(`arg1 must be array of ints`);
+  return ids.every(id => DataMap.IsValidId(id));
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

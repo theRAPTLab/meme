@@ -76,6 +76,10 @@ DB.InitializeDatabase = (options = {}) => {
   UNET.NetSubscribe('NET:SRV_DBUPDATE', DB.PKT_Update);
   UNET.NetSubscribe('NET:SRV_DBREMOVE', DB.PKT_Remove);
   UNET.NetSubscribe('NET:SRV_DBQUERY', DB.PKT_Query);
+  UNET.NetSubscribe('NET:SRV_DBLOCK', DB.PKT_Lock);
+  UNET.NetSubscribe('NET:SRV_DBRELEASE', DB.PKT_Release);
+  UNET.NetSubscribe('NET:SRV_DBLOCKS', DB.PKT_GetLockTable);
+  UNET.LocalSubscribe('SRV_SOCKET_DELETED', m_RemoveSocketLocks);
   // also we publish 'NET:SYSTEM_DBSYNC' { collection key arrays of change }
 
   // end of initialization code...following are local functions
@@ -89,6 +93,14 @@ DB.InitializeDatabase = (options = {}) => {
     // add (and configure) them now.
     // loop over all collections, initializing if necessary
     DATAMAP.Collections().forEach(name => f_LoadCollection(name));
+    // clear special tables on first start
+    let locks = m_db.getCollection('session_locks');
+    if (!locks) {
+      locks = m_db.addCollection('session_locks', { unique: ['semaphore'] });
+    } else {
+      console.log(PR, `clearing session_locks on server start`);
+    }
+    locks.clear();
     // save database
     console.log(PR, `database ready`);
     console.log(PR, fout_CountCollections());
@@ -199,7 +211,98 @@ DB.PKT_GetDatabase = pkt => {
   // to the netdevice that called this
   return adm_db;
 };
-
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** MESSAGE HANDLER: 'NET:SRV_DBLOCK'
+ *  maintain lock database (doesn't enforce anything currently)
+ */
+DB.PKT_Lock = pkt => {
+  const session = UNET.PKT_Session(pkt);
+  if (session.error) return { code: session.code, error: session.error };
+  //
+  const { dbkey, dbids, uaddr } = pkt.Data();
+  const locks = m_db.getCollection('session_locks');
+  // construct unique semaphore out of dbkey and dbids
+  const semaphore = m_MakeSemaphore(dbkey, dbids); // e.g. pmcData.entities:1,1
+  // see if this semaphore was already locked by someone other than uaddr
+  const matches = locks.find({ semaphore: { $eq: semaphore } });
+  // if no matches then no lock exists. or if matches are all locking ourselves, still ok
+  if (matches.length === 0) {
+    locks.insert({ semaphore, uaddr });
+    if (DBG) console.log(PR, `${uaddr} locking semaphore "${semaphore}"`);
+    return { semaphore, uaddr, success: true, lockedBy: uaddr };
+  }
+  if (matches.every(lock => lock.uaddr === uaddr)) {
+    if (DBG) console.log(PR, `${uaddr} multi-locked semaphore "${semaphore}"`);
+    return { semaphore, uaddr, success: true, lockedBy: uaddr };
+  }
+  // got this far, we can't deliver the lock
+  const lockedBy = matches.reduce((acc, match) => {
+    if (acc === '') return `${match.uaddr}`;
+    return `${acc},${match.uaddr}`;
+  }, '');
+  if (DBG) console.log(PR, `${uaddr} denied semaphore "${semaphore}" by ${lockedBy}`);
+  return { semaphore, uaddr, success: false, lockedBy };
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** MESSAGE HANDLER: 'NET:SRV_DBRELEASE'
+ *  maintain lock database (doesn't enforce anything currently)
+ */
+DB.PKT_Release = pkt => {
+  const session = UNET.PKT_Session(pkt);
+  if (session.error) return { code: session.code, error: session.error };
+  //
+  const { dbkey, dbids, uaddr } = pkt.Data();
+  const semaphore = m_MakeSemaphore(dbkey, dbids); // e.g. pmcData.entities:1,1
+  const locks = m_db.getCollection('session_locks');
+  const matches = locks.chain().find({ semaphore: { $eq: semaphore } });
+  const data = matches.branch().data({ removeMeta: true });
+  if (data.length === 0) {
+    if (DBG) console.log(PR, `${uaddr} nomatch semaphore "${semaphore}"`);
+    return { semaphore, uaddr, success: false, lockedBy: null };
+  }
+  if (data.every(lock => lock.uaddr === uaddr)) {
+    matches.remove();
+    if (DBG) console.log(PR, `${uaddr} release semaphore "${semaphore}"`);
+    return { semaphore, uaddr, success: true, lockedBy: uaddr };
+  }
+  // if got this far, couldn't unlock
+  const lockedBy = data.reduce((acc, match) => {
+    if (acc === '') return `${match.uaddr}`;
+    return `${acc},${match.uaddr}`;
+  }, '');
+  if (DBG) console.log(PR, `${uaddr} denied release semaphore "${semaphore} by ${lockedBy}"`);
+  return { semaphore, uaddr, success: false, lockedBy };
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** MESSAGE HANDLER: 'NET:SRV_DBLOCKS'
+ * return contents of LOCKS database
+ */ DB.PKT_GetLockTable = pkt => {
+  const locks = m_db.getCollection('session_locks');
+  return locks.chain().data({ removeMeta: true });
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// helper to remove locks from db on socket lost
+function m_RemoveSocketLocks(data) {
+  const { uaddr } = data;
+  if (!uaddr) {
+    console.error(PR, 'missing uaddr');
+    return;
+  }
+  const locks = m_db.getCollection('session_locks');
+  const found = locks.chain().find({ uaddr: { $eq: uaddr } });
+  const deleted = found.branch().data({ removeMeta: true });
+  found.remove();
+  if (deleted) {
+    deleted.forEach(item => {
+      if (DBG) console.log(PR, `${item.uaddr} release semaphore "${item.semaphore}"`);
+    });
+  }
+  return deleted;
+}
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function m_MakeSemaphore(dbkey, dbids) {
+  return `${dbkey}:${dbids.join()}`;
+}
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** MESSAGE HANDLER: 'NET:SRV_DBADD'
  *  Add an element or elements to the specificed collection.
@@ -214,7 +317,7 @@ DB.PKT_GetDatabase = pkt => {
  */
 DB.PKT_Add = pkt => {
   const session = UNET.PKT_Session(pkt);
-  if (session.error) return { error: session.error };
+  if (session.error) return { code: session.code, error: session.error };
   //
   const data = pkt.Data();
   const results = {};
@@ -326,7 +429,7 @@ DB.PKT_Add = pkt => {
  */
 DB.PKT_Update = pkt => {
   const session = UNET.PKT_Session(pkt);
-  if (session.error) return { error: session.error };
+  if (session.error) return { code: session.code, error: session.error };
   //
   const data = pkt.Data();
   const results = {};
@@ -413,7 +516,7 @@ DB.PKT_Update = pkt => {
  */
 DB.PKT_Remove = pkt => {
   const session = UNET.PKT_Session(pkt);
-  if (session.error) return { error: session.error };
+  if (session.error) return { code: session.code, error: session.error };
   //
   const data = pkt.Data();
   const results = {};
