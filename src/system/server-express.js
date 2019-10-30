@@ -6,9 +6,6 @@
 
 /// LIBRARIES ///////////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const wpack = require('webpack');
-const wpack_mid = require('webpack-dev-middleware'); //webpack hot reloading middleware
-const wpack_hot = require('webpack-hot-middleware');
 const express = require('express'); //your original BE server
 const path = require('path');
 const fs = require('fs-extra');
@@ -16,7 +13,6 @@ const IP = require('ip');
 const cookiep = require('cookie-parser');
 const multer = require('multer'); // handle multipart form data (images)
 //
-const configWebApp = require('../config/webpack.webapp.config');
 const PROMPTS = require('../system/util/prompts');
 const SESSION = require('../system/common-session');
 
@@ -76,6 +72,10 @@ function Start() {
     });
     promise = Promise.resolve();
   } else {
+    const configWebApp = require('../config/webpack.webapp.config');
+    const wpack = require('webpack');
+    const wpack_mid = require('webpack-dev-middleware'); //webpack hot reloading middleware
+    const wpack_hot = require('webpack-hot-middleware');
     // otherwise, we are running as straight node out of npm scripts, or
     // a generic Electron binary was used to load us (Electron works just
     // as a node interpreter ya know!
