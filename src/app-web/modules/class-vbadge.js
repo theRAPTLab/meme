@@ -181,7 +181,7 @@ class VBadge {
       hasUnreadComments = false;
     } else {
       hasNoComments = comments.length < 1;
-      const author = ADM.GetSelectedStudentId(); // FIXME: This should read from session
+      const author = ADM.GetAuthorId();
       hasUnreadComments = PMC.HasUnreadComments(comments, author);
     }
     if (hasNoComments) {

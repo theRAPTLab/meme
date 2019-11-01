@@ -57,7 +57,9 @@ class ADMSettings {
   }
   // setters
   set selectedTeacherId(id) {
+    // use SESSION.LoggedInProps() to pull specific data
     this.sTeacherId = id;
+    // teacherId is set to '' to log out.
   }
   set selectedClassroomId(id) {
     this.sClassroomId = id;

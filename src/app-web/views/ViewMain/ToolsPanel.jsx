@@ -258,6 +258,9 @@ class ToolsPanel extends React.Component {
 
     const componentsList = this.RenderComponentsList(DATA.Components());
     const mechanismsList = this.RenderMechanismsList(DATA.AllMechs());
+
+    const isViewOnly = ADM.IsViewOnly();
+
     return (
       <Drawer
         className={classes.drawer}
@@ -284,11 +287,12 @@ class ToolsPanel extends React.Component {
             className={classes.fab}
             onClick={this.OnComponentAdd}
             disabled={isDisabled}
+            hidden={isViewOnly}
           >
             <AddIcon />
           </Fab>
         </Tooltip>
-        <Typography align="center" variant="caption" style={{ fontSize: '10px' }}>
+        <Typography align="center" variant="caption" style={{ fontSize: '10px' }} hidden={isViewOnly}>
           ADD COMPONENT
         </Typography>
         <Divider style={{ marginBottom: '20px' }} />
@@ -310,11 +314,12 @@ class ToolsPanel extends React.Component {
             className={ClassNames(classes.fab, classes.edgeButton)}
             onClick={this.OnMechAdd}
             disabled={isDisabled}
+            hidden={isViewOnly}
           >
             <AddIcon />
           </Fab>
         </Tooltip>
-        <Typography align="center" variant="caption" style={{ fontSize: '10px' }}>
+        <Typography align="center" variant="caption" style={{ fontSize: '10px' }} hidden={isViewOnly}>
           ADD MECHANISM
         </Typography>
       </Drawer>

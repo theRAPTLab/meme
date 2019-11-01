@@ -9,7 +9,7 @@ import ASET from './adm-settings';
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = true;
+const DBG = false;
 const PKG = 'ADMDATA'; // prefix for console.log
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
@@ -501,7 +501,7 @@ ADMData.GetGroupNameByStudent = studentId => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ADMData.GetSelectedGroupId = () => {
-  const studentId = ADMData.GetSelectedStudentId();
+  const studentId = ADMData.GetAuthorId();
   return ADMData.GetGroupIdByStudent(studentId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -602,7 +602,9 @@ ADMData.Login = hashedToken => {
     SESSION.SetAccessKey(rdata.key);
 
     // This assumes we already did validation
-    ASET.selectedStudentId = rdata.token;
+    const lprops = SESSION.LoggedInProps();
+    if (lprops.studentName) ASET.selectedStudentId = rdata.token;
+    if (lprops.teacherName) ASET.selectedTeacherId = rdata.token;
     // After logging in, we need to tell ADM what the default classroom is
     ADMData.SelectClassroom();
     UR.Publish('ADM_DATA_UPDATED');
@@ -632,11 +634,53 @@ ADMData.Logout = () => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ADMData.IsLoggedOut = () => {
-  return ASET.selectedStudentId === undefined || ASET.selectedStudentId === '';
+  return (!SESSION.IsStudent() && !SESSION.IsTeacher());
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ADMData.IsValidLogin = hashedToken => {
   return SESSION.IsValidToken(hashedToken);
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  Returns true of user has write priviledges as the author of the model
+ *  The user's group grants the priviledges
+ */
+ADMData.IsViewOnly = () => {
+  const author = ADMData.GetAuthorId();
+  const groupAuthorId = ADMData.GetGroup()
+  const model = ADMData.GetModelById(); // Current model
+  const modelGroupAuthorId = model ? model.groupId : '';  
+  return groupAuthorId !== modelGroupAuthorId;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  Returns studentId or teacheId depending on who's logged in.
+ */
+ADMData.GetAuthorId = () => {
+  if (SESSION.IsStudent()) return ASET.selectedStudentId;
+  if (SESSION.IsTeacher()) return ASET.selectedTeacherId;
+}
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  Returns logged in user name, normalizing the case to initial caps.
+ *  @return {string} Name of student, or '' if not found
+ */
+ADMData.GetLggedInUserName = () => {
+  // return just the first part of the studentid without the hash
+  // note SESSION.LoggedInName() is also an option
+  let authorId = ADMData.GetAuthorId();
+  let name = authorId.split('-')[0];
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  Returns logged in user's group
+ *  @return {string} Name of group, or '' if not found
+ */
+ADMData.GetLoggedInGroupName = () => {
+  if (SESSION.IsTeacher()) return 'Teacher';
+  const grp = ADMData.GetGroupByStudent(ASET.selectedStudentId);
+  return grp ? grp.name : '';
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ADMData.GetSelectedStudentId = () => {
@@ -650,6 +694,7 @@ ADMData.GetSelectedStudentId = () => {
  */
 ADMData.GetStudentName = (studentId = ASET.selectedStudentId) => {
   // return just the first part of the studentid without the hash
+  // note SESSION.LoggedInName() is also an option
   let name = studentId.split('-')[0];
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 };
@@ -778,6 +823,31 @@ ADMData.GetModelsByStudent = (studentId = ASET.selectedStudentId) => {
   const group = ADMData.GetGroupByStudent(studentId);
   if (group === undefined) return [];
   return adm_db.models.filter(mdl => mdl.groupId === group.id);
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Gets the models for a teacher
+ADMData.GetModelsByTeacher = (token = ASET.selectedTeacherId) => {
+  // handle special
+  const { groupId, classroomId } = SESSION.DecodeToken(token);
+  if (groupId !== 0) {
+    console.error(`${token} is not a teacher token`);
+    return [];
+  }
+  // the teacherId is a repurposed classroomId field
+  const teacherId = classroomId;
+  return adm_db.models.filter(mdl => {
+    const cid = ADMData.GetClassroomIdByGroup(mdl.groupId);
+    if (!cid) {
+      console.log('classroom error', cid, 'from', mdl);
+      return false;
+    }
+    const teacher = ADMData.GetTeacherByClassroomId(cid);
+    if (!teacher) {
+      console.log('teacher error', teacher);
+      return false;
+    }
+    return teacherId === teacher.id;
+  });
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -28,6 +28,7 @@ import { withStyles } from '@material-ui/core/styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from '../../../components/MEMEStyles';
 import UR from '../../../../system/ursys';
+import SESSION from '../../../../system/common-session';
 import ADM from '../../../modules/data';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
@@ -104,11 +105,15 @@ class TeacherSelector extends React.Component {
             input={<OutlinedInput name="teacher" id="teacher" labelWidth={120} />}
           >
             <MenuItem value="" />
-            {teachers.map(teacher => (
-              <MenuItem value={teacher.id} key={teacher.id}>
-                {teacher.name}
-              </MenuItem>
-            ))}
+            {teachers.map(teacher => {
+              const tok = SESSION.MakeTeacherToken(teacher.name, { groupId: 0, teacherId: teacher.id });
+              return (
+                <MenuItem value={teacher.id} key={teacher.id}>
+                  {teacher.name} - {tok}
+                </MenuItem>
+              )
+            }
+            )}
             <MenuItem value="new">
               <i>Add New...</i>
             </MenuItem>

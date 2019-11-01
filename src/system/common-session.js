@@ -112,30 +112,55 @@ SESSION.MakeToken = (studentName, dataIds = {}) => {
   let hashids = new HashIds(HASH_SALT + studentName, HASH_MINLEN, HASH_ABET);
   let hashedId = hashids.encode(groupId, classroomId);
   return `${studentName}-${hashedId}`;
-
-  /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// support function
-  function f_checkIdValue(idsObj) {
-    const ids = Object.keys(idsObj);
-    let error = '';
-    ids.forEach(key => {
-      const val = idsObj[key];
-      if (!Number.isInteger(val)) {
-        error += `'${key}' is not an integer. `;
-        return;
-      }
-      if (val < 0) {
-        error += `'${key}' must be non-negative integer. `;
-        return;
-      }
-      if (val > Number.MAX_SAFE_INTEGER) {
-        error += `'${key}' exceeds MAX_SAFE_INTEGER. `;
-        return;
-      }
-    });
-    return error;
-  }
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * Returns a token string of form NAME-HASHED_DATA
+ * @param {String} teacherName
+ * @param {Object} dataIds
+ * @param {Number} dataIds.groupId
+ * @param {Number} dataIds.teacherId
+ */
+SESSION.MakeTeacherToken = (teacherName, dataIds = {}) => {
+  // type checking
+  if (typeof teacherName !== 'string') throw Error(`classId arg1 '${teacherName}' must be string`);
+  let err;
+  if ((err = f_checkIdValue(dataIds))) {
+    console.warn(`Could not make token. ${err}`);
+    return undefined;
+  }
+  // convert to alphanumeric no spaces
+  const tokName = teacherName.replace(/\W/g, '');
+  // initialize hashid structure
+  teacherName = tokName.toUpperCase();
+  const { groupId, teacherId } = dataIds;
+  let hashids = new HashIds(HASH_SALT + teacherName, HASH_MINLEN, HASH_ABET);
+  let hashedId = hashids.encode(groupId, teacherId);
+  return `${teacherName}-${hashedId}`;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// support function
+function f_checkIdValue(idsObj) {
+  const ids = Object.keys(idsObj);
+  let error = '';
+  ids.forEach(key => {
+    const val = idsObj[key];
+    if (!Number.isInteger(val)) {
+      error += `'${key}' is not an integer. `;
+      return;
+    }
+    if (val < 0) {
+      error += `'${key}' must be non-negative integer. `;
+      return;
+    }
+    if (val > Number.MAX_SAFE_INTEGER) {
+      error += `'${key}' exceeds MAX_SAFE_INTEGER. `;
+      return;
+    }
+  });
+  return error;
+}
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** Makes a 'access key' that is not very secure, but unique enough to serve
  * as an authentication key based on a login token
@@ -158,9 +183,19 @@ SESSION.DecodeAndSet = token => {
   if (isValid) {
     m_current_name = studentName;
     m_current_idsobj = {
+      studentName,
       groupId,
       classroomId
     };
+    // handle teacher login
+    // in this case, the groupId is 0 and classroomId is actually
+    // teacherId, so update the object
+    if (groupId === 0) {
+      console.warn(`INFO: TEACHER LOGIN '${studentName}'`);
+      m_current_idsobj.teacherId = classroomId;
+      m_current_idsobj.teacherName = studentName;
+      m_current_idsobj.classroomId = undefined;
+    }
     if (DBG) console.log('DecodeAndSet() success', studentName, groupId, classroomId);
   } else {
     if (DBG) console.log('DecodeAndSet() failed', token);
@@ -211,13 +246,29 @@ SESSION.AdminKey = () => {
   if (DBG) console.warn('INFO: requested AdminKey()');
   return is;
 };
-
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
- * Return the global StudentName that was set using DecodeAndSet(). Don't use
+ * Return teacherId if this is a logged-in teacher
+ */
+SESSION.LoggedInProps = () => {
+  const { groupId, classroomId, teacherId } = m_current_idsobj;
+  if (groupId === 0) {
+    return { teacherName: m_current_name, teacherId: teacherId };
+  }
+  return { studentName: m_current_name, groupId, classroomId };
+};
+SESSION.IsStudent = () => {
+  return SESSION.LoggedInProps().studentName !== undefined;
+};
+SESSION.IsTeacher = () => {
+  return SESSION.LoggedInProps().teacherName !== undefined;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * Return the global LoggedInName that was set using DecodeAndSet(). Don't use
  * this from server-based code.
  */
-SESSION.StudentName = () => {
+SESSION.LoggedInName = () => {
   return m_current_name;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

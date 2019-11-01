@@ -118,7 +118,7 @@ class StickyNote extends React.Component {
     let allowedToEdit = isAuthor;
     let allowedToDelete = isAuthor; // REVIEW: Only teachers are allowed to delete?
     if (comment.text === '') {
-      if (comment.author === ADM.GetSelectedStudentId()) {
+      if (comment.author === ADM.GetAuthorId()) {
         // automatically turn on editing if this is a new empty comment
         // AND we are the author
         this.DoEditStart();
@@ -160,7 +160,7 @@ class StickyNote extends React.Component {
   DoSave() {
     // Automatically mark read by author
     const comment = this.state.comment;
-    const author = ADM.GetSelectedStudentId();
+    const author = ADM.GetAuthorId();
     
     if (this.state.isBeingEdited) {
       // save
@@ -319,7 +319,7 @@ class StickyNote extends React.Component {
       comment
     } = this.state;
     const { classes } = this.props;
-    const hasBeenRead = PMC.HasBeenRead(this.props.comment.id, ADM.GetSelectedStudentId());
+    const hasBeenRead = PMC.HasBeenRead(this.props.comment.id, ADM.GetAuthorId());
     const date = new Date(comment.date);
     const timestring = date.toLocaleTimeString('en-Us', {
       hour: '2-digit',

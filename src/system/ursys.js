@@ -127,6 +127,10 @@ function IsAdminLoggedIn() {
   return SESSION.AdminKey() || IsLocalhost();
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function IsTeacherLoggedIn() {
+  return SESSION.IsTeacher();
+}
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function DisableAdminPowers() {
   const hbits = window.location.href.split('?');
   if (hbits.length > 1) {

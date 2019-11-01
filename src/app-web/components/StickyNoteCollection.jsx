@@ -169,7 +169,7 @@ class StickyNoteCollection extends React.Component {
   NewComment(refId) {
     return PMCObj.Comment({
       refId,
-      author: ADM.GetSelectedStudentId(),
+      author: ADM.GetAuthorId(),
       text: '',
       placeholder: ADM.GetSentenceStarter(),
       criteriaId: ''
@@ -226,7 +226,7 @@ class StickyNoteCollection extends React.Component {
     UR.Publish('STICKY_CLOSED');
 
     // Mark Comments Read
-    const author = ADM.GetSelectedStudentId();
+    const author = ADM.GetAuthorId();
     this.state.comments.forEach(comment => {
       if (!PMC.HasBeenRead(comment.id, author)) {
         PMC.DB_MarkRead(comment.id, author);

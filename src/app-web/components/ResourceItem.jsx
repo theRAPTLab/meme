@@ -150,7 +150,9 @@ class ResourceItem extends React.Component {
         <Collapse in={isExpanded}>
           <div className={classes.resourceViewEvList}>
             <EvidenceList rsrcId={resource.id} key={`${resource.id}ev`} />
-            <Button size="small" color="primary" onClick={() => this.OnCreateEvidence(resource.id)}>
+            <Button size="small" color="primary" onClick={() => this.OnCreateEvidence(resource.id)}
+              hidden={DATA.IsViewOnly()}
+            >
               Create Evidence
             </Button>
           </div>

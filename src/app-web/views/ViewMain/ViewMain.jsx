@@ -163,7 +163,7 @@ class ViewMain extends React.Component {
     const model = ADM.GetModelById(modelId);
     const title = ADM.GetModelTitle(modelId);
     const modelAuthorGroupName = ADM.GetGroupName(model ? model.groupId : '');
-    const userStudentId = ADM.GetSelectedStudentId(); // FIXME: Replace this with session?
+    const userStudentId = ADM.GetAuthorId();
     const userGroupId = ADM.GetGroupIdByStudent(userStudentId);
     const isModelAuthor = userGroupId === (model ? model.groupId : '');
     this.setState({
@@ -172,8 +172,8 @@ class ViewMain extends React.Component {
       modelAuthorGroupName,
       isModelAuthor,
       studentId: userStudentId,
-      studentName: ADM.GetStudentName(),
-      studentGroup: ADM.GetStudentGroupName()
+      studentName: ADM.GetLggedInUserName(),
+      studentGroup: ADM.GetLoggedInGroupName()
     });
   }
 
@@ -474,8 +474,13 @@ class ViewMain extends React.Component {
       suppressSelection
     } = this.state;
 
-    const classroomId = ADM.GetClassroomIdByStudent(studentId);
-    const resources = ADM.GetResourcesForClassroom(classroomId);
+    // we need to use the model author here, not the currently logged in student.
+    const model = ADM.GetModelById(modelId);
+    const classroomId = model ? ADM.GetClassroomIdByGroup(model.groupId) : '';
+    const resources = classroomId !== '' ? ADM.GetResourcesForClassroom(classroomId) : [];
+    
+    const isViewOnly = ADM.IsViewOnly();
+    
     return (
       <div className={classes.root}>
         <CssBaseline />
@@ -498,6 +503,7 @@ class ViewMain extends React.Component {
               style={{ flexGrow: 1 }}
               placeholder="Untitled Model"
               value={title}
+              disabled={isViewOnly}
               onChange={this.OnChangeModelTitle}
               onBlur={this.DoSaveModelTitle}
               classes={{
@@ -624,7 +630,7 @@ class ViewMain extends React.Component {
           hidden={suppressSelection}
         >
           <Fab
-            hidden={!(componentIsSelected || mechIsSelected)}
+            hidden={!(componentIsSelected || mechIsSelected) || isViewOnly}
             onClick={componentIsSelected ? this.OnPropDelete : this.OnMechDelete}
             color="secondary"
             variant="extended"
@@ -634,7 +640,7 @@ class ViewMain extends React.Component {
             &nbsp;&nbsp;Delete&nbsp;
           </Fab>
           <Fab
-            hidden={!(componentIsSelected || mechIsSelected)}
+            hidden={!(componentIsSelected || mechIsSelected) || isViewOnly}
             onClick={componentIsSelected ? this.DoPropEdit : this.OnMechEdit}
             color="primary"
             variant="extended"
@@ -643,7 +649,7 @@ class ViewMain extends React.Component {
             &nbsp;&nbsp;Edit {componentIsSelected ? 'Component / Property' : 'Mechanism'}
           </Fab>
           <Fab
-            hidden={!componentIsSelected}
+            hidden={!componentIsSelected || isViewOnly}
             onClick={this.OnPropAdd}
             color="primary"
             variant="extended"

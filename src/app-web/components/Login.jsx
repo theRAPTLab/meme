@@ -70,11 +70,6 @@ class Login extends React.Component {
         loginId: '',
         loginDialogOpen: true
       });
-    } else {
-      this.setState({
-        loginId: ADM.GetSelectedStudentId(),
-        loginDialogOpen: false
-      });
     }
   }
 

@@ -358,6 +358,7 @@ class EvidenceLink extends React.Component {
   }
 
   OnRatingButtonClick() {
+    if (ADM.IsViewOnly()) return;
     const data = { evId: this.props.evlink.id, rating: this.props.evlink.rating };
     UR.Publish('RATING:OPEN', data);
   }
@@ -414,6 +415,8 @@ class EvidenceLink extends React.Component {
       sourceType = undefined;
       sourceLabel = undefined;
     }
+    
+    const isViewOnly = ADM.IsViewOnly();
 
     return (
       <Collapse in={isExpanded} collapsedHeight="70px">
@@ -558,6 +561,7 @@ class EvidenceLink extends React.Component {
                   <RatingButton
                     rating={rating}
                     isExpanded={isExpanded}
+                    disabled={isViewOnly}
                     ratingLabel=""
                     ratingDefs={ratingDefs}
                     OnRatingButtonClick={this.OnRatingButtonClick}
@@ -600,7 +604,7 @@ class EvidenceLink extends React.Component {
               cancel
             </Button>
             <Button
-              hidden={!isExpanded || isBeingEdited}
+              hidden={!isExpanded || isBeingEdited || isViewOnly}
               size="small"
               onClick={this.OnDeleteButtonClick}
             >
@@ -608,7 +612,7 @@ class EvidenceLink extends React.Component {
             </Button>
             <div style={{ flexGrow: '1' }} />
             <Button
-              hidden={!isExpanded || isBeingEdited}
+              hidden={!isExpanded || isBeingEdited || isViewOnly}
               size="small"
               onClick={this.OnDuplicateButtonClick}
             >
@@ -618,7 +622,7 @@ class EvidenceLink extends React.Component {
             <Button
               variant="contained"
               onClick={this.OnEditButtonClick}
-              hidden={!isExpanded || isBeingEdited}
+              hidden={!isExpanded || isBeingEdited || isViewOnly}
               size="small"
             >
               Edit

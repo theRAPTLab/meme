@@ -158,6 +158,7 @@ class ResourceView extends React.Component {
                 variant="contained"
                 onClick={() => this.OnCreateEvidence(resource.id)}
                 color="primary"
+                hidden={ADM.IsViewOnly()}
               >
                 Create Evidence
               </Button>

@@ -17,7 +17,7 @@ const UTILS = {};
  */
 UTILS.RLog = (event, params) => {
   const cleanedParams = params || '';
-  const username = ADATA.GetSelectedStudentId().toUpperCase();
+  const username = ADATA.GetAuthorId().toUpperCase();
   const groupId = ASET.selectedGroupId;
   const group = ADATA.GetGroupNameByStudent(username);
   const modelId = ASET.selectedModelId;
