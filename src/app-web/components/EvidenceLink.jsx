@@ -35,6 +35,7 @@ import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/
 import MEMEStyles from './MEMEStyles';
 import ADM from '../modules/data';
 import DATA from '../modules/data';
+import ASET from '../modules/adm-settings';
 import UR from '../../system/ursys';
 import StickyNoteButton from './StickyNoteButton';
 import RatingButton from './RatingButton';
@@ -71,6 +72,7 @@ class EvidenceLink extends React.Component {
 
     this.DoDataUpdate = this.DoDataUpdate.bind(this);
     this.DoRatingUpdate = this.DoRatingUpdate.bind(this);
+    this.DoEditStart = this.DoEditStart.bind(this);
     this.OnCancelButtonClick = this.OnCancelButtonClick.bind(this);
     this.OnDeleteButtonClick = this.OnDeleteButtonClick.bind(this);
     this.OnDuplicateButtonClick = this.OnDuplicateButtonClick.bind(this);
@@ -143,6 +145,38 @@ class EvidenceLink extends React.Component {
   DoRatingUpdate(rating) {
     DATA.SetEvidenceLinkRating(this.props.evlink.id, rating);
   }
+  
+  DoEditStart() {
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intEvId = Number(this.props.evlink.id);
+    UR.DBTryLock('pmcData.entities', [pmcDataId, intEvId])
+      .then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+        if (rdata.success) {
+          console.log('do something here because u-locked!');
+          this.setState(
+            {
+              isBeingEdited: true,
+              isExpanded: true
+            },
+            () => this.FocusTextInput()
+          );
+        } else {
+          console.log('aw, locked by', rdata.lockedBy);
+          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Evidence Link right now.  Please try again later.`)
+        }
+      });
+  }
+  
+  DoEditStop() {
+    this.setState({
+      isBeingEdited: false
+    });
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intEvId = Number(this.props.evlink.id);
+    UR.DBTryRelease('pmcData.entities', [pmcDataId, intEvId])    
+  }
 
   OnScreenShotClick(e) {
     e.stopPropagation();
@@ -156,14 +190,29 @@ class EvidenceLink extends React.Component {
 
   OnCancelButtonClick(e) {
     e.stopPropagation();
+    this.DoEditStop();
+    // restore previous note
     this.setState({
-      isBeingEdited: false,
       note: this.props.evlink.note
     });
   }
 
   OnDeleteButtonClick() {
-    DATA.PMC_DeleteEvidenceLink(this.props.evlink.id);
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intEvId = Number(this.props.evlink.id);
+    UR.DBTryLock('pmcData.entities', [pmcDataId, intEvId])
+      .then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+        if (rdata.success) {
+          console.log('do something here because u-locked!');
+          DATA.PMC_DeleteEvidenceLink(this.props.evlink.id);
+        } else {
+          console.log('aw, locked by', rdata.lockedBy);
+          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Evidence Link right now.  Please try again later.`)
+        }
+      });
+
   }
 
   OnDuplicateButtonClick() {
@@ -177,9 +226,7 @@ class EvidenceLink extends React.Component {
 
   OnEditButtonClick(e) {
     e.stopPropagation();
-    this.setState({ isBeingEdited: true }, () => {
-      this.FocusTextInput();
-    });
+    this.DoEditStart();
   }
 
   FocusTextInput() {
@@ -198,9 +245,7 @@ class EvidenceLink extends React.Component {
     DATA.SetEvidenceLinkNote(this.props.evlink.id, this.state.note);
     // FIXME May 1 Hack
     // How do we handle draftValue vs committedValue?
-    this.setState({
-      isBeingEdited: false
-    });
+    this.DoEditStop();
   }
 
   DoEvidenceLinkOpen(data) {
@@ -209,18 +254,17 @@ class EvidenceLink extends React.Component {
 
       // If we're being opened for the first time, notes is empty
       // and no links have been set, so automatically go into edit mode
-      let activateEditState = false;
       if (
         this.props.evlink.note === '' ||
         (this.props.evlink.propId === undefined && this.props.evlink.mechId === undefined)
       ) {
-        activateEditState = true;
+        this.DoEditStart();
+      } else {
+        // just expand
+        this.setState({
+          isExpanded: true
+        });
       }
-
-      this.setState({
-        isExpanded: true,
-        isBeingEdited: activateEditState
-      });
     } else {
       // Always contract if someone else is expanding
       // This is only called when an evidence link is opened
@@ -302,10 +346,10 @@ class EvidenceLink extends React.Component {
     if (this.state.isBeingEdited) return; // Don't toggle if being edited
     if (DBG) console.log(PKG, 'evidence link clicked');
     if (this.state.isExpanded) {
-      this.setState({
-        isExpanded: false,
-        isBeingEdited: false
-      });
+      this.setState(
+        { isExpanded: false },
+        () => this.DoEditStop()
+      );
     } else {
       this.setState({
         isExpanded: true
@@ -390,7 +434,7 @@ class EvidenceLink extends React.Component {
           <Button
             className={classes.evidenceExpandButton}
             onClick={this.DoToggleExpanded}
-            hidden={!isExpanded}
+            hidden={!isExpanded || isBeingEdited}
           >
             <ExpandMoreIcon className={isExpanded ? classes.lessIconCollapsed : ''} />
           </Button>
@@ -528,8 +572,10 @@ class EvidenceLink extends React.Component {
                 </Typography>
               </Grid>
               <Grid item xs>
-                {imageURL === undefined
-                  ? <Dropzone onDrop={this.OnDrop} />
+                {imageURL === undefined 
+                  ? isBeingEdited
+                    ? <Dropzone onDrop={this.OnDrop} />
+                    : <Typography variant="caption">no screenshot</Typography>
                   : <Button
                       className={classes.evidenceScreenshotButton}
                       onClick={this.OnScreenShotClick}

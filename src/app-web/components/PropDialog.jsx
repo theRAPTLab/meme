@@ -26,9 +26,8 @@ import { withStyles } from '@material-ui/core/styles';
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
-import UTILS from '../modules/utils';
 import DATA from '../modules/data';
-import ADM from '../modules/data';
+import ASET from '../modules/adm-settings';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -62,17 +61,33 @@ class PropDialog extends React.Component {
   }
 
   DoOpen(data) {
-    this.setState({
-      isOpen: true,
-      propId: data.propId || '', // new prop, so clear propId
-      label: data.label || '', // clear the old property name
-      description: data.description || '',
-      isProperty: data.isProperty
-    });
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intPropId = Number(data.propId);
+    UR.DBTryLock('pmcData.entities', [pmcDataId, intPropId])
+      .then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+        if (rdata.success) {
+          console.log('do something here because u-locked!');
+          this.setState({
+            isOpen: true,
+            propId: data.propId || '', // new prop, so clear propId
+            label: data.label || '', // clear the old property name
+            description: data.description || '',
+            isProperty: data.isProperty
+          });
+        } else {
+          console.log('aw, locked by', rdata.lockedBy);
+          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Component / Property right now.  Please try again later.`)
+        }
+      });
   }
 
   DoClose() {
     this.setState({ isOpen: false });
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intPropId = Number(this.state.propId);
+    UR.DBTryRelease('pmcData.entities', [pmcDataId, intPropId]);
     UR.Publish('PROPDIALOG_CLOSE');
   }
 

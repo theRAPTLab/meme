@@ -26,6 +26,7 @@ import { withStyles } from '@material-ui/core/styles';
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import DATA from '../modules/data';
+import ASET from '../modules/adm-settings';
 import UTILS from '../modules/utils';
 import LinkButton from './LinkButton';
 
@@ -117,31 +118,47 @@ class MechDialog extends React.Component {
   DoEdit(data) {
     if (DBG) console.log(PKG, 'Edit Mech!', data);
     const { id, label, description, sourceId, targetId } = data;
-    this.setState(
-      {
-        isOpen: true,
-        editExisting: true,
-        id,
-        sourceId,
-        sourceLabel: DATA.Prop(sourceId).name,
-        targetId,
-        targetLabel: DATA.Prop(targetId).name,
-        label,
-        description: description || '',  // Simple validation
-        origSourceId: sourceId,
-        origTargetId: targetId,
-        listenForSourceSelection: false,
-        listenForTargetSelection: false,
-        saveButtonLabel: 'Update'
-      },
-      () => this.DoSelectSourceAndTarget(sourceId, targetId) // show the selected props
-    );
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intMechId = Number(data.id);
+    UR.DBTryLock('pmcData.entities', [pmcDataId, intMechId])
+      .then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+        if (rdata.success) {
+          console.log('do something here because u-locked!');
+          this.setState(
+            {
+              isOpen: true,
+              editExisting: true,
+              id,
+              sourceId,
+              sourceLabel: DATA.Prop(sourceId).name,
+              targetId,
+              targetLabel: DATA.Prop(targetId).name,
+              label,
+              description: description || '',  // Simple validation
+              origSourceId: sourceId,
+              origTargetId: targetId,
+              listenForSourceSelection: false,
+              listenForTargetSelection: false,
+              saveButtonLabel: 'Update'
+            },
+            () => this.DoSelectSourceAndTarget(sourceId, targetId) // show the selected props
+          );
+        } else {
+          console.log('aw, locked by', rdata.lockedBy);
+          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Mechanism right now.  Please try again later.`)
+        }
+      });
   }
 
   DoClose() {
     this.setState({
       isOpen: false
     });
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intMechId = Number(this.state.id);
+    UR.DBTryRelease('pmcData.entities', [pmcDataId, intMechId])
     DATA.VM_SetSelectionLimit(1); // Go back to allowing only one.
     UR.Publish('MECHDIALOG:CLOSED');
   }

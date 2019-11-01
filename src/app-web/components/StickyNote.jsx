@@ -66,6 +66,7 @@ import UR from '../../system/ursys';
 import DATAMAP from '../../system/common-datamap';
 import ADM from '../modules/data';
 import PMC from '../modules/pmc-data';
+import ASET from '../modules/adm-settings';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -137,10 +138,23 @@ class StickyNote extends React.Component {
   }
 
   DoEditStart() {
-    this.setState({ isBeingEdited: true }, () => {
-      this.FocusTextInput();
-      this.props.OnStartEdit();
-    });
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intCommentId = Number(this.props.comment.id);
+    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId])
+      .then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+        if (rdata.success) {
+          console.log('do something here because u-locked!');
+          this.setState({ isBeingEdited: true }, () => {
+            this.FocusTextInput();
+            this.props.OnStartEdit();
+          });
+        } else {
+          console.log('aw, locked by', rdata.lockedBy);
+          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Comment right now.  Please try again later.`)
+        }
+      });
   }
   
   DoSave() {
@@ -169,7 +183,10 @@ class StickyNote extends React.Component {
           // then tell StickyNoteCollection to exit edit mode
           this.props.OnUpdateComment();
         }
-      );  
+      );
+      const pmcDataId = ASET.selectedPMCDataId;
+      const intCommentId = Number(this.props.comment.id);
+      UR.DBTryRelease('pmcData.comments', [pmcDataId, intCommentId]);
     } else {
       // just mark read
       // but first make sure the comment is valid (has been saved and already established an id)
@@ -179,8 +196,21 @@ class StickyNote extends React.Component {
   }
 
   DoDelete() {
-    PMC.DB_CommentDelete(this.state.comment.id);    
-    this.props.OnUpdateComment(); // tell StickyNoteCollection to exit edit mode
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intCommentId = Number(this.props.comment.id);
+    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId])
+      .then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+        if (rdata.success) {
+          console.log('do something here because u-locked!');
+          PMC.DB_CommentDelete(this.state.comment.id);
+          this.props.OnUpdateComment(); // tell StickyNoteCollection to exit edit mode
+        } else {
+          console.log('aw, locked by', rdata.lockedBy);
+          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Comment right now.  Please try again later.`)
+        }
+      });
   }
 
   OnEditClick(e) {

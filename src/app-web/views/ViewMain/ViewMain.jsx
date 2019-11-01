@@ -56,6 +56,7 @@ import UTILS from '../../modules/utils';
 import RoutedView from './RoutedView';
 import DATA from '../../modules/data';
 import ADM from '../../modules/data';
+import ASET from '../../modules/adm-settings';
 import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -254,15 +255,27 @@ class ViewMain extends React.Component {
 
   // User selected component/prop and clicked on "() Delete"
   OnPropDelete() {
-    let selectedPropIds = DATA.VM_SelectedPropsIds();
+    const selectedPropIds = DATA.VM_SelectedPropsIds();
     if (selectedPropIds.length > 0) {
-      let propId = Number(selectedPropIds[0]);
-      DATA.PMC_PropDelete(propId);
-      if (this.state.addEdgeSource === propId) {
-        this.setState({
-          addEdgeSource: ''
+      const pmcDataId = ASET.selectedPMCDataId;
+      const propId = Number(selectedPropIds[0]);
+      UR.DBTryLock('pmcData.entities', [pmcDataId, propId])
+        .then(rdata => {
+          const { success, semaphore, uaddr, lockedBy } = rdata;
+          status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+          if (rdata.success) {
+            console.log('do something here because u-locked!');
+            DATA.PMC_PropDelete(propId);
+            if (this.state.addEdgeSource === propId) {
+              this.setState({
+                addEdgeSource: ''
+              });
+            }
+          } else {
+            console.log('aw, locked by', rdata.lockedBy);
+            alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Component / Property right now.  Please try again later.`)
+          }
         });
-      }
     }
     this.setState({
       componentIsSelected: false
@@ -339,9 +352,23 @@ class ViewMain extends React.Component {
   OnMechDelete() {
     let selectedMechIds = DATA.VM_SelectedMechIds();
     if (selectedMechIds.length > 0) {
-      let mechId = selectedMechIds[0];
-      DATA.PMC_MechDelete(mechId);
-    }
+      const mechId = selectedMechIds[0];
+      const pmcDataId = ASET.selectedPMCDataId;
+      const mech = DATA.Mech(mechId);
+      const intMechId = Number(mech.id);
+      UR.DBTryLock('pmcData.entities', [pmcDataId, intMechId])
+        .then(rdata => {
+          const { success, semaphore, uaddr, lockedBy } = rdata;
+          status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+          if (rdata.success) {
+            console.log('do something here because u-locked!');
+            DATA.PMC_MechDelete(mechId);
+          } else {
+            console.log('aw, locked by', rdata.lockedBy);
+            alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Mechanism right now.  Please try again later.`)
+          }
+        });
+  }
     this.setState({
       mechIsSelected: false
     });
