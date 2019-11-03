@@ -20,6 +20,7 @@ import { withStyles } from '@material-ui/core/styles';
 import MEMEStyles from '../../../components/MEMEStyles';
 import UR from '../../../../system/ursys';
 import ADM from '../../../modules/data';
+import ADMObj from '../../../modules/adm-objects';
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -35,6 +36,7 @@ class SentenceStarters extends React.Component {
   constructor(props) {
     super(props);
     this.DoClassroomSelect = this.DoClassroomSelect.bind(this);
+    this.DoLoadSentences = this.DoLoadSentences.bind(this);
     this.OnEditClick = this.OnEditClick.bind(this);
     this.OnSaveClick = this.OnSaveClick.bind(this);
     this.OnTextChange = this.OnTextChange.bind(this);
@@ -47,26 +49,38 @@ class SentenceStarters extends React.Component {
     };
 
     UR.Subscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
+    UR.Subscribe('ADM_DATA_UPDATED', this.DoLoadSentences);
   }
 
   componentDidMount() { }
 
-  componentWillUnmount() { }
+  componentWillUnmount() {
+    UR.Unsubscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
+    UR.Unsubscribe('ADM_DATA_UPDATED', this.DoLoadSentences);
+  }
 
   DoClassroomSelect(data) {
-    let sentenceStarter = ADM.GetSentenceStartersByClassroom(data.classroomId);
-    if (sentenceStarter === undefined) {
-      sentenceStarter = {
-        id: '',
-        sentences: '',
-        classroomId: ADM.GetSelectedClassroomId()
-      };
-    }
+    this.setState({
+      classroomId: data.classroomId
+    }, () => {
+        this.DoLoadSentences();
+    });
+  }
 
-    const { id, sentences, classroomId } = sentenceStarter;
+  DoLoadSentences() {
+    const { classroomId } = this.state;
+    if (classroomId == undefined) return;
+    
+    let sentenceStarter = ADM.GetSentenceStartersByClassroom(classroomId);
+    
+    // Create default sentence starters if none have been defined.
+    if (sentenceStarter === undefined) {
+      ADM.DB_SentenceStarterNew({ classroomId });
+      return;
+    }
+    const { id, sentences } = sentenceStarter;
     this.setState({
       id,
-      classroomId,
       sentences
     });
   }
@@ -82,12 +96,12 @@ class SentenceStarters extends React.Component {
 
   OnSaveClick() {
     const { id, sentences, classroomId } = this.state;
-    const sentenceStarter = {
+    const sentenceStarter = ADMObj.SentenceStarter({
       id,
       classroomId,
       sentences
-    };
-    ADM.UpdateSentenceStarter(sentenceStarter);
+    });
+    ADM.DB_SentenceStarterUpdate(sentenceStarter);
     this.setState({
       isInEditMode: false
     });

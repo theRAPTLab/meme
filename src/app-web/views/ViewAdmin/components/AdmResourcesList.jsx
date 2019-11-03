@@ -69,7 +69,7 @@ class ResourcesList extends React.Component {
   }
 
   OnResourceCheck(rsrcId, checked) {
-    ADM.SetClassroomResource(rsrcId, checked, this.state.classroomId);
+    ADM.DB_ClassroomResourceSet(rsrcId, checked, this.state.classroomId);
   }
 
   render() {

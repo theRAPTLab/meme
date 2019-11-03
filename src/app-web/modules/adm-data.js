@@ -9,7 +9,7 @@ import ASET from './adm-settings';
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const DBG = false;
+const DBG = true;
 const PKG = 'ADMDATA'; // prefix for console.log
 
 /// MODULE DECLARATION ////////////////////////////////////////////////////////
@@ -117,6 +117,21 @@ ADMData.SyncAddedData = data => {
           if (DBG) console.error(`SyncAddedData: Model ${value.id} already added, skipping`);
         }
         break;
+      case 'criteria':
+        const crit = ADMObj.Criterion(value);
+        adm_db.criteria.push(crit);
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      case 'sentenceStarters':
+        const ss = ADMObj.SentenceStarter(value);
+        adm_db.sentenceStarters.push(ss);
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      case 'classroomResources':
+        const res = ADMObj.ClassroomResource(value);
+        adm_db.classroomResources.push(res);
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
       case 'ratingsDefinitions':
         const ratingsDefinition = ADMObj.RatingsDefinition(value);
         adm_db.ratingsDefinitions.push(ratingsDefinition);
@@ -169,6 +184,27 @@ ADMData.SyncUpdatedData = data => {
           UR.Publish('MODEL_TITLE:UPDATED', { title: value.title });
         }
         break;
+      case 'criteria':
+        // criteria always updates the whole object, so we can just replace it
+        const crit = ADMObj.Criterion(value);
+        const criti = adm_db.criteria.findIndex(c => c.id === crit.id);
+        adm_db.criteria.splice(criti, 1, crit);
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      case 'sentenceStarters':
+        // sentenceStarters always updates the whole object, so we can just replace it
+        const ss = ADMObj.SentenceStarter(value);
+        const ssi = adm_db.sentenceStarters.findIndex(c => c.id === ss.id);
+        adm_db.sentenceStarters.splice(ssi, 1, ss);
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      case 'classroomResources':
+        // classroomResources always updates the whole object, so we can just replace it
+        const res = ADMObj.ClassroomResource(value);
+        const resi = adm_db.classroomResources.findIndex(c => c.id === res.id);
+        adm_db.classroomResources.splice(resi, 1, res);
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
       case 'ratingsDefinitions':
         const index = adm_db.ratingsDefinitions.findIndex(r => r.classroomId === value.id);
         const ratingsDefinition = ADMObj.RatingsDefinition(value);
@@ -192,6 +228,16 @@ ADMData.SyncRemovedData = data => {
   syncitems.forEach(item => {
     const { colkey, subkey, value } = item;
     if (DBG) console.log('removed', colkey, subkey || '', value);
+    switch (colkey) {
+      case 'criteria':
+        // for some reason value is an array?
+        value.forEach(val => {
+          const i = adm_db.criteria.findIndex(c => c.id === val.id);
+          adm_db.criteria.splice(i, 1);
+        })
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+    }
   });
   // can add better logic to avoid updating too much
   // UR.Publish('ADM_DATA_UPDATED', data);
@@ -938,16 +984,27 @@ ADMData.CloseModel = () => {
 /// CRITERIA //////////////////////////////////////////////////////////////////
 ///
 /**
- *  NewCriteria
- *  1. Creates a new empty criteria object with a unqiue ID.
- *  2. Returns the criteria object.
- *
- *  Calling `NewCriteria()` will automatically use the currently
- *  selectedClassssroomId as the classroomId.
- *
- *  Call `NewCriteria('xxId')` to set the classroomId manually.
+ *  Creates a new empty criteria object with a unqiue ID.
+ *  If data.classroomId is not defined, we use the current selected classroomId
+ * 
+ *  @param {Object} data - a ADMObj.Criterion-like data object
+ *  @param {Function} cb - callback function will be called
  */
-ADMData.NewCriteria = (classroomId = ASET.selectedClassroomId) => {
+ADMData.DB_NewCriteria = (data, cb) => {
+  const crit = ADMObj.Criterion({
+    classroomId: data.classroomId || ASET.selectedClassroomId,
+    label: data.label,
+    description: data.description
+  });
+  return UR.DBQuery('add', { criteria: crit }).then(rdata => {
+    if (rdata.error) throw Error(rdata.error);
+    if (typeof cb === 'function') {
+      cb();
+    }
+  });
+
+  
+  /* OLD CODE
   const id = GenerateUID('cr');
   if (classroomId === undefined) {
     console.error(PKG, 'NewCriteria called with bad classroomId:', classroomId);
@@ -961,7 +1018,7 @@ ADMData.NewCriteria = (classroomId = ASET.selectedClassroomId) => {
   };
   // Don't add it to a_criteria -- user might cancel the edit
   // a_criteria.push(crit);
-  return crit;
+  return crit; */
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ADMData.GetCriteriaByClassroom = (classroomId = ASET.selectedClassroomId) => {
@@ -974,7 +1031,12 @@ ADMData.GetCriteriaLabel = (criteriaId, classroomId = ADMData.GetSelectedClassro
   return criteria ? criteria.label : '';
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ADMData.UpdateCriteria = criteria => {
+ADMData.DB_UpdateCriterion = criterion => {
+  return UR.DBQuery('update', {
+    criteria: criterion
+  });
+
+  /*
   const i = adm_db.criteria.findIndex(cr => cr.id === criteria.id);
   if (i < 0) {
     // Criteria not found, so it must be a new criteria.  Add it.
@@ -982,9 +1044,15 @@ ADMData.UpdateCriteria = criteria => {
     return;
   }
   adm_db.criteria.splice(i, 1, criteria);
+  */
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ADMData.UpdateCriteriaList = criteriaList => {
+ADMData.DB_UpdateCriteriaList = criteriaList => {
+  criteriaList.forEach(crit => {
+    ADMData.DB_UpdateCriterion(crit);
+  });
+  
+  /* OLD
   // Remove any deleted criteria
   const updatedCriteriaIds = criteriaList.map(criteria => criteria.id);
   adm_db.criteria = adm_db.criteria.filter(
@@ -992,13 +1060,53 @@ ADMData.UpdateCriteriaList = criteriaList => {
   );
   // Update existing criteria
   criteriaList.forEach(criteria => ADMData.UpdateCriteria(criteria));
+  */
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ADMData.DB_CriteriaDelete = critId => {
+  return UR.DBQuery('remove', { 'criteria': { id: critId } });
+}
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// SENTENCE STARTERS
 ///
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  Creates a new empty sentenceStarter with a unqiue ID.
+ *  If data.classroomId is not defined, we use the current selected classroomId
+ * 
+ *  @param {Object} data - a ADMObj.SentenceStarter-like data object
+ */
+ADMData.DB_SentenceStarterNew = data => {
+  const ss = ADMObj.SentenceStarter({
+    classroomId: data.classroomId || ASET.selectedClassroomId,
+    sentences: data.sentences
+  });
+  return UR.DBQuery('add', { sentenceStarters: ss });
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * 
+ *  @param {Object} sentenceStarter - a ADMObj.SentenceStarter-like data object
+ */
+ADMData.DB_SentenceStarterUpdate = sentenceStarter => {
+  return UR.DBQuery('update', {
+    sentenceStarters: sentenceStarter
+  });
+  
+  /* old code
+  const i = adm_db.sentenceStarters.findIndex(ss => ss.id === sentenceStarter.id);
+  if (i < 0) {
+    // Sentence starter not found, so it must be new.  Add it.
+    adm_db.sentenceStarters.push(sentenceStarter);
+    return;
+  }
+  adm_db.sentenceStarters.splice(i, 1, sentenceStarter);
+  */
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Returns a single sentenceStarter object, if not found, undefined
+// (We used to support multiple sentence starters per classroom)
 ADMData.GetSentenceStartersByClassroom = (classroomId = ADMData.GetSelectedClassroomId()) => {
   const sentenceStarter = adm_db.sentenceStarters.filter(ss => ss.classroomId === classroomId);
   let result;
@@ -1022,17 +1130,6 @@ ADMData.GetSentenceStarter = () => {
   } else {
     return sentenceStarter.sentences;
   }
-};
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-ADMData.UpdateSentenceStarter = sentenceStarter => {
-  const i = adm_db.sentenceStarters.findIndex(ss => ss.id === sentenceStarter.id);
-  if (i < 0) {
-    // Sentence starter not found, so it must be new.  Add it.
-    adm_db.sentenceStarters.push(sentenceStarter);
-    return;
-  }
-  adm_db.sentenceStarters.splice(i, 1, sentenceStarter);
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1112,17 +1209,57 @@ ADMData.GetResourcesForClassroom = classroomId => {
   return classroomResources ? classroomResources : [];
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ADMData.SetClassroomResource = (rsrcId, checked, classroomId) => {
-  let classroomResources = adm_db.classroomResources.find(rsrc => rsrc.classroomId === classroomId);
-
+/**
+ *  @param {Object} data - ADMObj.ClassroomResource-like object
+ */
+ADMData.DB_ClassroomResourceAdd = data => {
+  const res = ADMObj.ClassroomResource({
+    classroomId: data.classroomId || ASET.selectedClassroomId,
+    resources: data.resources
+  });
+  return UR.DBQuery('add', { classroomResources: res });
+};
+/**
+ * 
+ *  @param {Object} classroomResource - ADMObj.ClassroomResource object
+ */
+ADMData.DB_ClassroomResourceUpdate = classroomResource => {
+  return UR.DBQuery('update', {
+    classroomResources: classroomResource
+  });  
+};
+/**
+ *  @param {Integer} rsrcId - id of the parent resources
+ *  @param {Boolean} checked - Whether the resource is selected or unselected
+ *  @param {INteger} classroomId - The classroom this resource is being enabled/disabled for
+ */
+ADMData.DB_ClassroomResourceSet = (rsrcId, checked, classroomId) => {
+  let classroomResource = adm_db.classroomResources.find(rsrc => rsrc.classroomId === classroomId);
+  if (classroomResource === undefined) {
+    // New Classrooms don't have a classroomResource defined by default.
+    classroomResource = ADMObj.ClassroomResource({ classroomId });
+  }
+    
+  // Update the resource list
   if (checked) {
     // Add resource
-    classroomResources.resources.push(rsrcId);
+    classroomResource.resources.push(rsrcId);
   } else {
     // Remove resource
-    classroomResources.resources = classroomResources.resources.filter(rsrc => rsrc.id !== rsrcId);
+    classroomResource.resources = classroomResource.resources.filter(rsrc => rsrc !== rsrcId);
   }
+  
+  // Update the DB
+  if (classroomResource.id !== undefined) {
+    ADMData.DB_ClassroomResourceUpdate(classroomResource);
+  } else {
+    // new classroomResource
+    ADMData.DB_ClassroomResourceAdd(classroomResource);
+  }
+  
+  /* old code
   UR.Publish('ADM_DATA_UPDATED');
+  */
 };
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
