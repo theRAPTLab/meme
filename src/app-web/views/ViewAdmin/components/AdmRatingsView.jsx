@@ -31,6 +31,7 @@ import { withStyles } from '@material-ui/core/styles';
 import MEMEStyles from '../../../components/MEMEStyles';
 import UR from '../../../../system/ursys';
 import ADM from '../../../modules/data';
+import ADMObj from '../../../modules/adm-objects';
 import RatingsList from '../../../components/RatingsList';
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
@@ -67,7 +68,7 @@ class RatingsView extends React.Component {
       ratingsDef: [],
       origRatingsDef: [],
       isInEditMode: false,
-      classroomId: ''
+      classroomId: -1
     };
 
     UR.Subscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
@@ -84,7 +85,7 @@ class RatingsView extends React.Component {
   DoClassroomSelect(data) {
     this.setState(
       {
-        classroomId: data.classroomId
+        classroomId: Number(data.classroomId)
       },
       () => {
         this.DoLoadRatings();
@@ -97,10 +98,20 @@ class RatingsView extends React.Component {
   }
 
   DoLoadRatings() {
-    let ratingsDef = ADM.GetRatingsDefinition(this.state.classroomId);
-    if (ratingsDef.length === 0) {
-      // Load defaults
+    if (this.state.classroomId === -1) return;
+    
+    let ratingsDefObj = ADM.GetRatingsDefinitionObject(this.state.classroomId);
+    let ratingsDef;
+    if (ratingsDefObj === undefined) {
       ratingsDef = defaults;
+      // Create defaults
+      ratingsDefObj = ADMObj.RatingsDefinition({
+        classroomId: this.state.classroomId,
+        definitions: defaults
+      });
+      ADM.DB_RatingsAdd(this.state.classroomId, ratingsDefObj);
+    } else {
+      ratingsDef = ratingsDefObj.definitions;
     }
     const origRatingsDef = JSON.parse(JSON.stringify(ratingsDef)); // deep clone
     this.setState({

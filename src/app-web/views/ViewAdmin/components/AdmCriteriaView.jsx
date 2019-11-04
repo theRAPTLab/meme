@@ -65,11 +65,12 @@ class CriteriaView extends React.Component {
     this.state = {
       criteria: [],
       isInEditMode: false,
-      classroomId: ''
+      classroomId: -1
     };
 
     UR.Subscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
     UR.Subscribe('ADM_DATA_UPDATED', this.DoLoadCriteria);
+    UR.Subscribe('CRITERIA_SET_DEFAULTS', this.DoCreateDefaultCriteria);
   }
 
   componentDidMount() { }
@@ -77,34 +78,30 @@ class CriteriaView extends React.Component {
   componentWillUnmount() {
     UR.Unsubscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
     UR.Unsubscribe('ADM_DATA_UPDATED', this.DoLoadCriteria);
+    UR.Unsubscribe('CRITERIA_SET_DEFAULTS', this.DoCreateDefaultCriteria);
   }
 
   DoClassroomSelect(data) {
     this.setState({
-      classroomId: data.classroomId
+      classroomId: Number( data.classroomId )
     }, () => {
       this.DoLoadCriteria();
     });
   }
 
+  DoCreateDefaultCriteria(classroomId) {
+    defaults.map(def => {
+      ADM.DB_NewCriteria({
+        classroomId: classroomId,
+        label: def.label,
+        description: def.description
+      })
+    });
+  }
+  
   DoLoadCriteria() {
+    if (this.state.classroomId === -1) return;
     let criteria = ADM.GetCriteriaByClassroom(this.state.classroomId);
-    if (criteria.length === 0) {
-      // Create defaults if this is the first time the classroom has been defined
-      defaults.map(def => {
-        ADM.DB_NewCriteria({
-          label: def.label,
-          description: def.description
-        })
-        
-        /* Old
-        const crit = ADMObj.Criteria(this.state.classroomId);
-        crit.label = def.label;
-        crit.description = def.description;
-        return crit; */
-      });
-    }
-
     this.setState({
       criteria
     });

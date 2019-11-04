@@ -333,6 +333,7 @@ ADMData.DB_AddClassroom = name => {
   });
   return UR.DBQuery('add', { classrooms: classroom }).then(rdata => {
     if (rdata.error) throw Error(rdata.error);
+    UR.Publish('CRITERIA_SET_DEFAULTS', rdata.classrooms[0].id); // Add default criteria to db
     ADMData.SelectClassroom(rdata.classrooms[0].id);
   });
 
@@ -1139,24 +1140,20 @@ ADMData.GetSentenceStarter = () => {
 /// We may need to allow teachers to customize this in th e future.
 
 /**
- * @return {Array} [ratingsDefition] -- Array of ratings defintion objects,
- * e.g.{ label: 'Really disagrees!', rating: -3 },
- * Returns [] if not found
+ *  @param {Integer} classroomId - The classroom this rating belongs to
+ *  @param {Object} ratingsDefObj - A AMDObj.RatingsDefinition
  */
-ADMData.GetRatingsDefinition = classroomId => {
-  let ratings = adm_db.ratingsDefinitions.find(ratings => ratings.classroomId === classroomId);
-  if (ratings === undefined) {
-    // create new ratings
-    ratings = {};
-    ratings.classroomId = classroomId;
-    ratings.definitions = [];
-    adm_db.ratingsDefinitions.push(ratings);
-  }
-  return ratings.definitions;
-};
+ADMData.DB_RatingsAdd = (classroomId, ratingsDefObj) => {
+  return UR.DBQuery('add', { ratingsDefinitions: ratingsDefObj });
+}
 
+/**
+ *  @param {Integer} classroomId - The classroom this rating belongs to
+ *  @param {Object} ratingsDefObj - A AMDObj.RatingsDefinition-like object, can be partial
+ */
 ADMData.DB_RatingsUpdate = (classroomId, ratingsDef) => {
   const ratingsDefinition = Object.assign(
+    {}, 
     adm_db.ratingsDefinitions.find(r => r.classroomId === classroomId),
     { definitions: ratingsDef }
   );
@@ -1174,6 +1171,26 @@ ADMData.DB_RatingsUpdate = (classroomId, ratingsDef) => {
       classroomId
     );
   } */
+};
+
+/**
+ * @param {Integer} classroomId 
+ * @return {Array} [ratingsDefition] -- Array of ratings defintion objects,
+ *                                      Returns [] if not found
+ */
+ADMData.GetRatingsDefinitionObject = classroomId => {
+  return adm_db.ratingsDefinitions.find(ratings => ratings.classroomId === classroomId);
+};
+
+/**
+ * @param {Integer} classroomId 
+ * @return {Array} [ratingsDefition] -- Array of ratings defintion objects,
+ * e.g.{ label: 'Really disagrees!', rating: -3 },
+ * Returns [] if not found
+ */
+ADMData.GetRatingsDefinition = classroomId => {
+  const ratingsObject = ADMData.GetRatingsDefinitionObject(classroomId);
+  return ratingsObject ? ratingsObject.definitions : [];
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

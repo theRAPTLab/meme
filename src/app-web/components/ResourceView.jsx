@@ -2,6 +2,9 @@
 
 Resource View
 
+Instead of creating yet another database table to hold Resource Notes, we just
+the Comment system.
+
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * /////////////////////////////////////*/
 
 /// LIBRARIES /////////////////////////////////////////////////////////////////
@@ -29,6 +32,8 @@ import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import DATA from '../modules/data';
 import ADM from '../modules/data';
+import ASET from '../modules/adm-settings';
+import PMCObj from '../modules/pmc-objects';
 import UTILS from '../modules/utils';
 import EvidenceList from './EvidenceList';
 
@@ -44,16 +49,25 @@ class ResourceView extends React.Component {
   constructor(props) {
     super(props);
     this.OnOpen = this.OnOpen.bind(this);
-    this.OnClose = this.OnClose.bind(this);
+    this.OnDataUpdate = this.OnDataUpdate.bind(this);
+    this.ContinueOpen = this.ContinueOpen.bind(this);
     this.OnCreateEvidence = this.OnCreateEvidence.bind(this);
+    this.OnNoteChange = this.OnNoteChange.bind(this);
+    this.OnNoteSave = this.OnNoteSave.bind(this);
+    this.OnClose = this.OnClose.bind(this);
 
     this.state = {
       isOpen: false,
-      resource: {}
+      resource: {},
+      noteRefId: '', // points comment to this resource
+      note: 'blank',
+      noteIsDisabled: true,
+      commentId: -1 // id of the comment object used to hold the note data
     };
 
     UR.Subscribe('RESOURCEVIEW:OPEN', this.OnOpen);
     UR.Subscribe('RESOURCEVIEW:CLOSE', this.OnClose);
+    UR.Subscribe('DATA_UPDATED', this.OnDataUpdate);
   }
 
   componentDidMount() {}
@@ -61,36 +75,106 @@ class ResourceView extends React.Component {
   componentWillUnmount() {
     UR.Unsubscribe('RESOURCEVIEW:OPEN', this.OnOpen);
     UR.Unsubscribe('RESOURCEVIEW:CLOSE', this.OnClose);
+    UR.Unsubscribe('DATA_UPDATED', this.OnDataUpdate);
   }
 
   OnOpen(data) {
     if (DBG) console.log('ViewMain: clicked on ', data.rsrcId);
     // Look up resource
-    let resource = ADM.Resource(data.rsrcId);
+    const resource = ADM.Resource(data.rsrcId);
+    const noteRefId = `res${data.rsrcId}`;
     if (resource) {
-      this.setState({
-        isOpen: true,
-        resource
-      });
-      UTILS.RLog('ResourceOpen', resource.label);
+      const comments = DATA.GetComments(noteRefId);
+      if (comments.length < 1) {
+        // no comment defined yet, so create a new comment
+        const comment = PMCObj.Comment({
+          refId: noteRefId,
+          author: ADM.GetAuthorId(),
+        });
+        DATA.DB_CommentAdd(noteRefId, comment, () => this.ContinueOpen(resource, noteRefId));
+      } else {
+        // just open it
+        this.ContinueOpen(resource, noteRefId);        
+      }
     } else {
       console.error('ViewMain: Could not find selected resource id', data.rsrcId);
     }
+  }
+  
+  OnDataUpdate() {
+    const comments = DATA.GetComments(this.state.noteRefId);
+    if (comments.length > 0) {
+      const comment = comments[0];
+      if (this.state.note !== comment.text) {
+        this.setState({ note: comment.text });
+      }
+    }
+  }
+  
+  ContinueOpen(resource, noteRefId) {
+    const comments = DATA.GetComments(noteRefId);
+    if (comments.length < 1) throw Error('There should be at least one comment saved as a Resource note!');
+    const note = comments[0].text;
+    const commentId = comments[0].id;
+
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intCommentId = Number(commentId);
+    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId])
+      .then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
+        if (rdata.success) {
+          this.setState({ noteIsDisabled: false });
+        } else {
+          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Resource Note right now.  Please try again later. (You can still Create Evidence.)`)
+        }
+      });
+
+    this.setState({
+      isOpen: true,
+      resource,
+      noteRefId,
+      note,
+      commentId
+    });
+    UTILS.RLog('ResourceOpen', resource.label);    
   }
 
   OnCreateEvidence(rsrcId) {
     if (DBG) console.log(PKG, 'create new evidence:', rsrcId);
     DATA.PMC_AddEvidenceLink({ rsrcId }, id => UR.Publish('SHOW_EVIDENCE_LINK', { evId: id, rsrcId }));
   }
+  
+  // User has edited the note by typing
+  OnNoteChange(e) {
+    this.setState({ note: e.target.value });
+  }
+  
+  OnNoteSave() {
+    const note = PMCObj.Comment({
+      id: this.state.commentId,
+      text: this.state.note,
+      refId: this.state.noteRefId,
+      author: ADM.GetAuthorId()
+    })
+    DATA.DB_CommentUpdate(
+      this.state.noteRefId,
+      note
+    );
+  }
 
   OnClose() {
+    const pmcDataId = ASET.selectedPMCDataId;
+    const intCommentId = Number(this.state.commentId);
+    UR.DBTryRelease('pmcData.comments', [pmcDataId, intCommentId]);
     this.setState({
-      isOpen: false
+      isOpen: false,
+      noteIsDisabled: true
     });
   }
 
   render() {
-    const { isOpen, resource } = this.state;
+    const { isOpen, resource, note, noteIsDisabled } = this.state;
     const { classes } = this.props;
 
     return (
@@ -148,6 +232,10 @@ class ResourceView extends React.Component {
                 className={classes.resourceViewNote}
                 margin="normal"
                 variant="outlined"
+                value={note}
+                disabled={noteIsDisabled}
+                onChange={this.OnNoteChange}
+                onBlur={this.OnNoteSave}
               />
               <Typography variant="caption">OUR EVIDENCE LIST</Typography>
               <div className={classes.resourceViewSidebarEvidenceList}>

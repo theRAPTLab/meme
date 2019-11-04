@@ -16,6 +16,7 @@ import ClassNames from 'classnames';
 // Material UI Elements
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
+import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 import Collapse from '@material-ui/core/Collapse';
 import Divider from '@material-ui/core/Divider';
 import FilledInput from '@material-ui/core/FilledInput';
@@ -71,11 +72,14 @@ class EvidenceLink extends React.Component {
     this.DoDataUpdate = this.DoDataUpdate.bind(this);
     this.DoRatingUpdate = this.DoRatingUpdate.bind(this);
     this.DoEditStart = this.DoEditStart.bind(this);
+    this.DoEditStop = this.DoEditStop.bind(this);
+    this.DoSave = this.DoSave.bind(this);
     this.OnCancelButtonClick = this.OnCancelButtonClick.bind(this);
     this.OnDeleteButtonClick = this.OnDeleteButtonClick.bind(this);
     this.OnDuplicateButtonClick = this.OnDuplicateButtonClick.bind(this);
     this.OnEditButtonClick = this.OnEditButtonClick.bind(this);
     this.OnSaveButtonClick = this.OnSaveButtonClick.bind(this);
+    this.OnClickAway = this.OnClickAway.bind(this);
     this.DoEvidenceLinkOpen = this.DoEvidenceLinkOpen.bind(this);
     this.OnScreenShotClick = this.OnScreenShotClick.bind(this)
     this.OnNoteChange = this.OnNoteChange.bind(this);
@@ -176,6 +180,10 @@ class EvidenceLink extends React.Component {
     UR.DBTryRelease('pmcData.entities', [pmcDataId, intEvId])    
   }
 
+  DoSave() {
+    DATA.SetEvidenceLinkNote(this.props.evlink.id, this.state.note);
+  }
+
   OnScreenShotClick(e) {
     e.stopPropagation();
     // show screenshot large
@@ -186,6 +194,7 @@ class EvidenceLink extends React.Component {
     });
   }
 
+  // Not being used
   OnCancelButtonClick(e) {
     e.stopPropagation();
     this.DoEditStop();
@@ -240,10 +249,15 @@ class EvidenceLink extends React.Component {
 
   OnSaveButtonClick(e) {
     e.stopPropagation();
-    DATA.SetEvidenceLinkNote(this.props.evlink.id, this.state.note);
-    // FIXME May 1 Hack
-    // How do we handle draftValue vs committedValue?
+    this.DoSave();
     this.DoEditStop();
+  }
+  
+  OnClickAway(e) {
+    if (this.state.isBeingEdited) {
+      this.DoSave();
+      this.DoEditStop();
+    }
   }
 
   DoEvidenceLinkOpen(data) {
@@ -286,6 +300,7 @@ class EvidenceLink extends React.Component {
   */
   OnLinkButtonClick(e) {
     let evlink = this.props.evlink;
+    this.DoEditStop(); // need to release db lock
     // Deselect the prop first, otherwise the deleted prop will remain selected
     DATA.VM_DeselectAll();
     UR.Publish('SELECTION_CHANGED');
@@ -417,100 +432,135 @@ class EvidenceLink extends React.Component {
     const isViewOnly = ADM.IsViewOnly();
 
     return (
-      <Collapse in={isExpanded} collapsedHeight="70px">
-        <Paper
-          className={ClassNames(
-            classes.evidenceLinkPaper,
-            isExpanded ? classes.evidenceLinkPaperExpanded : '',
-            isBeingEdited ? classes.evidenceLinkPaperEditting : '',
-            isHovered ? classes.evidenceLinkPaperHover : ''
-          )}
-          onClick={this.DoToggleExpanded}
-          key={`${rsrcId}`}
-          elevation={isExpanded ? 5 : 1}
-          onMouseEnter={() => this.setState({ isHovered: true })}
-          onMouseLeave={() => this.setState({ isHovered: false })}
-        >
-          {/* Title Bar */}
-          <Button
-            className={classes.evidenceExpandButton}
+      <ClickAwayListener onClickAway={this.OnClickAway}>
+        <Collapse in={isExpanded} collapsedHeight="70px">
+          <Paper
+            className={ClassNames(
+              classes.evidenceLinkPaper,
+              isExpanded ? classes.evidenceLinkPaperExpanded : '',
+              isBeingEdited ? classes.evidenceLinkPaperEditting : '',
+              isHovered ? classes.evidenceLinkPaperHover : ''
+            )}
             onClick={this.DoToggleExpanded}
-            hidden={!isExpanded || isBeingEdited}
+            key={`${rsrcId}`}
+            elevation={isExpanded ? 5 : 1}
+            onMouseEnter={() => this.setState({ isHovered: true })}
+            onMouseLeave={() => this.setState({ isHovered: false })}
           >
-            <ExpandLessIcon className={isExpanded ? classes.lessIconCollapsed : ''} />
-          </Button>
-          <Typography className={classes.evidenceWindowLabel} hidden={!isExpanded}>
-            EVIDENCE LINK
-          </Typography>
-          {/* Body */}
-          <Grid container className={classes.evidenceBody} spacing={0}>
-
-            {/* Number / Comment */}
-            <Grid item xs={isExpanded ? 12 : 2}>
-              <div style={{ position: 'absolute', right: '0px' }}>
-                <StickyNoteButton refId={id} />
-              </div>
-              <Avatar className={classes.evidenceBodyNumber}>{evlink.numberLabel}</Avatar>
-            </Grid>
-            <Typography className={classes.evidencePrompt} hidden={!isExpanded}>
-              How does this resource support this component / property / mechanism?
+            {/* Title Bar */}
+            <Button
+              className={classes.evidenceExpandButton}
+              onClick={this.DoToggleExpanded}
+              hidden={!isExpanded || isBeingEdited}
+            >
+              <ExpandLessIcon className={isExpanded ? classes.lessIconCollapsed : ''} />
+            </Button>
+            <Typography className={classes.evidenceWindowLabel} hidden={!isExpanded}>
+              EVIDENCE LINK
             </Typography>
+            {/* Body */}
+            <Grid container className={classes.evidenceBody} spacing={0}>
 
-            {/* Source */}
-            <Grid item xs={isExpanded ? 12 : 10}>
-              <Grid
-                container
-                spacing={1}
-                className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed}
-              >
-                <Grid item xs={4} hidden={!isExpanded}>
-                  <Typography
-                    className={classes.evidenceWindowLabel}
-                    variant="caption"
-                    align="right"
-                  >
-                    DESCRIPTION:
-                  </Typography>
+              {/* Number / Comment */}
+              <Grid item xs={isExpanded ? 12 : 2}>
+                <div style={{ position: 'absolute', right: '0px' }}>
+                  <StickyNoteButton refId={id} />
+                </div>
+                <Avatar className={classes.evidenceBodyNumber}>{evlink.numberLabel}</Avatar>
+              </Grid>
+              <Typography className={classes.evidencePrompt} hidden={!isExpanded}>
+                How does this resource support this component / property / mechanism?
+              </Typography>
+
+              {/* Source */}
+              <Grid item xs={isExpanded ? 12 : 10}>
+                <Grid
+                  container
+                  spacing={1}
+                  className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed}
+                >
+                  <Grid item xs={4} hidden={!isExpanded}>
+                    <Typography
+                      className={classes.evidenceWindowLabel}
+                      variant="caption"
+                      align="right"
+                    >
+                      DESCRIPTION:
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs>
+                    {isExpanded ? (
+                      <MuiThemeProvider theme={theme}>
+                        <FilledInput
+                          className={ClassNames(
+                            classes.evidenceLabelField,
+                            classes.evidenceLabelFieldExpanded
+                          )}
+                          value={note}
+                          placeholder="Untitled..."
+                          autoFocus
+                          multiline
+                          variant="filled"
+                          disabled={!isBeingEdited}
+                          disableUnderline
+                          onChange={this.OnNoteChange}
+                          onBlur={this.DoSave}
+                          onClick={e => {
+                            e.stopPropagation();
+                          }}
+                          inputProps={{
+                            readOnly: !isBeingEdited
+                          }}
+                          inputRef={this.textInput}
+                        />
+                      </MuiThemeProvider>
+                    ) : (
+                      <div className={classes.evidenceLabelField}>{note}</div>
+                    )}
+                  </Grid>
                 </Grid>
 
-                <Grid item xs>
-                  {isExpanded ? (
-                    <MuiThemeProvider theme={theme}>
-                      <FilledInput
-                        className={ClassNames(
-                          classes.evidenceLabelField,
-                          classes.evidenceLabelFieldExpanded
-                        )}
-                        value={note}
-                        placeholder="Untitled..."
-                        autoFocus
-                        multiline
-                        variant="filled"
-                        disabled={!isBeingEdited}
-                        disableUnderline
-                        onChange={this.OnNoteChange}
-                        onClick={e => {
-                          e.stopPropagation();
-                        }}
-                        inputProps={{
-                          readOnly: !isBeingEdited
-                        }}
-                        inputRef={this.textInput}
-                      />
-                    </MuiThemeProvider>
-                  ) : (
-                    <div className={classes.evidenceLabelField}>{note}</div>
-                  )}
+                {/* Source */}
+                <Grid item xs={12}>
+                  <Grid
+                    container
+                    spacing={1}
+                    className={
+                      isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed
+                    }
+                  >
+                    <Grid item xs={4} hidden={!isExpanded}>
+                      <Typography
+                        className={classes.evidenceWindowLabel}
+                        variant="caption"
+                        align="right"
+                      >
+                        TARGET:
+                      </Typography>
+                    </Grid>
+                    <Grid item xs>
+                      <div className={classes.evidenceLinkAvatar}>
+                        <LinkButton
+                          sourceType={sourceType}
+                          sourceLabel={sourceLabel}
+                          listenForSourceSelection={listenForSourceSelection}
+                          isBeingEdited={isBeingEdited}
+                          isExpanded={isExpanded}
+                          OnLinkButtonClick={this.OnLinkButtonClick}
+                        />
+                      </div>
+                    </Grid>
+                  </Grid>
                 </Grid>
               </Grid>
 
-              {/* Source */}
-              <Grid item xs={12}>
+              <Grid item xs={isExpanded ? 12 : 3}>
                 <Grid
                   container
                   spacing={1}
                   className={
-                    isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed
+                    isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRatingCollapsed
                   }
                 >
                   <Grid item xs={4} hidden={!isExpanded}>
@@ -519,123 +569,91 @@ class EvidenceLink extends React.Component {
                       variant="caption"
                       align="right"
                     >
-                      TARGET:
+                      RATING:
                     </Typography>
                   </Grid>
                   <Grid item xs>
-                    <div className={classes.evidenceLinkAvatar}>
-                      <LinkButton
-                        sourceType={sourceType}
-                        sourceLabel={sourceLabel}
-                        listenForSourceSelection={listenForSourceSelection}
-                        isBeingEdited={isBeingEdited}
-                        isExpanded={isExpanded}
-                        OnLinkButtonClick={this.OnLinkButtonClick}
-                      />
-                    </div>
+                    <RatingButton
+                      rating={rating}
+                      isExpanded={isExpanded}
+                      disabled={isViewOnly}
+                      ratingLabel=""
+                      ratingDefs={ratingDefs}
+                      OnRatingButtonClick={this.OnRatingButtonClick}
+                    />
                   </Grid>
                 </Grid>
               </Grid>
-            </Grid>
-
-            <Grid item xs={isExpanded ? 12 : 3}>
-              <Grid
-                container
-                spacing={1}
-                className={
-                  isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRatingCollapsed
-                }
-              >
-                <Grid item xs={4} hidden={!isExpanded}>
-                  <Typography
-                    className={classes.evidenceWindowLabel}
-                    variant="caption"
-                    align="right"
-                  >
-                    RATING:
+              <Grid container spacing={8} hidden={!isExpanded} className={classes.evidenceBodyRowTop}>
+                <Grid item xs={4}>
+                  <Typography className={classes.evidenceWindowLabel} variant="caption" align="right">
+                    SCREENSHOT:
                   </Typography>
                 </Grid>
                 <Grid item xs>
-                  <RatingButton
-                    rating={rating}
-                    isExpanded={isExpanded}
-                    disabled={isViewOnly}
-                    ratingLabel=""
-                    ratingDefs={ratingDefs}
-                    OnRatingButtonClick={this.OnRatingButtonClick}
-                  />
+                  {imageURL === undefined 
+                    ? isBeingEdited
+                      ? <Dropzone onDrop={this.OnDrop} />
+                      : <Typography variant="caption">no screenshot</Typography>
+                    : <Button
+                        className={classes.evidenceScreenshotButton}
+                        onClick={this.OnScreenShotClick}
+                      >
+                        <img
+                          src={imageURL}
+                          alt="screenshot"
+                          className={classes.evidenceScreenshot}
+                        />
+                      </Button>
+                  }
                 </Grid>
               </Grid>
             </Grid>
-            <Grid container spacing={8} hidden={!isExpanded} className={classes.evidenceBodyRowTop}>
-              <Grid item xs={4}>
-                <Typography className={classes.evidenceWindowLabel} variant="caption" align="right">
-                  SCREENSHOT:
-                </Typography>
-              </Grid>
-              <Grid item xs>
-                {imageURL === undefined 
-                  ? isBeingEdited
-                    ? <Dropzone onDrop={this.OnDrop} />
-                    : <Typography variant="caption">no screenshot</Typography>
-                  : <Button
-                      className={classes.evidenceScreenshotButton}
-                      onClick={this.OnScreenShotClick}
-                    >
-                      <img
-                        src={imageURL}
-                        alt="screenshot"
-                        className={classes.evidenceScreenshot}
-                      />
-                    </Button>
-                }
-              </Grid>
-            </Grid>
-          </Grid>
-          <Divider style={{ margin: '10px' }} hidden={!isExpanded} />
-          <div style={{ display: 'flex', margin: '10px 10px 5px 0' }}>
-            <Button
-              hidden={!isExpanded || !isBeingEdited}
-              size="small"
-              onClick={this.OnCancelButtonClick}
-            >
-              cancel
-            </Button>
-            <Button
-              hidden={!isExpanded || isBeingEdited || isViewOnly}
-              size="small"
-              onClick={this.OnDeleteButtonClick}
-            >
-              delete
-            </Button>
-            <div style={{ flexGrow: '1' }} />
-            <Button
-              hidden={!isExpanded || isBeingEdited || isViewOnly}
-              size="small"
-              onClick={this.OnDuplicateButtonClick}
-            >
-              duplicate
-            </Button>
-            <div style={{ flexGrow: '1' }} />
-            <Button
-              variant="contained"
-              onClick={this.OnEditButtonClick}
-              hidden={!isExpanded || isBeingEdited || isViewOnly}
-              size="small"
-            >
-              Edit
-            </Button>
-            <Button
-              variant="contained"
-              onClick={this.OnSaveButtonClick}
-              hidden={!isExpanded || !isBeingEdited}
-              size="small"
-            >
-              Save
-            </Button>
-          </div>
-        </Paper>
-      </Collapse>
+            <Divider style={{ margin: '10px' }} hidden={!isExpanded} />
+            <div style={{ display: 'flex', margin: '10px 10px 5px 0' }}>
+              <Button
+                hidden={true || !isExpanded || !isBeingEdited}
+                size="small"
+                onClick={this.OnCancelButtonClick}
+              >
+                cancel
+              </Button>
+              <Button
+                hidden={!isExpanded || isBeingEdited || isViewOnly}
+                size="small"
+                onClick={this.OnDeleteButtonClick}
+              >
+                delete
+              </Button>
+              <div style={{ flexGrow: '1' }} />
+              <Button
+                hidden={!isExpanded || isBeingEdited || isViewOnly}
+                size="small"
+                onClick={this.OnDuplicateButtonClick}
+              >
+                duplicate
+              </Button>
+              <div style={{ flexGrow: '1' }} />
+              <Button
+                variant="contained"
+                onClick={this.OnEditButtonClick}
+                hidden={!isExpanded || isBeingEdited || isViewOnly}
+                size="small"
+              >
+                Edit
+              </Button>
+              <Button
+                variant="contained"
+                onClick={this.OnSaveButtonClick}
+                hidden={!isExpanded || !isBeingEdited}
+                size="small"
+              >
+                Close
+              </Button>
+            </div>
+          </Paper>
+        </Collapse>
+      </ClickAwayListener>
     );
   }
 }
