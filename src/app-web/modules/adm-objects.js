@@ -112,6 +112,21 @@ ADMObj.RatingsDefinition = data => {
 };
 
 /**
+ *  @return {Object} Returns a new Resource data object
+ */
+ADMObj.Resource = (data = {}) => {
+  return {
+    id: data.id,
+    referenceLabel: data.referenceLabel,
+    label: data.label || '',
+    notes: data.notes || '',
+    type: data.type || '',
+    url: data.url || '',
+    links: data.links || 0
+  };
+};
+
+/**
  *  @return {Object} Returns a new classroom resource data object
  */
 ADMObj.ClassroomResource = data => {

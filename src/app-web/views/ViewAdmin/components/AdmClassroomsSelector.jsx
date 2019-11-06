@@ -174,7 +174,7 @@ class ClassroomsSelector extends React.Component {
               </Grid>
             </Typography>
           </Grid>
-        </Grid>        
+        </Grid>
         <Dialog open={addClassroomDialogOpen} onClose={this.OnAddClassroomDialogClose}>
           <form onSubmit={this.OnAddClasssroomName}>
             <DialogTitle>Add Classroom</DialogTitle>

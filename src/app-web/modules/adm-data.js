@@ -127,6 +127,11 @@ ADMData.SyncAddedData = data => {
         adm_db.sentenceStarters.push(ss);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
+      case 'resources':
+        const resource = ADMObj.Resource(value);
+        adm_db.resources.push(resource);
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
       case 'classroomResources':
         const res = ADMObj.ClassroomResource(value);
         adm_db.classroomResources.push(res);
@@ -196,6 +201,14 @@ ADMData.SyncUpdatedData = data => {
         const ss = ADMObj.SentenceStarter(value);
         const ssi = adm_db.sentenceStarters.findIndex(c => c.id === ss.id);
         adm_db.sentenceStarters.splice(ssi, 1, ss);
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      case 'resources':
+        const updatedData = ADMObj.Resource(value);
+        const origres = ADMData.Resource(updatedData.id);
+        const newres = Object.assign({}, origres, updatedData);
+        const resourcei = adm_db.resources.findIndex(c => c.id === updatedData.id);
+        adm_db.resources.splice(resourcei, 1, newres);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
       case 'classroomResources':
@@ -1196,6 +1209,32 @@ ADMData.GetRatingsDefinition = classroomId => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// RESOURCES
 ///
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  @param {Object} data - ADMObj.ClassroomResource-like object
+ */
+ADMData.DB_ResourceAdd = data => {
+  const res = ADMObj.Resource(data);
+  return UR.DBQuery('add', { resources: res }).then(rdata => {
+    // Set the referenceLabel to match the id
+    const referenceLabel = rdata.resources[0].id;
+    // And save it
+    ADMData.DB_ResourceUpdate({
+      id: rdata.resources[0].id,
+      referenceLabel
+    });
+    return rdata;
+  });
+};
+/**
+ * 
+ *  @param {Object} respource - ADMObj.Resource object
+ */
+ADMData.DB_ResourceUpdate = resource => {
+  return UR.DBQuery('update', {
+    resources: resource
+  });
+};
 
 // Returns all of the resource objects.
 ADMData.AllResources = () => {

@@ -271,7 +271,7 @@ const styles = theme => {
     },
     evidenceBodyRatingCollapsed: {
       position: 'relative',
-      top: '-30px',
+      top: '-45px',
       left: '200px'
     },
     evidenceBodyRowCentered: {

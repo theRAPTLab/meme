@@ -4,8 +4,8 @@ module.exports = {
   // entities
   entities: [
     // props
-    { id: 1, type:'prop', name: 'fertilizer', description: 'Runoff from farms' },
-    { id: 11, type:'prop', name: 'nutrients', parent: 1 },
+    { id: 10, type:'prop', name: 'fertilizer', description: 'Runoff from farms' },
+    { id: 11, type:'prop', name: 'nutrients', parent: 10 },
     { id: 12, type:'prop', name: 'algae' },
     { id: 13, type:'prop', name: 'dead stuff' },
     { id: 14, type:'prop', name: 'decomposers' },
@@ -13,7 +13,7 @@ module.exports = {
     { id: 16, type:'prop', name: 'fish' },
     { id: 17, type:'prop', name: 'population', parent: 16 },
     // mechs
-    { id: 20, type:'mech', source: 1, target: 11, name: 'increase', description: 'An increase is good' },
+    { id: 20, type:'mech', source: 10, target: 11, name: 'increase', description: 'An increase is good' },
     { id: 21, type:'mech', source: 11, target: 12, name: 'increase' },
     { id: 22, type:'mech', source: 12, target: 13, name: 'die (increase)', description: 'Fish die with an increase' },
     { id: 23, type:'mech', source: 14, target: 13, name: 'eat' },
