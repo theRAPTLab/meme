@@ -117,6 +117,7 @@ class RatingsList extends React.Component {
                   onClick={e => OnRatingSelect(e, def.rating)}
                   color="primary"
                   variant={SelectedRating === String(def.rating) ? 'contained' : 'text'}
+                  size="small"
                 >
                   <div style={{ width: '100px' }}>{icons[def.rating]}</div>
                   <div style={{ width: '200px', textAlign: 'left' }}>{def.label}</div>

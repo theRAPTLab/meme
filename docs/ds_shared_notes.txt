@@ -439,6 +439,138 @@ FRIDAY CODE-ALONG
         collection.field: { id, subkey: {...props} }
     }
 
+    WORKING ON THE PROBLEM of WRONG DRAWING SIZE....
+
+    DEBUGGING TOO NARROW BOX
+    * change VProp.DataSize() to use bbox() instead of rbox()
+
+    DEBUGGING OUT OF SYNC ERROR
+    * reproduceable now...data seems correct but load is out of sync
+
+- - -
+
+VProp.FindEdgePointConnectionTo(targetId)
+-   finds shortest connection point to targetId
+    returns {} if no line is drawable
+    return { pt1, pt2 } where pt1 is the outgoing and pt2 is the destination
+
+VProp.RequestEdgePoint(loc='c')
+-   return a specified edge for center, t, r, b, or l
+
+To spread things out, we can spread ORIGIN and DESTINATION points.
+    All outgoing points can share.
+    All incoming points should split
+
+To do this, VProp.ScreenBBox() could be adapted to keep track of requests.
+    Each VProp can keep track of outgoing and incoming point for l, r, t, b
+    this.endPt.l = [0]; // sorted
+    this.endPt.r = [0];
+    this.endPt.t = [0];
+    this.endPt.b = [0];
+
+ALGORITHM
+    * A is me, B is target
+    * when determining the longest side, makePtObj(x1, y1, x2, y2) is used to create
+    pt1(A) to pt2(B)
+    * instead of makePtObj(), we ask the objects themselves to return the closest point based on our outgoing endpoint.
+    * might have to increase size of prop if too many incoming elements
+    * can draw a LOOP
+
+- - -
+
+HOW TO HANDLE LOCKS
+
+    data = { 'pmcData.locks': { id, locks: { name, id, uaddr } };
+
+TUE 0700
+
+    incoming data:
+    {
+        uaddr:
+        dbkey: 'pmcData.entities'
+        dbids: [1,1]
+    }
+    session_locks will be created/cleared on every server restart
+
+    1. we don't care about writing the db so much because it's memory based
+    2. when a socket disconnects, cleanup by uaddr
+
+    - to write a lock -
+
+    UR.DBTryLock('pmcData.entities',[1,1])
+    .then(status=>{
+        if (!status.error) console.log('yay')
+        else console.log(status.error);
+    });
+
+    UR.DBTryRelease('pmcData.entities',[1,1])
+    .then(status=>{
+        if (!status.error) console.log('released')
+        else console.log(status.error,status.code);
+    });
+
+    the session_locks collection contains
+    { semaphore: 'dbkey:dbids', uaddr }
+
+
+TUE 0800 - farting around with adding codes to NetMessage
+
+    writing Lock. expect:
+        data.uaddr,
+        data.dbkey
+        data.dbids
+    add to ursys.js
+    .. add to common-ulink NetCall
+
+TUE 0930 - do the db writes
+
+TUE 1230 - write
+
+THU 1830 -
+
+  add token generation to addTeacher somewhere
+  LoggedInName returns the current logged-in Name
+  can SESSION report if a teacher is logged in?
+  We need to know if the current session is saved
+  !! this is handled in ADMData.Login under
+  SESSION.DecodeAndSet(rdata.token)
+  SESSION.SetAccessKey(rdata.key)
+
+  With the teacher logged-in, the m_current_idsobj.teacherId is set
+  Now we can check SESSION.LoggedInProps() to see if teacherId is set
+
+  Now for cheeseballness, we want to look at ModelSelect
+
+  In ModelSelect, the models are retrieved by ADM.GetModelsByStudent()
+
+THURSDAY
+
+    UR.ExtCall('CAPTURE_SCREEN',{ sx, sy, sw, sh}).then( href=>{
+        console.log(href);
+    })
+
+    There are three parts to this:
+
+    1. a packet format that has an action and a unique id
+    2. a packet sender/callback that asyncronously sends and recognizes returning packets, calling the original caller
+    3. a transport mechanism (socket, event, whatever)
+
+    CallAsync('CAPTURE_SCREEN',{sx,sy,sw,sh})
+        create new packet 'CAPTURE_SCREEN', {sx,sy,sw,sh} w/ uniqueid
+        return promise that:
+        .. creates a 'resolver' function that is mapped byuniqueid.
+           (1) the resolver is called with the returning matching packet and
+           (2) calls resolve(data) to complete the promise with returned data
+           (3) sends packet
+
+    The receiving mechanism processes the packet
+    For this version, only the content.js file handles it
+
+    TRANSPORT MECHANISM
+    .
+
+        if an incoming packet has a uniqueid in the table, it must be a returning one
+
 
 
 

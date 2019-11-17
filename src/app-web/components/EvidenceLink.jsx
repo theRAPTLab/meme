@@ -36,6 +36,7 @@ import ADM from '../modules/data';
 import DATA from '../modules/data';
 import ASET from '../modules/adm-settings';
 import UR from '../../system/ursys';
+import EXT from '../../system/ur-extension';
 import StickyNoteButton from './StickyNoteButton';
 import RatingButton from './RatingButton';
 import LinkButton from './LinkButton';
@@ -82,6 +83,7 @@ class EvidenceLink extends React.Component {
     this.OnClickAway = this.OnClickAway.bind(this);
     this.DoEvidenceLinkOpen = this.DoEvidenceLinkOpen.bind(this);
     this.OnScreenShotClick = this.OnScreenShotClick.bind(this)
+    this.OnCaptureScreenShotClick = this.OnCaptureScreenShotClick.bind(this);
     this.OnNoteChange = this.OnNoteChange.bind(this);
     this.OnLinkButtonClick = this.OnLinkButtonClick.bind(this);
     this.DoEnableSourceSelect = this.DoEnableSourceSelect.bind(this);
@@ -156,7 +158,6 @@ class EvidenceLink extends React.Component {
         const { success, semaphore, uaddr, lockedBy } = rdata;
         status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
         if (rdata.success) {
-          console.log('do something here because u-locked!');
           this.setState(
             {
               isBeingEdited: true,
@@ -192,6 +193,24 @@ class EvidenceLink extends React.Component {
       evId: this.props.evlink.id,
       imageURL: this.props.evlink.imageURL
     });
+  }
+  
+  OnCaptureScreenShotClick(e) {
+    e.stopPropagation();
+    const resourceFrame = document.getElementById('resourceFrame');
+    if (resourceFrame !== null) {
+      const px = window.devicePixelRatio;
+      const sx = resourceFrame.offsetLeft * px;
+      const sy = resourceFrame.offsetTop * px;
+      const sw = resourceFrame.clientWidth * px;
+      const sh = resourceFrame.clientHeight * px;
+      let opt = { sx, sy, sw, sh };
+      UR.PromiseCaptureScreen(opt).then(rdata => {
+        const { href, error } = rdata;
+        if (error) console.log('PromiseCaptureScreen:', error);
+        if (href) DATA.PMC_EvidenceUpdate(this.props.evlink.id, { imageURL: href });
+      });
+    }
   }
 
   // Not being used
@@ -430,7 +449,13 @@ class EvidenceLink extends React.Component {
     }
     
     const isViewOnly = ADM.IsViewOnly();
-
+    
+    // Display Capture Screen button?
+    // resourceFrame's clientWidth is 0 if it's not whoing
+    const resourceFrame = document.getElementById('resourceFrame');
+    const resourceFrameIsVisible = resourceFrame !== null && resourceFrame.clientWidth > 0;
+    const extensionIsConnected = EXT.IsConnected();
+    
     return (
       <ClickAwayListener onClickAway={this.OnClickAway}>
         <Collapse in={isExpanded} collapsedHeight="70px">
@@ -460,13 +485,14 @@ class EvidenceLink extends React.Component {
             </Typography>
             {/* Body */}
             <Grid container className={classes.evidenceBody} spacing={0}>
-
               {/* Number / Comment */}
-              <Grid item xs={isExpanded ? 12 : 2}>
+              <Grid item xs={isExpanded ? 12 : 2} style={{ height: '30px' }}>
                 <div style={{ position: 'relative', left: '230px' }}>
                   <StickyNoteButton refId={id} />
                 </div>
-                <Avatar className={classes.evidenceBodyNumber} style={{top: '-37px'}}>{evlink.numberLabel}</Avatar>
+                <Avatar className={classes.evidenceBodyNumber} style={{ top: '-37px' }}>
+                  {evlink.numberLabel}
+                </Avatar>
               </Grid>
               <Typography className={classes.evidencePrompt} hidden={!isExpanded}>
                 How does this resource support this component / property / mechanism?
@@ -477,7 +503,9 @@ class EvidenceLink extends React.Component {
                 <Grid
                   container
                   spacing={1}
-                  className={isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed}
+                  className={
+                    isExpanded ? classes.evidenceBodyRow : classes.evidenceBodyRowCollapsed
+                  }
                 >
                   <Grid item xs={4} hidden={!isExpanded}>
                     <Typography
@@ -572,7 +600,7 @@ class EvidenceLink extends React.Component {
                       RATING:
                     </Typography>
                   </Grid>
-                  <Grid item xs>
+                  <Grid item xs style={{ paddingTop: isExpanded ? '4px' : '10px' }}>
                     <RatingButton
                       rating={rating}
                       isExpanded={isExpanded}
@@ -584,28 +612,48 @@ class EvidenceLink extends React.Component {
                   </Grid>
                 </Grid>
               </Grid>
-              <Grid container spacing={8} hidden={!isExpanded} className={classes.evidenceBodyRowTop}>
+              <Grid container hidden={!isExpanded} className={classes.evidenceBodyRowTop}>
                 <Grid item xs={4}>
-                  <Typography className={classes.evidenceWindowLabel} variant="caption" align="right">
+                  <Typography
+                    className={classes.evidenceWindowLabel}
+                    variant="caption"
+                    align="right"
+                  >
                     SCREENSHOT:
                   </Typography>
                 </Grid>
                 <Grid item xs>
-                  {imageURL === undefined 
-                    ? isBeingEdited
-                      ? <Dropzone onDrop={this.OnDrop} />
-                      : <Typography variant="caption">no screenshot</Typography>
-                    : <Button
-                        className={classes.evidenceScreenshotButton}
-                        onClick={this.OnScreenShotClick}
-                      >
-                        <img
-                          src={imageURL}
-                          alt="screenshot"
-                          className={classes.evidenceScreenshot}
-                        />
-                      </Button>
-                  }
+                  {imageURL === undefined || imageURL === null ? (
+                    isBeingEdited ? (
+                      <Dropzone onDrop={this.OnDrop} />
+                    ) : (
+                      <Typography className={classes.evidenceScreenshotStatus}>
+                        No Screenshot
+                      </Typography>
+                    )
+                  ) : (
+                    <Button
+                      className={classes.evidenceScreenshotButton}
+                      onClick={this.OnScreenShotClick}
+                    >
+                      <img src={imageURL} alt="screenshot" className={classes.evidenceScreenshot} />
+                    </Button>
+                  )}
+                  {resourceFrameIsVisible && extensionIsConnected ? (
+                    <Button
+                      onClick={this.OnCaptureScreenShotClick}
+                      size="small"
+                      className={classes.btnSuperSmall}
+                    >
+                      Capture Screenshot
+                    </Button>
+                  ) : extensionIsConnected ? (
+                    <Typography className={classes.evidenceScreenshotStatus}>
+                      (Open the Resource to Capture Screen)
+                    </Typography>
+                  ) : (
+                    ''
+                  )}
                 </Grid>
               </Grid>
             </Grid>
@@ -621,6 +669,7 @@ class EvidenceLink extends React.Component {
               <Button
                 hidden={!isExpanded || isBeingEdited || isViewOnly}
                 size="small"
+                className={classes.btnSuperSmall}
                 onClick={this.OnDeleteButtonClick}
               >
                 delete
@@ -629,6 +678,7 @@ class EvidenceLink extends React.Component {
               <Button
                 hidden={!isExpanded || isBeingEdited || isViewOnly}
                 size="small"
+                className={classes.btnSuperSmall}
                 onClick={this.OnDuplicateButtonClick}
               >
                 duplicate

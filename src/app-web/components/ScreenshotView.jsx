@@ -39,7 +39,7 @@ class ScreenshotView extends React.Component {
   constructor(props) {
     super(props);
     this.DoOpen = this.DoOpen.bind(this);
-    this.DoReplaceScreenshot = this.DoReplaceScreenshot.bind(this);
+    this.DoClearScreenshot = this.DoClearScreenshot.bind(this);
     this.OnDrop = this.OnDrop.bind(this);
     this.DoClose = this.DoClose.bind(this);
 
@@ -65,10 +65,8 @@ class ScreenshotView extends React.Component {
     this.setState({ });
   }
 
-  DoReplaceScreenshot() {
-    this.setState({
-      imageURL: undefined
-    });
+  DoClearScreenshot() {
+    this.OnDrop(null);
   }
   
   OnDrop(href) {
@@ -91,7 +89,7 @@ class ScreenshotView extends React.Component {
         <Paper className={classes.screenshotViewPaper} hidden={!isOpen}>
           <Grid container spacing={5} style={{ height: '100%' }}>
             <Grid item xs={12} style={{ height: '100%' }}>
-              {imageURL === undefined
+              {imageURL === undefined || imageURL ===  null
                 ? <Dropzone onDrop={this.OnDrop} />
                 : <img
                   src={imageURL}
@@ -104,10 +102,10 @@ class ScreenshotView extends React.Component {
           <Grid container spacing={5}>
             <Grid item xs={6}>
               <Button
-                onClick={this.DoReplaceScreenshot}
-                hidden={imageURL===undefined}
+                onClick={this.DoClearScreenshot}
+                hidden={imageURL === undefined || imageURL === null}
               >
-                Replace Screenshot
+                Clear Screenshot
               </Button>
             </Grid>
             <Grid item xs={6} style={{ textAlign: 'right'}}>

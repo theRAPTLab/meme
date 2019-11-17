@@ -16,6 +16,7 @@ import EXEC from './ur-exec';
 import ReloadOnViewChange from './util/reload';
 import NetMessage from './common-netmessage';
 import URLink from './ur-link';
+import EXT from './ur-extension';
 import REFLECT from './util/reflect';
 import SESSION from './common-session';
 
@@ -31,21 +32,28 @@ const ULINK = NewConnection(PR);
 // ur_legacy_publish is used to make DATALINK.Publish() work like Broadcast, so
 // messages will mirror back to itself
 CENTRAL.Define('ur_legacy_publish', true);
+// trigger bridge connection to meme extension (screenshot capture)
+let MEMEXT_INSTALLED = false;
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// do session overrides  React does first render in phase after CONFIGURE
+/// do session overrides  React does first render in phase after CONFIGURE
 EXEC.Hook(__dirname, 'CONFIGURE', () => {
+  // attempt to connect to extension
+  EXT.ConnectToExtension(SocketUADDR());
+  // check for admin override thenreturn
   const qs = SESSION.AdminPlaintextPassphrase();
   if (document.location.hash.includes(qs)) {
     console.warn(`INFO: ADMIN ACTIVATED VIA '${qs.toUpperCase()}' OVERRIDE`);
     SESSION.SetAdminKey(qs);
     return;
   }
+  // check for localhost admin powers
   if (IsLocalhost()) {
     console.warn(`INFO: LOCALHOST ADMIN MODE`);
     SESSION.SetAdminKey('localhost');
     return;
   }
+  // code here runs only if non-localhost regular user
 });
 
 /// PUBLIC METHODS ////////////////////////////////////////////////////////////
@@ -117,6 +125,7 @@ function DBTryRelease(dbkey, dbids) {
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const { Define, GetVal, SetVal } = CENTRAL;
+const { ExtPublish, ExtSubscribe, ExtCallAsync } = EXT;
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function IsLocalhost() {
@@ -157,6 +166,19 @@ function RoutePreflight(routes) {
 function SocketUADDR() {
   return NetMessage.SocketUADDR();
 }
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+function PromiseCaptureScreen(options) {
+  if (!EXT.IsConnected()) return Promise.resolve({ error: 'Extension not connected' });
+  let res = EXT.ExtCallAsync('CAPTURE_SCREEN', options)
+    .then(async (data) => {
+      let { dataURI } = data;
+      return await EXT.DataURI2File(dataURI);
+    })
+    .then(async (file) => {
+      return await EXT.PromiseUploadFile(file);
+    });
+  return res;
+}
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -187,7 +209,8 @@ const UR = {
   PeerCount,
   ReactPreflight,
   RoutePreflight,
-  ReactHook
+  ReactHook,
+  PromiseCaptureScreen
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if (!window.ur) window.ur = {};
@@ -195,19 +218,19 @@ window.ur.SESSION = SESSION;
 window.ur.LINK = ULINK;
 window.ur.DBQuery = DBQuery;
 window.ur.DBLock = (dbkey, dbids) => {
-  DBTryLock(dbkey, dbids).then(data => {
+  DBTryLock(dbkey, dbids).then((data) => {
     console.log(data);
   });
   return 'testing DBLock...';
 };
 window.ur.DBRelease = (dbkey, dbids) => {
-  DBTryRelease(dbkey, dbids).then(data => {
+  DBTryRelease(dbkey, dbids).then((data) => {
     console.log(data);
   });
   return 'testing DBRelease...';
 };
 window.ur.GetLockTable = () => {
-  NetCall('NET:SRV_DBLOCKS').then(data => {
+  NetCall('NET:SRV_DBLOCKS').then((data) => {
     Object.keys(data).forEach((key, index) => {
       const item = data[key];
       console.log(`${index})\t"${item.semaphore}" locked by ${item.uaddr}`);
@@ -216,7 +239,7 @@ window.ur.GetLockTable = () => {
   return 'retrieving lock table';
 };
 window.ur.tnc = (msg, data) => {
-  NetCall(msg, data).then(rdata => {
+  NetCall(msg, data).then((rdata) => {
     console.log(`netcall '${msg}' returned`, rdata);
   });
   return `testing netcall '${msg}'`;
@@ -227,6 +250,21 @@ window.ur.serverinfo = () => {
 window.ur.clientinfo = () => {
   console.log(window.URSESSION);
   return `testing clientinfo`;
+};
+window.ur.scap = (opt = { sx: 45, sy: 195, sw: 1950, sh: 1200 }) => {
+  PromiseCaptureScreen(opt).then((data) => {
+    const { href, error } = data;
+    if (error) {
+      console.log('error', error);
+      return;
+    }
+    console.log('got href', href);
+    window.open(href);
+  });
+  return 'capturing screen...';
+};
+window.ur.extconn = () => {
+  EXT.ConnectToExtension(SocketUADDR());
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 export default UR;

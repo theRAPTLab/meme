@@ -12,7 +12,7 @@ import CENTRAL from './ur-central';
 import NetMessage from './common-netmessage';
 import PROMPTS from './util/prompts';
 
-const DBG = { connect: false, handle: false };
+const DBG = { connect: false, handle: false, reg: false };
 
 /// DECLARATIONS /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -175,7 +175,7 @@ function m_HandleRegistrationMessage(msgEvent) {
   if (typeof m_options.success === 'function') m_options.success();
   // (5) also update window.URSESSION with UADDR
   if (window.URSESSION) {
-    console.log('updating URSESSION with registration data');
+    if (DBG.reg) console.log('updating URSESSION with registration data');
     window.URSESSION.CLIENT_UADDR = UADDR;
     window.URSESSION.USRV_UADDR = SERVER_UADDR;
   }

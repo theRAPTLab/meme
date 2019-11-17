@@ -32,11 +32,9 @@ import React, { useMemo, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import request from 'superagent';
 import SESSION from '../../system/common-session';
+import UR from '../../system/ursys';
+import EXT from '../../system/ur-extension';
 
-/// CONSTANTS /////////////////////////////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const SSHOT_URL = SESSION.ScreenshotURL();
-const UPLOAD_URL = SESSION.ScreenshotPostURL()
 
 /// DEBUG FLAGS ///////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -71,33 +69,26 @@ function StyledDropzone(props) {
     fires only if dropzone is successful
   /*/
   const onDrop = useCallback(files => {
+    let href, error;
     if (files.length !== 1) return;
-    const req = request.post(UPLOAD_URL);
     const file = files[0];
-    if (DBG) console.log(`uploading file '${file.name}'`);
-    //
-    req.attach('screenshot', file)
-      .then(res => {
-        const data = JSON.parse(res.text);
-        if (!data) {
-          if (DBG) console.error('no data');
+
+    EXT.UploadFile(file)
+      .then(m => {
+        if (DBG) console.log('drop upload results', m);
+        if (m.error) {
+          console.error(error);
           return;
         }
-        const href = `${SSHOT_URL}/${data.filename}`;
-        if (DBG) {
-          console.log('file saved at...opening window', href);
-          window.open(href);
-        }
-        if (typeof props.onDrop === 'function') props.onDrop(href);
-      }); // req.attach.then
+        if (typeof props.onDrop === 'function') props.onDrop(m.href);
+      });
+    // req.attach.then
   }, []);
 
   // define drop failure handler
   const onDropRejected = useCallback(files => {
     if (DBG) console.log('drop only one file, not', files.length);
-  }, []);
-
-  // get dropzone props and state via dropzone hook
+  }, []);  // get dropzone props and state via dropzone hook
   // note: event handlers like 'onDrop' must be defined before this is called
   const {
     getRootProps,
@@ -131,7 +122,7 @@ function StyledDropzone(props) {
 
   // render
   return (
-    <div className="container">
+    <div className="container" style={{ paddingLeft: '0' }}>
       <div {...getRootProps({ style })}>
         <input {...getInputProps()} />
         <p>Drag 'n' drop screenshot here, or click to select file</p>
@@ -142,6 +133,10 @@ function StyledDropzone(props) {
     </div>
   );
 }
+
+/// DEBUG /////////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

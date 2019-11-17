@@ -5,7 +5,6 @@
     }
   ],
   "settings": {
-    "prettier.eslintIntegration": true,
     "prettier.arrowParens": "always",
     "typescript.suggest.completeJSDocs": false,
     "typescript.validate.enable": false,

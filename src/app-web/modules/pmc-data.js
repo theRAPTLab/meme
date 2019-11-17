@@ -1224,7 +1224,6 @@ PMCData.SetEvidenceLinkNote = (evId, note) => {
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkRating = (evId, rating) => {
-  console.error('setting ev rating to', evId, rating);
   const newData = {
     rating
   };

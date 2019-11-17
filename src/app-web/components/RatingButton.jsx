@@ -107,7 +107,7 @@ class RatingButton extends React.Component {
     return (
       <Button onClick={this.OnClick}>
         {icons}&nbsp;
-        {isExpanded ? label : ''}
+        <div style={{ textAlign: 'left', fontSize: '0.8em' }}>{isExpanded ? label : ''}</div>
       </Button>
     );
   }
