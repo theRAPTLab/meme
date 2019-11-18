@@ -15,6 +15,7 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import FormControl from '@material-ui/core/FormControl';
+import Grid from '@material-ui/core/Grid';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
@@ -30,6 +31,7 @@ import MEMEStyles from '../../../components/MEMEStyles';
 import UR from '../../../../system/ursys';
 import SESSION from '../../../../system/common-session';
 import ADM from '../../../modules/data';
+import ADMObj from '../../../modules/adm-objects';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -42,6 +44,7 @@ class TeacherSelector extends React.Component {
     this.OnTeacherSelect = this.OnTeacherSelect.bind(this);
     this.OnAddTeacherDialogClose = this.OnAddTeacherDialogClose.bind(this);
     this.OnAddTeacherName = this.OnAddTeacherName.bind(this);
+    this.OnTeacherEdit = this.OnTeacherEdit.bind(this);
 
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Subscribe('TEACHER_SELECT', this.DoTeacherSelect);
@@ -49,8 +52,9 @@ class TeacherSelector extends React.Component {
     this.state = {
       teachers: [],
       selectedTeacherId: '',
+      selectedTeacherName: '',
       addTeacherDialogOpen: false,
-      addTeacherDialogName: ''
+      updateExistingTeacher: false
     };
   }
 
@@ -67,14 +71,23 @@ class TeacherSelector extends React.Component {
     this.setState({ teachers: ADM.GetAllTeachers() });
   }
 
+  // Called by TEACHER_SELECT
   DoTeacherSelect(data) {
-    this.setState({ selectedTeacherId: data.teacherId });
+    this.setState({
+      selectedTeacherId: data.teacherId,
+      selectedTeacherName: ADM.GetTeacher(data.teacherId).name
+    });
   }
 
+  // Called by User
   OnTeacherSelect(e) {
     let selectedTeacherId = e.target.value;
     if (selectedTeacherId === 'new') {
-      this.setState({ addTeacherDialogOpen: true });
+      this.setState({
+        selectedTeacherName: '',
+        addTeacherDialogOpen: true,
+        updateExistingTeacher: false
+      });
     } else {
       ADM.SelectTeacher(selectedTeacherId);
     }
@@ -83,8 +96,16 @@ class TeacherSelector extends React.Component {
   OnAddTeacherName(e) {
     e.preventDefault();
     e.stopPropagation();
-    const name = this.state.addTeacherDialogName;
-    ADM.DB_AddTeacher(name);
+    const name = this.state.selectedTeacherName;
+    if (this.state.updateExistingTeacher) {
+      const teacher = ADMObj.Teacher({
+        id: this.state.selectedTeacherId,
+        name
+      });
+      ADM.DB_UpdateTeacher(teacher);
+    } else {
+      ADM.DB_AddTeacher(name);
+    }
     this.OnAddTeacherDialogClose();
   }
 
@@ -92,33 +113,59 @@ class TeacherSelector extends React.Component {
     this.setState({ addTeacherDialogOpen: false });
   }
 
+  OnTeacherEdit(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setState({
+      addTeacherDialogOpen: true,
+      updateExistingTeacher: true
+    });
+  }
+
   render() {
     const { classes } = this.props;
-    const { teachers, selectedTeacherId, addTeacherDialogOpen } = this.state;
+    const {
+      teachers,
+      selectedTeacherId,
+      selectedTeacher,
+      addTeacherDialogOpen,
+      selectedTeacherName
+    } = this.state;
     return (
       <Paper className={classes.admPaper}>
-        <FormControl variant="outlined" className={classes.admTeacherSelector}>
-          <InputLabel>TEACHER</InputLabel>
-          <Select
-            value={selectedTeacherId}
-            onChange={this.OnTeacherSelect}
-            input={<OutlinedInput name="teacher" id="teacher" labelWidth={120} />}
-          >
-            <MenuItem value="" />
-            {teachers.map(teacher => {
-              const tok = SESSION.MakeTeacherToken(teacher.name, { groupId: 0, teacherId: teacher.id });
-              return (
-                <MenuItem value={teacher.id} key={teacher.id}>
-                  {teacher.name} - {tok}
+        <Grid container direction="row" space={2}>
+          <Grid item xs={9}>
+            <FormControl variant="outlined" className={classes.admTeacherSelector}>
+              <InputLabel>TEACHER</InputLabel>
+              <Select
+                value={selectedTeacherId}
+                onChange={this.OnTeacherSelect}
+                input={<OutlinedInput name="teacher" id="teacher" labelWidth={120} />}
+              >
+                <MenuItem value="" />
+                {teachers.map(teacher => {
+                  const tok = SESSION.MakeTeacherToken(teacher.name, {
+                    groupId: 0,
+                    teacherId: teacher.id
+                  });
+                  return (
+                    <MenuItem value={teacher.id} key={teacher.id}>
+                      {teacher.name} - {tok}
+                    </MenuItem>
+                  );
+                })}
+                <MenuItem value="new">
+                  <i>Add New...</i>
                 </MenuItem>
-              )
-            }
-            )}
-            <MenuItem value="new">
-              <i>Add New...</i>
-            </MenuItem>
-          </Select>
-        </FormControl>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={3}>
+            <Button onClick={this.OnTeacherEdit} disabled={selectedTeacherId === ''}>
+              Edit
+            </Button>
+          </Grid>
+        </Grid>
         <Dialog open={addTeacherDialogOpen} onClose={this.OnAddTeacherDialogClose}>
           <form onSubmit={this.OnAddTeacherName}>
             <DialogTitle>Add Teacher</DialogTitle>
@@ -128,8 +175,9 @@ class TeacherSelector extends React.Component {
                 autoFocus
                 id="teacherName"
                 label="Name"
+                value={selectedTeacherName}
                 fullWidth
-                onChange={e => this.setState({ addTeacherDialogName: e.target.value })}
+                onChange={e => this.setState({ selectedTeacherName: e.target.value })}
               />
             </DialogContent>
             <DialogActions>
@@ -137,7 +185,7 @@ class TeacherSelector extends React.Component {
                 Cancel
               </Button>
               <Button color="primary" type="submit">
-                Add
+                Save
               </Button>
             </DialogActions>
           </form>

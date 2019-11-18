@@ -57,23 +57,26 @@ class GroupsList extends React.Component {
     this.OnAddStudentName = this.OnAddStudentName.bind(this);
     this.OnAddStudentDialogClose = this.OnAddStudentDialogClose.bind(this);
     this.OnUpdateAddStudentName = this.OnUpdateAddStudentName.bind(this);
+    this.OnGroupEdit = this.OnGroupEdit.bind(this);
 
     this.state = {
       groups: [],
       addGroupDialogOpen: false,
       addGroupDialogName: '',
+      selectedGroupId: '',
       addStudentDialogOpen: false,
       addStudentDialogGroupId: '',
       addStudentDialogName: '',
       addStudentDialogInvalidNames: undefined,
-      classroomId: ''
+      classroomId: '',
+      editExistingGroup: false
     };
 
     UR.Subscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate); // Broadcast when a group is added.
   }
 
-  componentDidMount() { }
+  componentDidMount() {}
 
   componentWillUnmount() {
     UR.Unsubscribe('CLASSROOM_SELECT', this.DoClassroomSelect);
@@ -106,13 +109,24 @@ class GroupsList extends React.Component {
   }
 
   OnAddGroupClick(e) {
-    this.setState({ addGroupDialogOpen: true });
+    this.setState({
+      addGroupDialogOpen: true,
+      addGroupDialogName: '',
+      editExistingGroup: false
+    });
   }
 
   OnAddGroupName(e) {
     e.preventDefault();
     e.stopPropagation();
-    ADM.DB_AddGroup(this.state.addGroupDialogName);
+    if (this.state.editExistingGroup) {
+      ADM.DB_UpdateGroup(
+        this.state.selectedGroupId,
+        { name: this.state.addGroupDialogName }
+      );
+    } else {
+      ADM.DB_AddGroup(this.state.addGroupDialogName);      
+    }
     this.OnAddGroupDialogClose();
   }
 
@@ -161,11 +175,24 @@ class GroupsList extends React.Component {
     });
   }
 
+  OnGroupEdit(e, groupId) {
+    e.preventDefault();
+    e.stopPropagation();
+    const group = ADM.GetGroup(groupId);
+    this.setState({
+      addGroupDialogName: group.name,
+      addGroupDialogOpen: true,
+      selectedGroupId: groupId,
+      editExistingGroup: true
+    });
+  }
+
   render() {
     const { classes } = this.props;
     const {
       groups,
       addGroupDialogOpen,
+      addGroupDialogName,
       addStudentDialogOpen,
       addStudentDialogInvalidNames,
       classroomId
@@ -187,7 +214,10 @@ class GroupsList extends React.Component {
             {groups.map(group => (
               <TableRow key={group.id}>
                 <TableCell>{group.id}</TableCell>
-                <TableCell>{group.name}</TableCell>
+                <TableCell>
+                  {group.name}
+                  <Button onClick={e => this.OnGroupEdit(e, group.id)}>Edit</Button>
+                </TableCell>
                 <TableCell>
                   &nbsp;
                   {group.students.map((student, i) => {
@@ -236,6 +266,7 @@ class GroupsList extends React.Component {
                 id="groupName"
                 label="Group Name"
                 fullWidth
+                value={addGroupDialogName}
                 onChange={e => this.setState({ addGroupDialogName: e.target.value })}
               />
             </DialogContent>
@@ -244,7 +275,7 @@ class GroupsList extends React.Component {
                 Cancel
               </Button>
               <Button color="primary" type="submit">
-                Add
+                Save
               </Button>
             </DialogActions>
           </form>

@@ -52,6 +52,7 @@ class ClassroomsSelector extends React.Component {
     this.OnAddClasssroomName = this.OnAddClasssroomName.bind(this);
     this.OnClassesModelsVisibilityChange = this.OnClassesModelsVisibilityChange.bind(this);
     this.OnAddClassroomDialogClose = this.OnAddClassroomDialogClose.bind(this);
+    this.OnClassroomEdit = this.OnClassroomEdit.bind(this);
 
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Subscribe('TEACHER_SELECT', this.DoTeacherSelect);
@@ -60,13 +61,14 @@ class ClassroomsSelector extends React.Component {
     this.state = {
       classrooms: [],
       selectedClassroomId: '',
+      selectedClassroomName: '',
       addClassroomDialogOpen: false,
-      addClassroomDialogName: '',
+      updateExistingClassroom: false,
       canViewOthers: false
     };
   }
 
-  componentDidMount() { }
+  componentDidMount() {}
 
   componentWillUnmount() {
     UR.Unsubscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
@@ -101,6 +103,7 @@ class ClassroomsSelector extends React.Component {
       classroom.canViewOthers = classroom.canViewOthers || false; // clean data to prevent props error
       this.setState({
         selectedClassroomId: classroom.id,
+        selectedClassroomName: classroom.name,
         canViewOthers: classroom.canViewOthers
       });
     }
@@ -110,7 +113,11 @@ class ClassroomsSelector extends React.Component {
   OnClassroomSelect(e) {
     let classroomId = e.target.value;
     if (classroomId === 'new') {
-      this.setState({ addClassroomDialogOpen: true });
+      this.setState({
+        selectedClassroomName: '',
+        addClassroomDialogOpen: true,
+        updateExistingClassroom: false
+      });
     } else {
       ADM.SelectClassroom(classroomId);
     }
@@ -119,22 +126,45 @@ class ClassroomsSelector extends React.Component {
   OnAddClasssroomName(e) {
     e.preventDefault();
     e.stopPropagation();
-    let name = this.state.addClassroomDialogName;
-    ADM.DB_AddClassroom(name);
+    let name = this.state.selectedClassroomName;
+    if (this.state.updateExistingClassroom) {
+      const classroomData = {
+        id: this.state.selectedClassroomId,
+        name
+      };
+      ADM.DB_UpdateClassroom(this.state.selectedClassroomId, classroomData);
+    } else {
+      ADM.DB_AddClassroom(name);      
+    }
     this.OnAddClassroomDialogClose();
   }
 
   OnClassesModelsVisibilityChange(e) {
-    ADM.DB_UpdateClassroom(this.state.selectedClassroomId, { canViewOthers: e.target.checked })
+    ADM.DB_UpdateClassroom(this.state.selectedClassroomId, { canViewOthers: e.target.checked });
   }
 
   OnAddClassroomDialogClose() {
     this.setState({ addClassroomDialogOpen: false });
   }
 
+  OnClassroomEdit(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setState({
+      addClassroomDialogOpen: true,
+      updateExistingClassroom: true
+    });
+  }
+
   render() {
     const { classes } = this.props;
-    const { classrooms, selectedClassroomId, addClassroomDialogOpen, canViewOthers } = this.state;
+    const {
+      classrooms,
+      selectedClassroomId,
+      selectedClassroomName,
+      addClassroomDialogOpen,
+      canViewOthers
+    } = this.state;
     return (
       <Paper className={classes.admPaper}>
         <Grid container direction="row" spacing={2}>
@@ -158,6 +188,9 @@ class ClassroomsSelector extends React.Component {
             </FormControl>
           </Grid>
           <Grid item xs={6}>
+            <Button onClick={this.OnClassroomEdit} disabled={selectedClassroomId === ''}>
+              Edit
+            </Button>
             <Typography variant="caption" component="div">
               <div style={{ marginTop: '1em' }}>Students can view class' models?</div>
               <Grid container component="label" alignItems="center" spacing={1}>
@@ -179,22 +212,25 @@ class ClassroomsSelector extends React.Component {
           <form onSubmit={this.OnAddClasssroomName}>
             <DialogTitle>Add Classroom</DialogTitle>
             <DialogContent>
-              <DialogContentText>Add a classroom by name, e.g. "Period 1" or "Science 1A"</DialogContentText>
+              <DialogContentText>
+                Add a classroom by name, e.g. "Period 1" or "Science 1A"
+              </DialogContentText>
               <TextField
                 autoFocus
                 id="teacherName"
                 label="Name"
                 fullWidth
-                onChange={e => this.setState({ addClassroomDialogName: e.target.value })}
+                value={selectedClassroomName}
+                onChange={e => this.setState({ selectedClassroomName: e.target.value })}
               />
             </DialogContent>
             <DialogActions>
               <Button onClick={this.OnAddClassroomDialogClose} color="primary">
                 Cancel
-          </Button>
+              </Button>
               <Button color="primary" type="submit">
-                Add
-          </Button>
+                Save
+              </Button>
             </DialogActions>
           </form>
         </Dialog>
