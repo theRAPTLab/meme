@@ -1,40 +1,67 @@
-/*//////////////////////////////////////// NOTES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
+/*///////////////////////////////// NOTES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
-  The MEME webapp is served directly from src/app-urweb
+  NOTE: this file is the ENTRY POINT designated in webpack.webapp.config.js
 
-\*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * ////////////////////////////////////////*/
-import 'bootstrap/dist/css/bootstrap.css';
-
-const PR = '[WebIndexJS]';
+\*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * /////////////////////////////////////*/
 
 /// SYSTEM-WIDE LANGUAGE EXTENSIONS ///////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// These are loaded in init to make sure they are available globally!
 /// You do not need to copy these extensions to your own module files
-require('babel-polyfill'); // enables regenerators for async/await
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+import 'babel-polyfill'; // for iterator/generator support
+import System from './boot/SystemInit'; // MEME bootloader
 
-const System = require('./boot/system-init');
+/// CONSTANTS /////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const PR = '[WebIndexJS]';
 
-console.log(`web-index.js loaded`);
+/// HOT MODULE RELOADING //////////////////////////////////////////////////////
+/*/- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\*\
+    HMR is a Webpack feature. Generally you write a handler:
+    module.hot.accept('./library.js',()=>{ ..do something.. });
 
+    To enable HMR in Webpack, need to an additional entry point to the
+    utility code in webpack-hot-middleware/client:
+    entryFiles = ['./web-index.js', 'webpack-hot-middleware/client?reload=true'];
+
+    Since actual hot module swapping handling is tricky, the code below
+    lazily assumes that it should reload the entire application when the
+    source files are ready
+\*\- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - /*/
 if (module.hot) {
-  console.log(`${PR} hot.status is '${module.hot.status()}'`);
-  // use this for webpack-dev-server
-  // module.hot.accept();
+  // not doing this:
+  // module.hot.accept(deps,callback);
 
-  // when using this, need to specify reload=true in
-  // webpack webapp.config additional entry point
-  // module.hot.decline();
-
-  // just reload if ANY change occurs...forget about hot module
-  // replacement
   module.hot.addStatusHandler(status => {
+    // reload entire if ANY change occurs
     if (status === 'ready') {
       window.location.reload();
-    } else console.log('status', status);
+    } else console.log(PR, 'HMR status:', status);
   });
 } else {
-  console.log(`${PR} HMR support not compiled into module`);
+  console.log(`${PR} HMR support is not enabled`);
 }
 
+/// JAVASCRIPT GLOBAL INJECTION ///////////////////////////////////////////////
+/*/- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\*\
+    Global FLAG strings or booleans can be injected at runtime via
+    webpack.DefinePlugin. Override eslint complaints with the 'global'
+    comment. Note that webpack doesn't actually inject an object, but
+    does STRING REPLACEMENT before writing the file.
+
+    To insert more complex objects, this is done at the webserver level.
+    Look in server-express.js for template handlers.
+\*\- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - /*/
+/* global COMPILED_BY */
+if (COMPILED_BY) {
+  console.log(PR, 'COMPILED_BY:', COMPILED_BY);
+} else {
+  const doc = document.getElementById('app-container');
+  const err = 'missing COMPILED_BY define (not critical)';
+  doc.appendChild(document.createTextNode(err));
+  console.log(err);
+}
+
+/// INITIALIZE MEME ///////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 System.Init();

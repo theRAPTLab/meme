@@ -20,6 +20,8 @@ npm-debug.log
 # Ignore generated files in output folder
 /dist
 /built
+/runtime
+/src/app-web/static/dlc
 
 # Numerous always-ignore extensions
 *~
@@ -47,6 +49,9 @@ Thumbs.db
 # Ignore Sublime Text saved projects/workspaces 
 *.sublime-workspace
 *.sublime-project
+
+# Ignore archives
+*.zip
 
 # Ignore JetBrains' IDEs
 .idea

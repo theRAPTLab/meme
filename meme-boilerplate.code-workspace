@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "prettier.arrowParens": "always",
+    "typescript.suggest.completeJSDocs": false,
+    "typescript.validate.enable": false,
+    "typescript.surveys.enabled": false,
+    "typescript.autoClosingTags": false,
+    "workbench.colorCustomizations": {},
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/bower_components": true,
+      "**/dist": true,
+      "**/built": true,
+      "**/runtime": true,
+      "**/.vscode": true
+    }
+  }
+}

@@ -1,0 +1,6 @@
+name,id,field,cx,cy,r,fill
+A,1,NodeA Center,0,0,100,#ff0000
+B,2,NodeB UpperLeft,-20,-10,50,gray
+C,3,NodeC UpperRight,20,-10,50,gray
+D,4,NodeD LowerLeft,-20,10,50,gray
+E,5,NodeE LowerRight,20,10,50,gray

@@ -1,0 +1,29 @@
+toc:
+  - name: global settings
+  - DEFAULTS
+  - name: PMC managers
+    description: |
+      System-level managers for application
+  - PMCData
+  - PMCView
+  - name: Classroom manaagers
+  - ADMData
+  - name: PMC visual classes
+    description: |
+      Visual representations of of Data objects in the PMC Model.
+  - VProp
+  - VMech
+  - VBadge
+  - VisualState
+  - VProp-DragDrop
+  - name: React Components
+  - EvidenceLink
+  - name: URSYS
+    description: |
+      Subsystems
+  - NetMessage
+  - Messager
+  - URCentral
+  - URDataLink
+  - URExec
+  - name: (unsorted)

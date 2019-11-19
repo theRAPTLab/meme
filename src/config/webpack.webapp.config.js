@@ -1,8 +1,15 @@
 /*//////////////////////////////////////// NOTES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
-  WEBAPP CONFIGURATION for WEBPACK
-  This is intended to build the web application purely with webpack,
-  no electron support
+  WEBAPP CONFIGURATION is used to create the bundle files suitable for serving
+  through a webserver. This config is used by server-express.js when the code
+  is NOT running as a stand-alone app:
+
+  * when running as a pure Node application
+  * when running as an Electron-hosted application (Electron is a wrapper around Node)
+
+  notable features:
+  * uses webpack-middleware-hot for hot module replacement
+  * if you change webConfiguration here, mirror to webpack.dist.config.js as well
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * ////////////////////////////////////////*/
 const path = require('path');
@@ -13,45 +20,37 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const WriteFilePlugin = require('write-file-webpack-plugin');
 const baseConfig = require('./webpack.base.config');
-const wdsConfig = require('./wds.config');
+
+const PROMPTS = require('../system/util/prompts');
+//
+const { TERM_EXP: CW, CR } = PROMPTS;
+const PR = `${CW}${PROMPTS.Pad('WEBPACK')}${CR}`;
 
 // setting up a verbose webpack configuration object
 // because our configuration is nonstandard
 const webConfiguration = env => {
-  // passed via npm script -env.HMR_MODE='string'
-  const { HMR_MODE } = env;
+  console.log(PR, `... using webpack.webapp.config`);
 
-  let entryFiles;
-  let outputDir;
-  let wdsOptions;
-  let copyFilesArray;
-  // handle special cases of our HMR_MODE
-  switch (HMR_MODE) {
-    case 'wds':
-      // don't load webpack-hot-middleware
-      entryFiles = ['./web-index.js'];
-      outputDir = path.resolve(__dirname, '../../built/web');
-      wdsOptions = wdsConfig(env);
-      break;
-    case 'electron':
-      console.log('*** WEBAPP.CONFIG', 'RUNNING FROM ELECTRON');
-      // in web-index.js, using module.hot.decline() requires reload=true set here
-      entryFiles = ['./web-index.js', 'webpack-hot-middleware/client?reload=true'];
-      outputDir = path.resolve(__dirname, '../../built/web');
-      wdsOptions = {};
-      copyFilesArray = [
-        {
-          from: `favicon.ico`,
-          to: `${outputDir}/favicon.ico`,
-          toType: 'file'
-        }
-      ];
-      break;
-    default:
-    // do nothing
-  }
-
+  let entryFiles = ['./web-index.js', 'webpack-hot-middleware/client?reload=true'];
   const DIR_SOURCE = path.resolve(__dirname, '../../src/app-web');
+  let DIR_OUT = path.resolve(__dirname, '../../built/web');
+  const copyFilesArray = [
+    {
+      from: `web-index.html.ejs`,
+      to: `${DIR_OUT}/index.ejs`,
+      toType: 'file'
+    },
+    {
+      from: `favicon.ico`,
+      to: `${DIR_OUT}/favicon.ico`,
+      toType: 'file'
+    },
+    {
+      from: `static`,
+      to: `${DIR_OUT}/static`,
+      toType: 'dir'
+    }
+  ];
 
   // return webConfiguration
   return merge([
@@ -65,20 +64,23 @@ const webConfiguration = env => {
       entry: entryFiles,
       // bundle file name
       output: {
-        path: outputDir,
+        path: DIR_OUT,
         filename: 'web-bundle.js',
         pathinfo: false // this speeds up compilation (https://webpack.js.org/guides/build-performance/#output-without-path-info)
         // publicPath: 'web',
       },
-      devtool: '#source-map',
+      node: {
+        // enable webpack's __filename and __dirname substitution in browsers
+        // for use in URSYS lifecycle event filtering as set in SystemInit.jsx
+        __filename: true,
+        __dirname: true
+      },
+      devtool: 'source-map',
       // apply these additional plugins
       plugins: [
-        new HtmlWebpackPlugin({
-          template: 'web-index.html',
-          filename: path.join(outputDir, 'index.html')
-        }),
         new webpack.DefinePlugin({
-          'process.env.NODE_ENV': JSON.stringify('development')
+          'process.env.NODE_ENV': JSON.stringify('development'),
+          COMPILED_BY: JSON.stringify('webapp.config.js')
         }),
         new WriteFilePlugin({
           test: /^(.(?!.*\.hot-update.js$|.*\.hot-update.*))*$/ // don't write hot-updates at all, just bundles
@@ -86,10 +88,7 @@ const webConfiguration = env => {
         new CopyWebpackPlugin(copyFilesArray),
         new webpack.HotModuleReplacementPlugin()
       ]
-    },
-    // config webpack-dev-server when run from CLI
-    // these options don't all work for the API middleware version
-    wdsOptions
+    }
   ]);
 }; // const webConfiguration
 

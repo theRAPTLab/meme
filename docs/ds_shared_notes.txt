@@ -1,0 +1,577 @@
+
+SESSIONS
+
+For a student to login, they need to provide their groupId at minimum.
+From the groupId, the system can determine classroomId and teacherId.
+
+groupId         - load group models, list students in group
+classroomId     - view models, resources for the entire class, sentenceStarters,
+                - criteria, ratinsDefinitions
+teacherId       - owns a list of classroomIds
+modelId         - required to load pmcdata (props, mechs, AND evidence)
+resourceId      - load a specific resourceId
+
+Students login using a TOKEN of the form NAME-HASH, encoding the groupId and
+classroomId. The NAME is used to salt the HASH. If the NAME-HASH can be decoded,
+it's considered a valid login and an ACCESSTOKEN is returned back to the client
+on Login. The server saves decoded token to socket.USESS, and the assigned key
+to ACCESSTOKEN. The token is emitted as the student's identity in all logs.
+
+The accesstoken is a UUIDv4.
+
+---
+
+DATABASE AUTO NUMBERING
+
+All ids are now numeric. After some missteps, was able to monkey-patch
+graphlib so it doesn't convert numeric nodes into strings (it is an old
+codebase that uses Lodash.keys(), not Object.keys(), to return props).
+
+---
+
+IMPLEMENTING DATA INITIALIZATION
+
+When running the server from dev, we want to always load the hardcoded data.
+When running the server from electron, we want to initialize the database.
+
+Q. What happens with the runtime folder when making the electron build?
+A. meme.app/Contents/Resources/runtime/
+
+Q. How to tell if dev or electron?
+A. npm run dev runs meme.js, which loads server.js as URSERVER, which calls
+   InitializeNetwork(), StartNetwork(), and StartWebServer().
+   Electron builds are invoked through app-console/console-main.js instead.
+
+We'll start with ADMIN UPDATES
+
+o  PKT_Update() will receive a data objects with arrays of change objects
+o  It will return the array of dataobjects that were successfully transformed
+o  It will set the data.error property if there was a problem
+
+How to determine whether NET or LOCAL
+ultimately this is handled at the MESSAGER and NETMESSAGE level
+
+On the sending end
+
+* URLINK.Call() calls MESSAGER.CallAsync(mesgName, inData, options)
+* MESSAGER.CAllAsync() determines whether it goes to the network or is handled locally
+* path 1: if it's a local call and there are handlers, make a Resolver Promise
+* path 2: if it's a network call, make a NetMessage() and make a Transaction Promise
+
+On the receiving end: server-network largely is a switchboard
+
+* pkt is sent to m_HandleMessage()
+* packets know how to route themselves via available socket
+* a completed transaction is one that's returning from elsewhere
+* otherwise see if we have any handlers available for this packet's message via m_PromiseRemoteHandlers()
+* this creates a new packet transaction via PromiseTransaction(), which will return here as a ReturnTransaction()
+
+How are messages registered?
+
+---
+
+ADDING CHANNEL SUPPOR TO URSYS
+
+This ended up being too complicated to do in the timeframe, so rolled back and re-edited
+these notes. The original goal:
+
+* all messages are assumed local if no NET: is in front of message, so there is one
+  interface Call, Signal, etc...
+* the special channel * goes to both local and network, so no need to have LocalCall,
+  NetCall, Call, if necessary
+
+However in practice this was too difficult to easily change. So currently:
+
+* Still require Call, LocalCall, NetCall, etc for routing
+* NET: prefix is required for NetCall and NetSubscribe
+
+Additional room for improvement:
+
+* urlink and messager interface is still kinda messy
+* server-network and ur-network should maybe share same urlink interface
+
+Changes:
+
+* NetNessage    new static method ExtractChannel(mesg) utility returns a
+                channels object with NET, LOCAL, STATE props set.
+                e.g. 'NET:MESSAGE_NAME'.
+
+* Messager      now has a NetMessageNames() so only NetSubscribe'd messages
+                are registered with the server. There is no channel-specific
+                logic though. It relies on URLink to set the net, local, and
+                remote-to-local-return options so it routes correctly.
+
+* URLink        uses NET:SRV_REG_HANDLERS to register NetMessages, but otherwise
+                is unchanged as the main NET, LOCAL, remote-to-local-return
+                options logic is tricky and I didn't want to break it.
+
+* netcode       server-network: URSYS interface for the server now uses
+                the NetSubscribe, NetPublish, NetCall interfaces for itself.
+                These are NOT used for dispatching remote messages, though,
+                as that mechanism is baked into the system itself.
+
+---
+
+DATA UPDATES
+
+Our data structures on the db side are COLLECTIONS in a LokiJS DB.
+These are an in-memory data structure.
+
+Use one of the names from DATAMAP.DBKEYS, access through DATAMAP.Collections()
+for the top-level keys.
+
+Server-implemented messages:
+
+ADD:    NET:SRV_DB_ADD:
+        IN  { 'collection': [ { }, ... ] }
+        OUT { 'collection': [ { id }, ... ] }
+
+UPDATE  NET:SRV_DB_UPDATE
+        IN  { 'collection': [ { id }, ... ] }
+        OUT { 'collection': [ { id }, ... ] }
+
+REMOVE  NET:SRV_DB_REMOVE
+        IN  { 'collection': [ id, ... ] }
+        OUT { 'collection': [ { id }, ... ] }
+
+---
+
+DATA-MODIFYING ROUTINES
+
+Now that these calls are available and capable of firing back their changes, we
+can try implementing PMC data
+
+BuildModel() is called whenever the properties are changed.
+
+ALL METHODS IN PMC-DATA REVIEW
+B = calls BuildModel()
+D = publishes DATA_UPDATED
+S = publishes SELECTION_CHANGED
+
+    ---
+    PMCData.Graph = ()
+ D  PMCData.BuildModel = ()
+    ---
+B   PMCData.InitializeModel = (model, resources)
+    PMCData.AllProps = ()
+    PMCData.AllMechs = ()
+    PMCData.Components = ()
+    PMCData.Children = nodeId
+    PMCData.HasProp = nodeId
+    PMCData.HasMech = (evo, ew)
+    PMCData.Prop = nodeId
+    PMCData.PropParent = nodeId
+    PMCData.Mech = (evo, ew)
+    ---
+B   PMCData.PMC_PropAdd = node
+B   PMCData.PMC_SetPropParent = (node, parent)
+B   PMCData.PMC_PropDelete = propid
+B   PMCData.PMC_PropUpdate = (propid, obj)
+B   PMCData.PMC_MechAdd = (sourceId, targetId, label)
+B   PMCData.PMC_MechUpdate = (origMech, newMech)
+B   PMCData.PMC_MechDelete = mechId
+B   PMCData.PMC_AddEvidenceLink = (rsrcId, note = '')
+    PMCData.PMC_GetResourceIndex = rsrcId
+B   PMCData.PMC_DuplicateEvidenceLink = evId
+B   PMCData.PMC_DeleteEvidenceLink = evId
+    PMCData.PMC_GetEvLinkByEvId = evId
+    PMCData.PMC_GetEvLinksByPropId = propid
+    PMCData.PMC_GetEvLinksByMechId = mechId
+    ---
+B   PMCData.SetEvidenceLinkPropId = (evId, propId)
+B   PMCData.SetEvidenceLinkMechId = (evId, mechId)
+ D  PMCData.SetEvidenceLinkNote = (evId, note)
+ D  PMCData.SetEvidenceLinkRating = (evId, rating)
+    PMCData.GetComments = id
+    PMCData.NewComment = (author, sentenceStarter)
+ D  PMCData.UpdateComments = (parentId, comments)
+    PMCData.GetPropIdsByResourceId = rsrcId
+    PMCData.GetEvLinksByResourceId = rsrcId
+    ---
+    VMData.VM_GetVPropChanges = ()
+    VMData.VM_VPropExists = nodeId
+    VMData.VM_VProp = nodeId
+    VMData.VM_VPropDelete = nodeId --- should be selection aware
+    VMData.VM_VPropSet = (nodeId, vprop)
+    VMData.VM_GetVMechChanges = () --- should use DATAMAP
+    VMData.VM_VMechExists = (evo, ew)
+    VMData.VM_VMech = (evo, ew)
+    VMData.VM_VMechDelete = (evo, ew) --- should be selection aware
+    VMData.VM_VMechSet = (vmech, evo, ew)
+  S VMData.VM_SelectAddProp = vprop
+  S VMData.VM_SelectProp = vprop
+    VMData.VM_PropMouseEnter = vprop
+    VMData.VM_PropMouseExit = vprop
+    VMData.VM_PropsMouseOver = ()
+    VMData.VM_SetSelectionLimit = max
+  S VMData.VM_DeselectProp = vprop
+  S VMData.VM_ToggleProp = vprop
+  S VMData.VM_DeselectAllProps = ()
+    VMData.VM_DeselectAllMechs = ()
+    VMData.VM_DeselectAll = ()
+  S VMData.VM_SelectOneMech = vmech
+  S VMData.VM_ToggleMech = vmech
+    VMData.VM_SelectedPropsIds = ()
+    VMData.VM_SelectedMechIds = ()
+
+    B = calls BuildModel()
+    D = publishes DATA_UPDATED
+    S = publishes SELECTION_CHANGED
+
+DATA UPDATE GENERALIZATIONS
+
+*** Use BuildModel() to recreate the model (calls 'DATA_UPDATED' too)
+*** 'DATA_UPDATED', 'ADM_DATA_UPDATED' are the main triggers for display updates
+
+    first update BuildModel() to be called whenever a DB_SYNC event happens.
+    so DBSYNC should be written first. It's in data.js hooked during INITIALIZE
+    to capture NET:SYSTEM_DBSYNC
+
+*** For PMC or ADM, use UR.DBQuery(cmd,data), where cmd is 'add', 'update', or 'remove'
+
+---
+
+DEBUGGING METHODS
+
+    Now implementing them in window.ur on client side. Inspect that object from console
+    to see useful commands (e.g. ur.serverinfo())
+
+    ur.taddt    - test add teacher (uses DB ADD)
+    ur.tadds    - test add student (uses DB UPDATE)
+    ur.trmg     - test remove group (uses DB REMOVE)
+
+---
+
+NEW DATABASE METHODS
+
+    DATAMAP is used to manage collections on the server and client. It uses
+    a collection object format that looks like this:
+
+    {
+        cmd: 'update',
+        teachers: [ { id:1, name:'Mrs Jones' } ]
+    }
+
+    *   Validates everything.
+    *   Easily add collections to the database by just changing DBKEYS array,
+        which gains ADD/UPDATE/REMOVE capabilities.
+    *   Collections() returns the list of top-level collections
+    *   ValidateCollections() is used before data is sent to the server to ensure
+        data formats are correct (numeric ids, etc)
+    *   ExtractCollections() is used by both server and client to access data
+        in a loop-friendly way. It always returns docs, subDocs as arrays
+
+    DATA now uses the 'NET:SYSTEM_DBSYNC' message to receive sync messages from
+    the server. It contains the change data returned from the DB ADD, UPDATE, REMOVE
+    calls. This has to be connected to the data writing methods above.
+
+---
+
+DATA MODEL NOTES
+
+PMCDATA
+
+    /* stored data */
+    m_graph;                            // dagresjs/graphlib manager
+    a_props             = [];           // all props (string index into m_graph)
+    a_mechs             = [];           // all mechs (pathId string index into m_graph)
+
+    /* derived data */
+    a_components        = [];           // top-level props with no parents, derived
+    h_children          = new Map();    // children hash of each prop by id
+    h_outedges          = new Map();    // outedges hash of each prop by id
+
+    a_commentThreads    = [];           // all prop and mech comments
+    a_resources         = [];
+    a_evidence          = [];
+
+    h_evidenceByEvId    = new Map();
+    h_evidenceByProp    = new Map();
+    h_evlinkByResource  = new Map();
+    h_evidenceByMech    = new Map();
+    h_propByResource    = new Map();
+    h_mechByResource    = new Map();
+
+ADMDATA
+
+VIEW MODEL
+
+    map_vprops          = new Map();
+    map_vmechs          = new Map();
+    map_vbadges         = new Map();
+    selected_vprops     = new Set();
+    selected_vmechs     = new Set();
+    map_rollover        = new Map();
+
+    array + map
+    VM_Get*Changes()
+    VM_*Exists(id)
+    VM_Get*(id)
+    VM_*Delete(id)
+    VM_*Set(id,element)
+
+PMCDATA
+
+    to access pmcdata models, we need to grab the models collection from ADMDATA.
+    The PMCDATA entities for props, mechs, evidence look like this:
+
+    { id: 1, title: 'Fish Sim', groupId: 1, data: { ... } }
+
+    data was {
+        properties: [ { id, node, name }, ... ]
+        mechanisms: [ { id, edge, source, target, name }, ... ]
+        evidence: [ { id, propId, mechId, rsrcId, number, rating, note }, ... ]
+        commentThreads: [ { id, refId, comments: [ {id, time, author, date,text,criteriaId, readBy: ['student','student'] }] }, ... ]
+    }
+
+    our data REFACTOR will look like this:
+
+    data {
+        entities: [ { id, type, param, param, ... } ],
+        commentThreads: [ { id, refId, comments: [ {id, time, author, date,text,criteriaId, readBy: ['student','student'] }] }, ... ]
+    }
+
+    We'll have to write a new set of db routines to handle PMCdata specifically because entities
+    is NOT a collection, but a subcollection, and that means we need to do a READ/MODIFY/UPDATE
+    of its parent collection (pmcData)
+
+---
+
+WEDNESDAY - ADDING SUBKEYS
+
+    It turns out that even with the new PMCDATA structure, we still need subkey
+    modification. Ugh!
+
+    I've added subkey support to DATAMAP
+
+    ADD: 'pmcData.entities': { id, entities:[ { }, ... ] }    --> { id, entities:[ { id } ... ] }
+    UPD: 'pmcData.entities': { id, entities:[ { id }, ... ] } --> { id, entities:[ { id } ... ] }
+    REM: 'pmcData.entities': { id, entities:[ id, ... ] }     --> { id, entities:[ { id } ... ] }
+
+    Where am I now?
+
+    PMC_PropUpdate(propId, propData)
+    ...
+    UR.DBQuery('update', {
+        'pmcData.entities': {
+        id: modelId,
+        entities: propData
+    })
+
+    .
+    .
+    .
+
+    server-database UPDATE
+    const collections = DATAMAP.ExtractCollections(data);
+    collections.forEach
+        let { colKey, docs, subKey, subDocs } = entry;
+        get the pmcData collection using the docs.id property.
+        After we find the matching docs.id pmcdata, we need to pull the entities out of it.
+        That happens in the update() function. We can write a utility to handle this object
+        in datamap.
+
+        DITEM = pmcData model matching id
+
+        item => {
+            Object.assign(item, ditem) // normal
+            // if subkey then ditem[subkey] has the items
+            DATAMAP.UpdateSubCollection(data,
+            const sub = DATAMAP.ExtractSubCollection(data,subkey);
+        }
+
+on the update, we get a matching item
+
+instead of overwriting pmcmodel with entities, we want to take the matching item
+and update just the subCol with subDocs
+
+... ok, the UPDATE works... but the update object coming back is too large.
+
+    extractCollections now provides colKey, docs, subkey, subdocs
+    docs.forEach(coldata,index)
+    find(...).update(match=>)
+        if subKey DATAMAP.UpdateObjectProp(match,subKey,subDocs)
+        else DATAMAP.AssignObject(match,newData)
+
+... for REMOVE, we are getting a list of ids.
+
+ur.tpropd(11) attempts to remove prop 11, which currently doesn't return the deleted thing OR delete anything yet.
+
+... for ADD...ugh, this is just as confusing.
+
+## TAKING A STEP BACK
+## LET'S REMOVE THE MULTIPLE ITEM UPDATE CONDITIONS.
+
+[X] -   DATAMAP.ExtractCollections still returns multiple collection objects
+[X] -   DATAMAP.ExtractCollections() now returns {colkey, subkey, value} where value is
+        one of the below:
+
+    add    pmcData: value:{ ...props }
+    update pmcData: value:{ id, ...props }
+    remove pmcData: value:{ id }
+
+    add    pmcData.entities: value:{ id, entities: { ...props } }
+    update pmcData.entities: value:{ id, entities: { id, ...props } }
+    remove pmcData.entities: value:{ id, entities: { id } }
+
+    [X] - rewrite data.js for single use
+    [X] - rewrite server-database.js for single use
+
+---
+
+FRIDAY CODE-ALONG
+
+    * UR.DBQuery('cmd',{ ... }) (note: returns a promise, can chain .then(rdata=>{})
+    * system then fires DATA SYNC event that calls PMCDATA or ADM SyncAddedData, SyncUpdatedDate, etc
+
+    THE CHALLENGE: Hookup the Sync* methods for Properties!
+
+    The result data format is different from the query data format!
+
+    RESULT FORMAT = {
+        cmd,
+        collection: [ {...} ],
+        collection.field: [ {...}
+    }
+    QUERY FORMAT = {
+        cmd,
+        collection: { id, ...props },
+        collection.field: { id, subkey: {...props} }
+    }
+
+    WORKING ON THE PROBLEM of WRONG DRAWING SIZE....
+
+    DEBUGGING TOO NARROW BOX
+    * change VProp.DataSize() to use bbox() instead of rbox()
+
+    DEBUGGING OUT OF SYNC ERROR
+    * reproduceable now...data seems correct but load is out of sync
+
+- - -
+
+VProp.FindEdgePointConnectionTo(targetId)
+-   finds shortest connection point to targetId
+    returns {} if no line is drawable
+    return { pt1, pt2 } where pt1 is the outgoing and pt2 is the destination
+
+VProp.RequestEdgePoint(loc='c')
+-   return a specified edge for center, t, r, b, or l
+
+To spread things out, we can spread ORIGIN and DESTINATION points.
+    All outgoing points can share.
+    All incoming points should split
+
+To do this, VProp.ScreenBBox() could be adapted to keep track of requests.
+    Each VProp can keep track of outgoing and incoming point for l, r, t, b
+    this.endPt.l = [0]; // sorted
+    this.endPt.r = [0];
+    this.endPt.t = [0];
+    this.endPt.b = [0];
+
+ALGORITHM
+    * A is me, B is target
+    * when determining the longest side, makePtObj(x1, y1, x2, y2) is used to create
+    pt1(A) to pt2(B)
+    * instead of makePtObj(), we ask the objects themselves to return the closest point based on our outgoing endpoint.
+    * might have to increase size of prop if too many incoming elements
+    * can draw a LOOP
+
+- - -
+
+HOW TO HANDLE LOCKS
+
+    data = { 'pmcData.locks': { id, locks: { name, id, uaddr } };
+
+TUE 0700
+
+    incoming data:
+    {
+        uaddr:
+        dbkey: 'pmcData.entities'
+        dbids: [1,1]
+    }
+    session_locks will be created/cleared on every server restart
+
+    1. we don't care about writing the db so much because it's memory based
+    2. when a socket disconnects, cleanup by uaddr
+
+    - to write a lock -
+
+    UR.DBTryLock('pmcData.entities',[1,1])
+    .then(status=>{
+        if (!status.error) console.log('yay')
+        else console.log(status.error);
+    });
+
+    UR.DBTryRelease('pmcData.entities',[1,1])
+    .then(status=>{
+        if (!status.error) console.log('released')
+        else console.log(status.error,status.code);
+    });
+
+    the session_locks collection contains
+    { semaphore: 'dbkey:dbids', uaddr }
+
+
+TUE 0800 - farting around with adding codes to NetMessage
+
+    writing Lock. expect:
+        data.uaddr,
+        data.dbkey
+        data.dbids
+    add to ursys.js
+    .. add to common-ulink NetCall
+
+TUE 0930 - do the db writes
+
+TUE 1230 - write
+
+THU 1830 -
+
+  add token generation to addTeacher somewhere
+  LoggedInName returns the current logged-in Name
+  can SESSION report if a teacher is logged in?
+  We need to know if the current session is saved
+  !! this is handled in ADMData.Login under
+  SESSION.DecodeAndSet(rdata.token)
+  SESSION.SetAccessKey(rdata.key)
+
+  With the teacher logged-in, the m_current_idsobj.teacherId is set
+  Now we can check SESSION.LoggedInProps() to see if teacherId is set
+
+  Now for cheeseballness, we want to look at ModelSelect
+
+  In ModelSelect, the models are retrieved by ADM.GetModelsByStudent()
+
+THURSDAY
+
+    UR.ExtCall('CAPTURE_SCREEN',{ sx, sy, sw, sh}).then( href=>{
+        console.log(href);
+    })
+
+    There are three parts to this:
+
+    1. a packet format that has an action and a unique id
+    2. a packet sender/callback that asyncronously sends and recognizes returning packets, calling the original caller
+    3. a transport mechanism (socket, event, whatever)
+
+    CallAsync('CAPTURE_SCREEN',{sx,sy,sw,sh})
+        create new packet 'CAPTURE_SCREEN', {sx,sy,sw,sh} w/ uniqueid
+        return promise that:
+        .. creates a 'resolver' function that is mapped byuniqueid.
+           (1) the resolver is called with the returning matching packet and
+           (2) calls resolve(data) to complete the promise with returned data
+           (3) sends packet
+
+    The receiving mechanism processes the packet
+    For this version, only the content.js file handles it
+
+    TRANSPORT MECHANISM
+    .
+
+        if an incoming packet has a uniqueid in the table, it must be a returning one
+
+
+
+
+
