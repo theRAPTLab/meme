@@ -118,7 +118,7 @@ class StickyNote extends React.Component {
     let allowedToEdit = isAuthor;
     let allowedToDelete = isAuthor; // REVIEW: Only teachers are allowed to delete?
     if (comment.text === '') {
-      if (comment.author === ADM.GetAuthorId()) {
+      if (comment.author.toUpperCase() === ADM.GetAuthorId()) { // force UpperCase for backward compatibility
         // automatically turn on editing if this is a new empty comment
         // AND we are the author
         this.DoEditStart();
