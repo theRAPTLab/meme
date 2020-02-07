@@ -101,6 +101,15 @@ class VBadge {
     this.height = vparent.height;
     this.Draw(vparent);
   }
+  
+  /**
+   * Returns the actual width of badges.  Used by parent component when resizing
+   * to account for width of badges. (`this.width` is set to be as wide as parent
+   * for badge layout purposes)
+   */
+  GetBadgeWidth() {
+    return this.gEvLinkBadges.bbox().width + this.gStickyButtons.bbox().width + m_pad;
+  }
 
   /**
    *  Update is called by VProp/VMech before Draw

@@ -200,10 +200,16 @@ class VProp {
       this.width = wObj;
       this.height = h;
     }
+    
+    // Add badge width
+    this.width += this.vBadge.GetBadgeWidth();
+    
     // set the background size
     this.visBG.size(this.width, this.height);
 
     // update vBadge size
+    // Need to set the vBadge width to match parent because vBadge
+    // is positioned via right justification
     this.vBadge.SetDimensionsFromParent(this);
 
     return { id: this.id, w: this.width, h: this.height };
@@ -433,7 +439,26 @@ VProp.Update = id => {
   vprop.Update();
   return vprop;
 };
-
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  Walk down props and get the bounding box for all
+ *  Note cx and cy are not calculated.
+ *  @return {x, y, x2, y2, w, h, cx, cy }
+ */
+VProp.GetBBox = () => {
+  let x = 0, y = 0, x2 = 0, y2 = 0;
+  const components = DATA.Components();
+  components.forEach(compId => {
+    const vprop = DATA.VM_VProp(compId);
+    const propbox = vprop.ScreenBBox();
+    console.log('...checking vprop', vprop.id, propbox);
+    if (propbox.x < x) x = propbox.x;
+    if (propbox.y < y) y = propbox.y;
+    if (propbox.x2 > x2) x2 = propbox.x2;
+    if (propbox.y2 > y2) y2 = propbox.y2;
+  });
+  return { x: x, y: y, x2: x2, y2: y2, w: x2 - x, h: y2 - y, cx: 0, cy: 0 };
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  LIFECYCLE: Sizes all the properties to fit their contained props
