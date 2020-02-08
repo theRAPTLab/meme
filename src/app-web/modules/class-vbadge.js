@@ -2,6 +2,7 @@ import DEFAULTS from './defaults';
 import ADM from './data';
 import PMC from './data';
 import UR from '../../system/ursys';
+import VMech from './class-vmech';
 
 const { VPROP, COLOR, SVGSYMBOLS } = DEFAULTS;
 
@@ -192,7 +193,7 @@ class VBadge {
     // Set Current Read/Unreaad status
     let hasNoComments;
     let hasUnreadComments;
-    const comments = PMC.GetComments(vparent.id);
+    const comments = PMC.GetComments( isVMech ? vparent.data.id : vparent.id );
     if (comments === undefined) {
       hasNoComments = true;
       hasUnreadComments = false;
@@ -361,8 +362,18 @@ VBadge.SVGStickyButton = (vparent, x, y) => {
     e.preventDefault();
     e.stopPropagation();
     if (DBG) console.log(`${e.target} clicked e=${e}`);
+    // special handling for mechs
+    // mech.id is actually a pathid, not the PMCData (db) id.
+    // We want comments to reference the db id so that they are unique and persistent
+    // e.g. when a mech is reversed, the id remains the same
+    // e.g. when a mech is deleted, the id is deleted, so if a new mech with the same pathid
+    //      is created, the comment isn't pulled up again.
+    let id = vparent.id;
+    if (m_IsVMech(vparent)) {
+      id = vparent.data.id;
+    }
     UR.Publish('STICKY_OPEN', {
-      refId: vparent.id,
+      refId: id,
       x: e.clientX,
       y: e.clientY
     });
@@ -391,9 +402,7 @@ VBadge.SVGStickyButton = (vparent, x, y) => {
 /// MODULE HELPERS /////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function m_IsVMech(parent) {
-  // FIXME: A hacky way to check if the parent is a VMech
-  // A VMech by definition has to have a sourceId and targetId defined
-  return parent.sourceId !== undefined;
+  return parent instanceof VMech;
 }
 
 /// EXPORTS ///////////////////////////////////////////////////////////////////

@@ -309,8 +309,9 @@ class ViewMain extends React.Component {
     let selectedMechIds = DATA.VM_SelectedMechIds();
     if (selectedMechIds.length > 0) {
       let mechId = selectedMechIds[0];
+      let mech = DATA.Mech(mechId);
       UR.Publish('STICKY_OPEN', {
-        refId: mechId,
+        refId: mech.id,
         // FIXME: Set position according to parent prop?
         x: 600, // stickynote hack moves it by -325
         y: 100

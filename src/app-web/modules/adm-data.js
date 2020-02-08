@@ -730,7 +730,10 @@ ADMData.GetStudentGroupName = (studentId = ASET.selectedStudentId) => {
   const grp = ADMData.GetGroupByStudent(studentId);
   return grp ? grp.name : '';
 };
-
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ADMData.IsTeacher = () => {
+  return SESSION.IsTeacher();
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// MODELS ////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
