@@ -447,7 +447,7 @@ VM.VM_SelectedMechIds = () => {
 VM.VM_SaveVPropPosition = vprop => {
   if (DATA.IsViewOnly()) return; // don't save position of view only
   
-  const modelId = ASET.selectedModelId;
+  const pmcDataId = ASET.selectedPMCDataId;
   const id = Number(vprop.Id());
   const x = Number(vprop.X());
   const y = Number(vprop.Y());
@@ -455,16 +455,16 @@ VM.VM_SaveVPropPosition = vprop => {
   if (DBG) console.log(`save positions`, id);
   const visuals = { id, type, pos: { x, y } };
   UR.DBQuery('update', {
-    'pmcData.visuals': { id: modelId, visuals }
+    'pmcData.visuals': { id: pmcDataId, visuals }
   });
 };
 VM.VM_ClearVPropPosition = vprop => {
-  const modelId = ASET.selectedModelId;
+  const pmcDataId = ASET.selectedPMCDataId;
   const id = Number(vprop.Id());
   if (DBG) console.log(`clear positions`, id);
   const visuals = { id };
   UR.DBQuery('remove', {
-    'pmcData.visuals': { id: modelId, visuals }
+    'pmcData.visuals': { id: pmcDataId, visuals }
   });
 };
 

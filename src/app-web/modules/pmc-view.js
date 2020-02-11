@@ -24,6 +24,7 @@ const PMCView = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 let m_element;
 let m_svgroot;
+let resourceListWidth = 300*2; // account for offset created by resourceList being open
 //
 const DBG = false;
 
@@ -44,9 +45,29 @@ PMCView.InitializeViewgraph = container => {
   m_svgroot = SVGJS(m_element);
   m_svgroot
     .size(1000, 1000)
-    .panZoom({ zoomMin: 0.5, zoomMax: 2 })
+    .panZoom({ zoomMin: 0.25, zoomMax: 2 })
     .zoom(1)
-    .viewbox(0, 0, 1000, 1000);
+    .viewbox(resourceListWidth, 0, 1000, 1000);
+  // add artboard to show standard model area
+  let rect = 2000;
+  let rectmid = rect / 2;
+  let rectoffset = 20;
+  m_svgroot
+    .rect(rect, rect)
+    .fill({ color: '#fff' })
+    .opacity(0.35)
+    .move(rectoffset,rectoffset);
+  // // add center cross on artboard
+  // let cross = 10; // length
+  // m_svgroot
+  //   .line(-cross, 0, cross, 0)
+  //   .stroke({ width: 2, color: '#999' })
+  //   .move(rectmid - cross, rectmid);
+  // m_svgroot
+  //   .line(0, -cross, 0, cross)
+  //   .stroke({ width: 2, color: '#999' })
+  //   .move(rectmid, rectmid - cross);
+  // handle clicks
   m_svgroot.mousedown(() => {
     DATA.VM_DeselectAllProps();
     DATA.VM_DeselectAllMechs();
@@ -55,9 +76,55 @@ PMCView.InitializeViewgraph = container => {
   PMCView.DefineDefs(m_svgroot);
   PMCView.DefineSymbols(m_svgroot);
 };
-PMCView.PanZoomReset = () => {
+/**
+ * Zoom out to display the full model
+ */
+PMCView.PanZoomOut = (w, h) => {
+  // zoom out to show the full model
+  let bbox = VProp.GetBBox();
+  let modelwidth = bbox.w || 2000;
+  let modelheight = bbox.h || 2000;
+  let pad = 20;
+  let xscale = w / ( modelwidth + resourceListWidth );
+  let yscale = h / (modelheight + pad);
+  let scale = 0;
+  if (xscale > yscale) {
+    scale = xscale;
+  } else {
+    scale = yscale;
+  }
   if (m_svgroot) {
-    m_svgroot.zoom(1).viewbox(0, 0, 1000, 1000);
+    m_svgroot
+      .animate()
+      .zoom(scale * 0.8) // reduce the scale a little so we show edges
+      .viewbox(bbox.x, bbox.y, modelwidth + resourceListWidth, modelheight + pad);
+  }  
+}
+/**
+ * Zoom into 1:1 with workspace 0,0 in upper left corner
+ * viewbox w,h should match the svg element size 'modelSVG' in order to have a 1 to 1 mapping
+ */
+PMCView.PanZoomReset = (w,h) => {
+  if (m_svgroot) {
+    m_svgroot
+      .animate()
+      .zoom(1)
+      .viewbox(0, 0, w, h);
+    return;
+  }
+};
+/**
+ * Utility call for testing panzoom settings
+ * Call this via window.ur.PMCVIEW.PanZoomSet in the console.
+ * e.g. window.ur.PMCVIEW.PanZoomSet({x:-2500,y:0,w:5000,h:1000,z:0.25})
+ * @param parm = {x,y,w,h,z} where z is zoom
+ */
+PMCView.PanZoomSet = (parm) => {
+  // cx and cy don't seem to do anything
+  if (m_svgroot) {
+    console.log('panzoomset',parm);
+    m_svgroot.viewbox(parm.x, parm.y, parm.w, parm.h, parm.cx, parm.cy);
+    m_svgroot.zoom(parm.z);
   }
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

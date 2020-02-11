@@ -1261,7 +1261,7 @@ PMCData.DB_CommentAdd = (refId, commentData, cb) => {
   });
   UTILS.RLog(
     'CommentAdd',
-    `"${commentData.text}" with criteria "${commentData.criteriaId}" on "${refId}"`
+    `id:${newComment.id} "${commentData.text}" with criteria "${commentData.criteriaId}" on "${refId}"`
   );
   const pmcDataId = ASET.selectedPMCDataId;
   return UR.DBQuery('add', {
@@ -1294,7 +1294,7 @@ PMCData.DB_CommentUpdate = (refId, comment, cb) => {
   
   UTILS.RLog(
     'CommentUpdate',
-    `"${updatedComment.text}" with criteria "${updatedComment.criteriaId}" on "${refId}"`
+    `id:${updatedComment.id} "${updatedComment.text}" with criteria "${updatedComment.criteriaId}" on "${refId}"`
   );
 
   const pmcDataId = ASET.selectedPMCDataId;
@@ -1333,7 +1333,7 @@ PMCData.DB_CommentsUpdate = (refId, comments, cb) => {
  */
 PMCData.DB_CommentDelete = commentId => {
   const pmcDataId = ASET.selectedPMCDataId;
-  UTILS.RLog('CommentDelete', `"${commentId}" from model "${pmcDataId}"`);
+  UTILS.RLog('CommentDelete', `id:${commentId} from model "${pmcDataId}"`);
   return UR.DBQuery('remove', {
     'pmcData.comments': {
       id: pmcDataId,
@@ -1370,7 +1370,7 @@ PMCData.DB_MarkRead = (commentId, author) => {
     commentId,
     author: author
   });
-  UTILS.RLog('CommentMarkedRead', `"${commentId}" read by "${author}"`);
+  UTILS.RLog('CommentMarkedRead', `id:${commentId} read by "${author}"`);
   const pmcDataId = ASET.selectedPMCDataId;
   return UR.DBQuery('add', {
     'pmcData.markedread': {

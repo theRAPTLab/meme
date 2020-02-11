@@ -34,6 +34,7 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
 import EditIcon from '@material-ui/icons/Edit';
 import MenuIcon from '@material-ui/icons/Menu';
+import ZoomInMapIcon from '@material-ui/icons/CenterFocusWeak';
 import ZoomOutMapIcon from '@material-ui/icons/ZoomOutMap';
 // MEME App Components
 import DescriptionView from '../../components/DescriptionView';
@@ -308,8 +309,9 @@ class ViewMain extends React.Component {
     let selectedMechIds = DATA.VM_SelectedMechIds();
     if (selectedMechIds.length > 0) {
       let mechId = selectedMechIds[0];
+      let mech = DATA.Mech(mechId);
       UR.Publish('STICKY_OPEN', {
-        refId: mechId,
+        refId: mech.id,
         // FIXME: Set position according to parent prop?
         x: 600, // stickynote hack moves it by -325
         y: 100
@@ -593,8 +595,12 @@ class ViewMain extends React.Component {
                 )}
               />
             </Switch>
-            <ZoomOutMapIcon
+            <ZoomInMapIcon
               onClick={() => UR.Publish('SVG_PANZOOM_RESET')}
+              style={{ position: 'absolute', left: '110px', bottom: '60px' }}
+            />
+            <ZoomOutMapIcon
+              onClick={() => UR.Publish('SVG_PANZOOM_OUT')}
               style={{ position: 'absolute', left: '110px', bottom: '10px' }}
             />
           </div>

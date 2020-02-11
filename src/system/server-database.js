@@ -20,11 +20,13 @@ const DATAMAP = require('./common-datamap');
 const LOGGER = require('./server-logger');
 const PROMPTS = require('../system/util/prompts');
 const UNET = require('./server-network');
+const DATESTR = require('./util/datestring');
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 const { TERM_DB: CLR, TR, CCRIT: CC } = PROMPTS;
-const PR = `${CLR}${PROMPTS.Pad('UR_DB')}${TR}`;
+const LPR = 'UR_DB';
+const PR = `${CLR}${PROMPTS.Pad(LPR)}${TR}`;
 const RUNTIMEPATH = PATH.join(__dirname, '../../runtime');
 
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
@@ -52,9 +54,23 @@ DB.InitializeDatabase = (options = {}) => {
   // NOTE: to set env on commandline, use 'DATASET=dataset npm run dev'
   let dataset = process.env.DATASET || DB_DATASETS[options.memehost] || 'test';
   let db_file = m_GetValidDBFilePath(dataset);
+  let db_bkup = `${DATESTR.DatedFilename(dataset)}.loki.snapshot`;
   FS.ensureDirSync(PATH.dirname(db_file));
   if (!FS.existsSync(db_file)) {
-    console.log(PR, `CREATING NEW DATABASE FILE '${db_file}'`);
+    console.log(PR, `CREATING DATABASE FILE '${db_file}'`);
+    LOGGER.Write(LPR, `creating database file '${dataset}.loki'`);
+  } else {
+    console.log(PR, `USING DATABASE FILE '${dataset}.loki'`);
+    LOGGER.Write(LPR, `using database file '${dataset}.loki'`);
+    FS.copyFile(db_file, `${RUNTIMEPATH}/${db_bkup}`, err => {
+      if (err) {
+        LOGGER.Write(LPR, `*** ERROR *** could not make snapshot of '${dataset}.loki'`);
+        LOGGER.Write(LPR, err);
+      } else {
+        LOGGER.Write(LPR, `database snapshot was saved to '${db_bkup}'`);
+        LOGGER.Write(LPR, `note: the snapshot contains data from the end of the LAST run`);
+      }
+    });
   }
 
   // initialize database with given options

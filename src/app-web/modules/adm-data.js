@@ -628,8 +628,8 @@ ADMData.Login = hashedToken => {
 
     // This assumes we already did validation
     const lprops = SESSION.LoggedInProps();
-    if (lprops.studentName) ASET.selectedStudentId = rdata.token;
-    if (lprops.teacherName) ASET.selectedTeacherId = rdata.token;
+    if (lprops.studentName) ASET.selectedStudentId = rdata.token.toUpperCase(); // force upper
+    if (lprops.teacherName) ASET.selectedTeacherId = rdata.token.toUpperCase(); // force upper
     // After logging in, we need to tell ADM what the default classroom is
     ADMData.SelectClassroom();
     UR.Publish('ADM_DATA_UPDATED');
@@ -730,7 +730,10 @@ ADMData.GetStudentGroupName = (studentId = ASET.selectedStudentId) => {
   const grp = ADMData.GetGroupByStudent(studentId);
   return grp ? grp.name : '';
 };
-
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ADMData.IsTeacher = () => {
+  return SESSION.IsTeacher();
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// MODELS ////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

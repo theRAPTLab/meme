@@ -29,6 +29,7 @@ class SVGView extends React.Component {
     this.refContainer = React.createRef();
     // bindings
     this.DoAppLoop = this.DoAppLoop.bind(this);
+    this.DoPanZoomOut = this.DoPanZoomOut.bind(this);
     this.DoPanZoomReset = this.DoPanZoomReset.bind(this);
     // LIFECYCLE: Initialize DataGraph
 
@@ -37,6 +38,7 @@ class SVGView extends React.Component {
 
     // Look for Data Updates
     UR.Subscribe('DATA_UPDATED', this.DoAppLoop);
+    UR.Subscribe('SVG_PANZOOM_OUT', this.DoPanZoomOut);
     UR.Subscribe('SVG_PANZOOM_RESET', this.DoPanZoomReset);
   }
 
@@ -67,13 +69,18 @@ class SVGView extends React.Component {
 
   componentWillUnmount() {
     UR.Unsubscribe('DATA_UPDATED', this.DoAppLoop);
+    UR.Unsubscribe('SVG_PANZOOM_OUT', this.DoPanZoomOut);
     UR.Unsubscribe('SVG_PANZOOM_RESET', this.DoPanZoomReset);
   }
 
-  DoPanZoomReset() { 
-    PMCView.PanZoomReset();
+  DoPanZoomOut() {
+    PMCView.PanZoomOut(this.props.viewWidth,this.props.viewHeight);
   }
-  
+
+  DoPanZoomReset() {
+    PMCView.PanZoomReset(this.props.viewWidth, this.props.viewHeight);
+  }
+
   DoAppLoop() {
     // TEST DRAWING
     // PMCView.TestGroups();
@@ -101,11 +108,19 @@ class SVGView extends React.Component {
     // for dimensions to begin valid
     if (DBG) {
       const css = this.props.viewWidth && this.props.viewHeight ? cssreact : cssalert;
-      console.log(`%crender() called. winsize ${this.props.viewWidth}x${this.props.viewHeight}`, css);
+      console.log(
+        `%crender() called. winsize ${this.props.viewWidth}x${this.props.viewHeight}`,
+        css
+      );
     }
     // returns a root svg that is the PARENT of the SVGJS-created draw surface
     return (
-      <svg id="modelSVG" ref={this.refContainer} width={this.props.viewWidth} height={this.props.viewHeight} />
+      <svg
+        id="modelSVG"
+        ref={this.refContainer}
+        width={this.props.viewWidth}
+        height={this.props.viewHeight}
+      />
     );
   }
 }
