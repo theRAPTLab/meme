@@ -26,6 +26,7 @@ PMCObj.Evidence = data => {
     rsrcId: data.rsrcId,
     numberLabel: data.numberLabel,
     rating: data.rating,
+    why: data.why,
     note: data.note,
     imageURL: data.imageURL
   };

@@ -62,7 +62,7 @@ class RatingsDialog extends React.Component {
     };
 
     UR.Subscribe('RATING_OPEN', this.DoOpen);
-    UR.Subscribe('RATING_CLOSE', this.DoClose);
+    UR.Subscribe('RATING_CLOSE', this.DoClose); // used by ViewMain to force close Ratings when the main window is closing
   }
 
   componentDidMount() { }

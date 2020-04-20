@@ -273,7 +273,7 @@ PMCData.SyncAddedData = data => {
           });
           break;
         case 'evidence':
-          const { id, propId, mechId, rsrcId, numberLabel, rating, note, imageURL } = value;
+          const { id, propId, mechId, rsrcId, numberLabel, rating, why, note, imageURL } = value;
           a_evidence.push({
             id,
             propId,
@@ -281,6 +281,7 @@ PMCData.SyncAddedData = data => {
             rsrcId,
             numberLabel,
             rating,
+            why,
             note,
             imageURL
           });
@@ -348,7 +349,7 @@ PMCData.SyncUpdatedData = data => {
           });
           break;
         case 'evidence':
-          const { id, propId, mechId, rsrcId, numberLabel, rating, note, imageURL } = value;
+          const { id, propId, mechId, rsrcId, numberLabel, rating, why, note, imageURL } = value;
           const evlink = {
             id,
             propId,
@@ -356,6 +357,7 @@ PMCData.SyncUpdatedData = data => {
             rsrcId,
             numberLabel,
             rating,
+            why,
             note,
             imageURL
           };
@@ -373,7 +375,7 @@ PMCData.SyncUpdatedData = data => {
       const i = a_comments.findIndex(c => c.id === value.id);
       if (i < 0) throw Error('Trying to update non-existent comments');
       const comment = Object.assign(a_comments[i], newComment);
-      a_comments.splice(i, 1, comment); 
+      a_comments.splice(i, 1, comment);
       UR.Publish('DATA_UPDATED');
     }
 
@@ -1030,9 +1032,10 @@ PMCData.PMC_AddEvidenceLink = (evObjData, cb) => {
     rsrcId: evObjData.rsrcId,
     numberLabel,
     note: evObjData.note,
+    why: evObjData.why,
     imageURL: evObjData.imageURL
   });
-  
+
   UTILS.RLog('EvidenceCreate', evObj.rsrcId); // note is empty at this point
   const pmcDataId = ASET.selectedPMCDataId;
   return UR.DBQuery('add', {
@@ -1184,7 +1187,7 @@ PMCData.PMC_EvidenceUpdate = (evId, newData) => {
   const evData = Object.assign(ev, cleanedData);
   const pmcDataId = ASET.selectedPMCDataId;
   UTILS.RLog('EvidenceUpdate',
-    `rsrcId: ${evData.rsrcId} propId: ${evData.propId} mechId: ${evData.mechId} numberLabel: ${evData.numberLabel} rating: ${evData.rating} note: ${evData.note}  imageURL: ${evData.imageURL}`
+    `rsrcId: ${evData.rsrcId} propId: ${evData.propId} mechId: ${evData.mechId} numberLabel: ${evData.numberLabel} rating: ${evData.rating} why: ${evData.why} note: ${evData.note}  imageURL: ${evData.imageURL}`
   );
 
   // we need to update pmcdata which looks like
@@ -1239,6 +1242,14 @@ PMCData.SetEvidenceLinkRating = (evId, rating) => {
   PMCData.PMC_EvidenceUpdate(evId, newData);
   UTILS.RLog('EvidenceSetRating', `Set evidence "${evId}" to "${rating}"`);
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PMCData.SetEvidenceLinkWhy = (evId, why) => {
+  const newData = {
+    why
+  };
+  PMCData.PMC_EvidenceUpdate(evId, newData);
+  UTILS.RLog('EvidenceSetWhy', `Set evidence rating why to "${why}"`);
+};
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// STICKIES //////////////////////////////////////////////////////////////////
@@ -1291,7 +1302,7 @@ PMCData.DB_CommentUpdate = (refId, comment, cb) => {
 
   // update existing comment
   const updatedComment = Object.assign(origComment, comment);
-  
+
   UTILS.RLog(
     'CommentUpdate',
     `id:${updatedComment.id} "${updatedComment.text}" with criteria "${updatedComment.criteriaId}" on "${refId}"`
@@ -1382,7 +1393,7 @@ PMCData.DB_MarkRead = (commentId, author) => {
 /**
  *  Checks if the comment referenced by commentId has been read by the author
  *  @param {Integer} commentId - db id of the comment object
- *  @param {String} author - token 
+ *  @param {String} author - token
  */
 PMCData.HasBeenRead = (commentId, author) => {
   return a_markedread.find(m => {
@@ -1393,7 +1404,7 @@ PMCData.HasBeenRead = (commentId, author) => {
  *  Checks if the comment referenced by commentId has been read by the author
  *  Used to set StickyNoteButton status.
  *  @param {Array} comments - an array of Comment objects
- *  @param {String} author - token 
+ *  @param {String} author - token
  */
 PMCData.HasUnreadComments = (comments, author) => {
   if (!Array.isArray(comments)) throw Error('comments is not an array')

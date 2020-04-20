@@ -399,6 +399,11 @@ const styles = theme => {
       color: '#fff',
       backgroundColor: red[700]
     },
+    evidenceLinkSelectButtonLabel: {
+      maxWidth: '140px',
+      textOverflow: 'ellipsis',
+      overflow: 'hidden'
+    },
     evidenceLinkSourcePropAvatarSelected: {
       color: indigo[900],
       backgroundColor: indigo[100],

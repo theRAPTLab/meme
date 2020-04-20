@@ -60,9 +60,11 @@ class EvidenceLink extends React.Component {
       note: this.props.evlink.note,
       rating: this.props.evlink.rating,
       ratingDefs: [],
+      why: this.props.evlink.why,
       isBeingEdited: false,
       isExpanded: false,
       isHovered: false,
+      ignoreClickAway: false,
       listenForSourceSelection: false
     };
 
@@ -85,6 +87,7 @@ class EvidenceLink extends React.Component {
     this.OnScreenShotClick = this.OnScreenShotClick.bind(this)
     this.OnCaptureScreenShotClick = this.OnCaptureScreenShotClick.bind(this);
     this.OnNoteChange = this.OnNoteChange.bind(this);
+    this.OnWhyChange = this.OnWhyChange.bind(this);
     this.OnLinkButtonClick = this.OnLinkButtonClick.bind(this);
     this.DoEnableSourceSelect = this.DoEnableSourceSelect.bind(this);
     this.DoSelectionChange = this.DoSelectionChange.bind(this);
@@ -121,16 +124,18 @@ class EvidenceLink extends React.Component {
       const model = ADM.GetModelById();
       const classroomId = ADM.GetClassroomIdByGroup(model.groupId);
       const ratingDefs = ADM.GetRatingsDefinition(classroomId);
-      let { note, rating } = evlink;
+      let { note, rating, why } = evlink;
 
       // if we're currently editing, don't let data update reset the note
       if (this.state.isBeingEdited) {
         note = this.state.note;
+        why = this.state.why;
       }
       this.setState({
         note,
         rating,
-        ratingDefs
+        ratingDefs,
+        why
       });
     }
     // Don't throw an error here
@@ -149,7 +154,7 @@ class EvidenceLink extends React.Component {
   DoRatingUpdate(rating) {
     DATA.SetEvidenceLinkRating(this.props.evlink.id, rating);
   }
-  
+
   DoEditStart() {
     const pmcDataId = ASET.selectedPMCDataId;
     const intEvId = Number(this.props.evlink.id);
@@ -171,18 +176,19 @@ class EvidenceLink extends React.Component {
         }
       });
   }
-  
+
   DoEditStop() {
     this.setState({
       isBeingEdited: false
     });
     const pmcDataId = ASET.selectedPMCDataId;
     const intEvId = Number(this.props.evlink.id);
-    UR.DBTryRelease('pmcData.entities', [pmcDataId, intEvId])    
+    UR.DBTryRelease('pmcData.entities', [pmcDataId, intEvId])
   }
 
   DoSave() {
     DATA.SetEvidenceLinkNote(this.props.evlink.id, this.state.note);
+    DATA.SetEvidenceLinkWhy(this.props.evlink.id, this.state.why);
   }
 
   OnScreenShotClick(e) {
@@ -194,7 +200,7 @@ class EvidenceLink extends React.Component {
       imageURL: this.props.evlink.imageURL
     });
   }
-  
+
   OnCaptureScreenShotClick(e) {
     e.stopPropagation();
     const resourceFrame = document.getElementById('resourceFrame');
@@ -219,7 +225,8 @@ class EvidenceLink extends React.Component {
     this.DoEditStop();
     // restore previous note
     this.setState({
-      note: this.props.evlink.note
+      note: this.props.evlink.note,
+      why: this.props.evlink.why
     });
   }
 
@@ -271,11 +278,16 @@ class EvidenceLink extends React.Component {
     this.DoSave();
     this.DoEditStop();
   }
-  
+
   OnClickAway(e) {
     if (this.state.isBeingEdited) {
       this.DoSave();
-      this.DoEditStop();
+
+      // If the user is only changing the rating, don't exit Edit Mode
+      if (!this.state.ignoreClickAway) {
+        this.DoEditStop();
+      }
+      this.setState({ ignoreClickAway: false });
     }
   }
 
@@ -309,6 +321,11 @@ class EvidenceLink extends React.Component {
   OnNoteChange(e) {
     if (DBG) console.log(PKG, 'Note Change:', e.target.value);
     this.setState({ note: e.target.value });
+  }
+
+  OnWhyChange(e) {
+    if (DBG) console.log(PKG, 'Why Change:', e.target.value);
+    this.setState({ why: e.target.value });
   }
 
   /* User has clicked on the 'link' button, so we want to
@@ -392,9 +409,17 @@ class EvidenceLink extends React.Component {
   OnRatingButtonClick() {
     if (ADM.IsViewOnly()) return;
     const data = { evId: this.props.evlink.id, rating: this.props.evlink.rating };
-    UR.Publish('RATING_OPEN', data);
+    if (this.state.isBeingEdited) {
+      // If EvLink is being edited, ignore the clickaway handler
+      // so that after selecting the rating, we do not exit Edit Mode
+      this.setState({ ignoreClickAway: true },
+        UR.Publish('RATING_OPEN', data)
+      );
+    } else {
+      UR.Publish('RATING_OPEN', data);
+    }
   }
-  
+
   OnDrop(href) {
     DATA.PMC_EvidenceUpdate(this.props.evlink.id, { imageURL: href });
   }
@@ -428,6 +453,7 @@ class EvidenceLink extends React.Component {
       note,
       rating,
       ratingDefs,
+      why,
       isBeingEdited,
       isExpanded,
       isHovered,
@@ -447,15 +473,15 @@ class EvidenceLink extends React.Component {
       sourceType = undefined;
       sourceLabel = undefined;
     }
-    
+
     const isViewOnly = ADM.IsViewOnly();
-    
+
     // Display Capture Screen button?
     // resourceFrame's clientWidth is 0 if it's not whoing
     const resourceFrame = document.getElementById('resourceFrame');
     const resourceFrameIsVisible = resourceFrame !== null && resourceFrame.clientWidth > 0;
     const extensionIsConnected = EXT.IsConnected();
-    
+
     return (
       <ClickAwayListener onClickAway={this.OnClickAway}>
         <Collapse in={isExpanded} collapsedHeight="70px">
@@ -612,6 +638,49 @@ class EvidenceLink extends React.Component {
                   </Grid>
                 </Grid>
               </Grid>
+              <Grid item xs={12} hidden={!isExpanded}>
+                <Grid
+                  container
+                  spacing={1}
+                  className={classes.evidenceBodyRow}
+                >
+                  <Grid item xs={4}>
+                    <Typography
+                      className={classes.evidenceWindowLabel}
+                      variant="caption"
+                      align="right"
+                    >
+                      WHY?
+                    </Typography>
+                  </Grid>
+                  <Grid item xs style={{ paddingTop: '4px' }}>
+                    <MuiThemeProvider theme={theme}>
+                      <FilledInput
+                        className={ClassNames(
+                          classes.evidenceLabelField,
+                          classes.evidenceLabelFieldExpanded
+                        )}
+                        value={why}
+                        placeholder="Why did you choose this rating?"
+                        autoFocus
+                        multiline
+                        variant="filled"
+                        disabled={!isBeingEdited}
+                        disableUnderline
+                        onChange={this.OnWhyChange}
+                        onBlur={this.DoSave}
+                        onClick={e => {
+                          e.stopPropagation();
+                        }}
+                        inputProps={{
+                          readOnly: !isBeingEdited
+                        }}
+                        inputRef={this.textInput}
+                      />
+                    </MuiThemeProvider>
+                  </Grid>
+                </Grid>
+              </Grid>
               <Grid container hidden={!isExpanded} className={classes.evidenceBodyRowTop}>
                 <Grid item xs={4}>
                   <Typography
@@ -724,7 +793,8 @@ EvidenceLink.defaultProps = {
     rsrcId: -1,
     numberLabel: '',
     note: '',
-    rating: 0
+    rating: 0,
+    why: ''
   }
 };
 /// EXPORT REACT COMPONENT ////////////////////////////////////////////////////
