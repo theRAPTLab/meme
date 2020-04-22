@@ -93,7 +93,7 @@ class PropDialog extends React.Component {
         } else {
           console.log('aw, locked by', rdata.lockedBy);
           alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Component / Property right now.  Please try again later.`)
-          UR.Publish('PROPDIALOG_CLOSE'); // tell ViewMain to re-enable ToolsPanel 
+          UR.Publish('PROPDIALOG_CLOSE'); // tell ViewMain to re-enable ToolsPanel
         }
       });
   }
@@ -169,7 +169,7 @@ class PropDialog extends React.Component {
               label="Description"
               fullWidth
               multiline
-              rowsMax="2"
+              rows={2}
               onChange={this.OnDescriptionChange}
               value={description}
             />

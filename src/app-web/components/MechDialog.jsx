@@ -4,7 +4,7 @@ Mech Dialog
 
 Used to add and edit Mechanisms.
 
-This is deliberately not a Material UI <Dialog> component because the user 
+This is deliberately not a Material UI <Dialog> component because the user
 needs to select Properties and Mechanisms while th e "dialog" is open.
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * /////////////////////////////////////*/
@@ -186,7 +186,7 @@ class MechDialog extends React.Component {
 
   DoSelectionChange() {
     if (!this.state.isOpen) return; // ignore selection change if we're not active
-    
+
     let selectedPropIds = DATA.VM_SelectedPropsIds();
     if (DBG) console.log('selection changed', selectedPropIds);
     if (this.state.sourceId !== '' || this.state.targetId !== '') {
@@ -461,6 +461,9 @@ class MechDialog extends React.Component {
                 margin="dense"
                 id="edgeDescription"
                 label="Description"
+                fullWidth
+                multiline
+                rows={2}
                 value={description}
                 onChange={this.OnDescriptionChange}
                 className={classes.edgeDialogDescriptionField}
