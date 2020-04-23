@@ -7,7 +7,7 @@ module.exports = {
     {
       id: 10,
       type: 'prop',
-      name: 'Really Long Ass Title that should Wrap',
+      name: 'Really Really Long Title that should Wrap',
       description: 'Runoff from farms'
     },
     { id: 11, type: 'prop', name: 'Normal length', parent: 10 },

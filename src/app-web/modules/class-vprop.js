@@ -200,10 +200,10 @@ class VProp {
       this.width = wObj;
       this.height = h;
     }
-    
+
     // Add badge width
     this.width += this.vBadge.GetBadgeWidth();
-    
+
     // set the background size
     this.visBG.size(this.width, this.height);
 
@@ -451,7 +451,6 @@ VProp.GetBBox = () => {
   components.forEach(compId => {
     const vprop = DATA.VM_VProp(compId);
     const propbox = vprop.ScreenBBox();
-    console.log('...checking vprop', vprop.id, propbox);
     if (propbox.x < x) x = propbox.x;
     if (propbox.y < y) y = propbox.y;
     if (propbox.x2 > x2) x2 = propbox.x2;

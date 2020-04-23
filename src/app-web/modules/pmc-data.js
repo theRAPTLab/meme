@@ -213,6 +213,7 @@ PMCData.InitializeModel = (model, admdb) => {
 
   // data and view are now stable
   // on first load, move visuals to saved places
+  // This is one time view state restoration, which is not part of the SVGView.DoAppLoop.
   if (data.visuals) {
     data.visuals.forEach(vstate => {
       const id = String(vstate.id);
@@ -234,6 +235,9 @@ PMCData.InitializeModel = (model, admdb) => {
     });
     UR.Publish('PROP_MOVED', { visuals: data.visuals });
   }
+
+  // Used by PrintMain to zoom out
+  UR.Publish('MODEL_VIEW_UPDATED');
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

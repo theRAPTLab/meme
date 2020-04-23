@@ -15,6 +15,7 @@ import PropTypes from 'prop-types';
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import ViewMain from '../views/ViewMain/ViewMain';
+import PrintMain from '../views/ViewMain/PrintMain';
 import TestUr from '../views/DevTest/TestUr';
 import TestScreencap from '../views/DevTest/TestScreencap';
 import TestLockSync from '../views/DevTest/TestLockSync';
@@ -65,6 +66,11 @@ const SystemRoutes = [
     path: '/',
     exact: true,
     component: ViewMain
+  },
+  {
+    path: '/print',
+    exact: true,
+    component: PrintMain
   },
   {
     path: '*',

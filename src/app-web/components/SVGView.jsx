@@ -99,6 +99,8 @@ class SVGView extends React.Component {
     // LIFECYCLE: Handle visual updates
     // (1) calls LayoutComponents() to spread 'em out
     PMCView.UpdateView();
+
+    // NOTE: PMCData is restoring the view model (setting prop positions) on initial load after this!
   }
 
   render() {
