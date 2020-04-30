@@ -52,6 +52,7 @@ See MechDialog and EvidenceLink for example implementations.
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from '@material-ui/core/Button';
+import DATAMAP from '../../system/common-datamap';
 // Material UI Icons
 import CreateIcon from '@material-ui/icons/Create';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
@@ -61,6 +62,21 @@ import { withStyles } from '@material-ui/core/styles';
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
+import DEFAULTS from '../modules/defaults';
+const { COLOR } = DEFAULTS;
+
+/// CONSTANTS /////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const LButton = withStyles(theme => ({
+  root: {
+    padding: '0 7px',
+    lineHeight: '1.2em',
+    '&$disabled': {
+      color: 'rgba(0,0,0,0.3)'
+    }
+  }
+}))(props => <Button {...props} />);
+
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -94,16 +110,33 @@ class LinkButton extends React.Component {
     let icon;
     let evidenceLinkSelectButtonClass = classes.evidenceLinkSelectButton;
 
+    let isDisabled = !isBeingEdited || listenForSourceSelection;
+
     if (sourceLabel !== undefined) {
       label = sourceLabel;
       switch (sourceType) {
-        case 'mech':
+        case DATAMAP.PMC_MODELTYPES.MECHANISM.id: // 'mech':
           if (label === '') label = 'unlabeled';
-          evidenceLinkSelectButtonClass = classes.evidenceLinkSourceMechAvatarSelected;
+          if (isDisabled) {
+            evidenceLinkSelectButtonClass = classes.evidenceLinkSourceMechAvatarDisabled;
+          } else {
+            evidenceLinkSelectButtonClass = classes.evidenceLinkSourceMechAvatarSelected;
+          }
+          break;
+        case DATAMAP.PMC_MODELTYPES.OUTCOME.id:
+          if (isDisabled) {
+            evidenceLinkSelectButtonClass = classes.evidenceLinkSourceOutcomeAvatarDisabled;
+          } else {
+            evidenceLinkSelectButtonClass = classes.evidenceLinkSourceOutcomeAvatarSelected;
+          }
           break;
         default:
-        case 'prop':
-          evidenceLinkSelectButtonClass = classes.evidenceLinkSourcePropAvatarSelected;
+        case DATAMAP.PMC_MODELTYPES.COMPONENT.id: // 'prop':
+          if (isDisabled) {
+            evidenceLinkSelectButtonClass = classes.evidenceLinkSourcePropAvatarDisabled;
+          } else {
+            evidenceLinkSelectButtonClass = classes.evidenceLinkSourcePropAvatarSelected;
+          }
           break;
       }
     } else if (listenForSourceSelection) {
@@ -118,15 +151,18 @@ class LinkButton extends React.Component {
     }
 
     return (
-      <Button
+      <LButton
         onClick={this.OnClick}
-        className={evidenceLinkSelectButtonClass}
-        disabled={!isBeingEdited || listenForSourceSelection}
-        size={isExpanded ? 'large' : 'small'}
+        classes={{
+          root: evidenceLinkSelectButtonClass,
+          disabled: classes.disabled
+        }}
+        disabled={isDisabled}
+        size={'small'}
       >
         {icon}
         <span className={classes.evidenceLinkSelectButtonLabel}>{label}</span>
-      </Button>
+      </LButton>
     );
   }
 }

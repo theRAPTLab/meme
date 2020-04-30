@@ -158,6 +158,7 @@ PMCData.InitializeModel = (model, admdb) => {
         case 'prop':
           g.setNode(obj.id, {
             name: obj.name,
+            propType: obj.propType,
             description: obj.description
           });
           if (obj.parent) {
@@ -265,6 +266,7 @@ PMCData.SyncAddedData = data => {
         case 'prop':
           m_graph.setNode(value.id, {
             name: value.name,
+            propType: value.propType,
             description: value.description
           });
           f_NodeSetParent(value.id, value.parent); // enforces type
@@ -336,6 +338,7 @@ PMCData.SyncUpdatedData = data => {
         case 'prop':
           m_graph.setNode(value.id, {
             name: value.name,
+            propType: value.propType,
             description: value.description
           });
           f_NodeSetParent(value.id, value.parent);
@@ -722,9 +725,12 @@ PMCData.MechById = id => {
 PMCData.PMC_PropAdd = newPropObj => {
   const pmcDataId = ASET.selectedPMCDataId;
   const propObj = Object.assign(newPropObj, { type: 'prop' });
+  // Set propType for backward compatibility
+  // Automaticlaly set proptype to COMPONENT if none was defined
+  propObj.propType = newPropObj.propType || DATAMAP.PMC_MODELTYPES.COMPONENT.id; // default to component
   UTILS.RLog(
     'PropertyAdd',
-    `name: "${newPropObj.name}" description: "${newPropObj.description}" with parent "${newPropObj.parent}"`
+    `name: "${newPropObj.name}" propType: "${newPropObj.propType}" description: "${newPropObj.description}" with parent "${newPropObj.parent}"`
   );
   return UR.DBQuery('add', {
     'pmcData.entities': {
@@ -756,10 +762,11 @@ PMCData.PMC_PropUpdate = (propId, newData) => {
   // make a copy of the prop with overwritten new data
   // local data will be updated on DBSYNC event, so don't write it here
   const propData = Object.assign(prop, newData, { id: numericId }); // id last to make sure we're using a cleaned one
+  propData.propType = propData.propType || DATAMAP.PMC_MODELTYPES.COMPONENT.id; // default to component
   const pmcDataId = ASET.selectedPMCDataId;
   UTILS.RLog(
     'PropertyEdit',
-    `name: "${propData.name}" description: "${propData.description}" with parent "${propData.parent}"`
+    `name: "${propData.name}" propType: "${propData.propType}" description: "${propData.description}" with parent "${propData.parent}"`
   );
   // we need to update pmcdata which looks like
   // { id, entities:[ { id, name } ] }
@@ -772,7 +779,7 @@ PMCData.PMC_PropUpdate = (propId, newData) => {
   // round-trip will call BuildModel() for us
 
   /** THIS METHOD DID NOT EXIST BEFORE **/
-};
+};;
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  @param {Integer} propId - id of the prop being updated

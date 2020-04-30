@@ -29,6 +29,7 @@ import DATA from '../modules/data';
 import ASET from '../modules/adm-settings';
 import UTILS from '../modules/utils';
 import LinkButton from './LinkButton';
+import DATAMAP from '../../system/common-datamap';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -148,7 +149,7 @@ class MechDialog extends React.Component {
             );
           } else {
             console.log('aw, locked by', rdata.lockedBy);
-            alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Mechanism right now.  Please try again later.`)
+            alert(`Sorry, someone else (${rdata.lockedBy}) is editing this ${DATAMAP.PMC_MODELTYPES.MECHANISM.label} right now.  Please try again later.`)
             UR.Publish('MECHDIALOG_CLOSED'); // tell ViewMain to re-enable ToolsPanel
           }
         });
@@ -203,7 +204,7 @@ class MechDialog extends React.Component {
         if (selectedPropIds.length > 0) {
           const sourceId = selectedPropIds[0];
           if (sourceId === this.state.targetId) {
-            alert(`${DATA.Prop(sourceId).name} is already selected!  Please select a different component / property!`);
+            alert(`${DATA.Prop(sourceId).name} is already selected!  Please select a different ${DATAMAP.PMC_MODELTYPES.COMPONENT.label} or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label}!`);
             DATA.VM_DeselectAll();
           } else {
             this.setState({
@@ -219,7 +220,7 @@ class MechDialog extends React.Component {
           // if two are selected, grab the second one, since source would grabed the first?
           const targetId = selectedPropIds.length > 1 ? selectedPropIds[1] : selectedPropIds[0];
           if (targetId === this.state.sourceId) {
-            alert(`${DATA.Prop(targetId).name} is already selected!  Please select a different component / property!`);
+            alert(`${DATA.Prop(targetId).name} is already selected!  Please select a different ${DATAMAP.PMC_MODELTYPES.COMPONENT.label} or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label}!`);
             DATA.VM_DeselectAll();
           } else {
             this.setState({
@@ -294,7 +295,7 @@ class MechDialog extends React.Component {
           listenForTargetSelection: true
         });
       }
-      alert('The component or property you were linking was deleted by someone else.  Please select a different component or property.');
+      alert(`The ${DATAMAP.PMC_MODELTYPES.COMPONENT.label} or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label} you were linking was deleted by someone else.  Please select a different component or property.`);
     }
   }
 
@@ -399,15 +400,34 @@ class MechDialog extends React.Component {
       slideIn
     } = this.state;
     const { classes } = this.props;
+
+    let sourceSourceType;
+    if (sourceId !== '') {
+      if (DATA.Prop(sourceId).propType === DATAMAP.PMC_MODELTYPES.OUTCOME.id) {
+        sourceSourceType = DATAMAP.PMC_MODELTYPES.OUTCOME.id;
+      } else {
+        sourceSourceType = DATAMAP.PMC_MODELTYPES.COMPONENT.id;
+      }
+    }
+
+    let targetSourceType;
+    if (targetId !== '') {
+      if (DATA.Prop(targetId).propType === DATAMAP.PMC_MODELTYPES.OUTCOME.id) {
+        targetSourceType = DATAMAP.PMC_MODELTYPES.OUTCOME.id;
+      } else {
+        targetSourceType = DATAMAP.PMC_MODELTYPES.COMPONENT.id;
+      }
+    }
+
     return (
       <Card className={classes.edgeDialog} hidden={!isOpen}>
         <Paper className={classes.edgeDialogPaper}>
           <form onSubmit={this.OnCreateClick}>
-            <div className={classes.edgeDialogWindowLabel}>ADD MECHANISM</div>
+            <div className={classes.edgeDialogWindowLabel}>ADD {DATAMAP.PMC_MODELTYPES.MECHANISM.label.toUpperCase()}</div>
             <div className={classes.edgeDialogInput}>
               <Slide direction={reversing ? 'left' : 'up'} in={slideIn}>
                 <LinkButton
-                  sourceType="prop"
+                  sourceType={sourceSourceType}
                   sourceLabel={sourceLabel}
                   listenForSourceSelection={listenForSourceSelection}
                   isBeingEdited
@@ -429,7 +449,7 @@ class MechDialog extends React.Component {
               &nbsp;&nbsp;
               <Slide direction={reversing ? 'right' : 'up'} in={slideIn}>
                 <LinkButton
-                  sourceType="prop"
+                  sourceType={targetSourceType}
                   sourceLabel={targetLabel}
                   listenForSourceSelection={listenForTargetSelection}
                   isBeingEdited

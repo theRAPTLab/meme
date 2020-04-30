@@ -24,6 +24,7 @@ import { withStyles } from '@material-ui/core/styles';
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import DATA from '../modules/data';
+import DATAMAP from '../../system/common-datamap';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -42,6 +43,7 @@ class DescriptionView extends React.Component {
     this.state = {
       isOpen: false,
       propId: '',
+      propType: '',
       label: '',
       text: undefined
     };
@@ -70,6 +72,7 @@ class DescriptionView extends React.Component {
       this.setState({
         isOpen: true,
         propId,
+        propType: prop.propType,
         mechId: undefined,
         label: prop.name,
         text: prop.description
@@ -79,6 +82,7 @@ class DescriptionView extends React.Component {
       this.setState({
         isOpen: true,
         propId: undefined,
+        propType: mech.propType, // currently undefined and not used
         mechId,
         label: mech.name,
         text: mech.description
@@ -92,7 +96,7 @@ class DescriptionView extends React.Component {
   }
 
   render() {
-    const { isOpen, propId, text, label } = this.state;
+    const { isOpen, propId, propType, text, label } = this.state;
     const { classes } = this.props;
 
     // Fake some text
@@ -102,7 +106,11 @@ class DescriptionView extends React.Component {
       <Paper
         className={ClassNames(
           classes.descriptionViewPaper,
-          propId ? classes.descriptionViewPaperPropColor : classes.descriptionViewPaperMechColor
+          propId
+            ? propType === DATAMAP.PMC_MODELTYPES.OUTCOME.id
+              ? classes.descriptionViewPaperOutcomeColor
+              : classes.descriptionViewPaperPropColor
+            : classes.descriptionViewPaperMechColor
         )}
         hidden={!isOpen}
         elevation={24}

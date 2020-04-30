@@ -1,6 +1,7 @@
 import DATA from './data';
 import { cssinfo, cssblue, cssred, cssmark, cssreset } from './console-styles';
 import DEFAULTS from './defaults';
+import DATAMAP from '../../system/common-datamap';
 import { AddDragDropHandlers } from './class-vprop-dragdrop';
 import { VisualState } from './classes-visual';
 import VBadge from './class-vbadge';
@@ -19,10 +20,13 @@ const m_minWidth = VPROP.MIN_WIDTH;
 const m_minHeight = VPROP.MIN_HEIGHT;
 const m_pad = PAD.MIN;
 const COL_HOVER = COLOR.PROP_HOV;
+const COL_HOVER_OUTCOME = COLOR.OUTCOME_HOV;
 const COL_HOVER_OPACITY = 0.3;
 const COL_BG = COLOR.PROP;
+const COL_BG_OUTCOME = COLOR.OUTCOME;
 const COL_BG_OPACITY = 0.1;
-const DIM_RADIUS = 3;
+const DIM_RADIUS = 25; // component (default) radius
+const DIM_RADIUS_OUTCOME = 3; // outcome radius
 //
 const DBG = {
   edges: false,
@@ -49,6 +53,7 @@ class VProp {
     // basic display props
     this.id = propId;
     this.data = Object.assign({}, DATA.Prop(propId)); // copy, not reference
+    this.isOutcome = this.data.propType === DATAMAP.PMC_MODELTYPES.OUTCOME.id;
     this.gRoot = svgRoot.group(); // main reference group
     // this order is important
     this.visBG = this.gRoot.rect(this.width, this.height); // background
@@ -66,8 +71,11 @@ class VProp {
     this.visualState = new VisualState(this.id);
     this.visualStyle = {
       stroke: { color: COL_BG, width: 1 },
-      fill: { color: COL_BG, opacity: COL_BG_OPACITY },
-      radius: DIM_RADIUS
+      fill: {
+        color: this.isOutcome ? COL_BG_OUTCOME : COL_BG,
+        opacity: COL_BG_OPACITY
+      },
+      radius: this.isOutcome ? DIM_RADIUS_OUTCOME : DIM_RADIUS
     };
     this.mechPoints = []; // array of points available for mechanism connections
     // hacked items
@@ -128,12 +136,12 @@ class VProp {
 
     if (visible) {
       this.visualState.Select('hover');
-      this.visualStyle.fill.color = COL_HOVER;
+      this.visualStyle.fill.color = this.isOutcome ? COL_HOVER_OUTCOME : COL_HOVER;
       this.visualStyle.fill.opacity = COL_HOVER_OPACITY;
       if (publishEvent) UR.Publish('PROP_HOVER_START', { propId: this.id });
     } else {
       this.visualState.Deselect('hover');
-      this.visualStyle.fill.color = COL_BG;
+      this.visualStyle.fill.color = this.isOutcome ? COL_BG_OUTCOME : COL_BG;
       this.visualStyle.fill.opacity = COL_BG_OPACITY;
       if (publishEvent) UR.Publish('PROP_HOVER_END', { propId: this.id });
     }
@@ -489,9 +497,11 @@ VProp.SizeComponents = () => {
       // terminal nodes have no children
       // so the calculation of size is easy
       databbox.w += PAD.MIN2; // add horizontal padding
-      vprop.PropSize(databbox); // store calculated overall size
+      // PropSize will adjust the vprop's bbox to account for badges
+      // so we need to return the NEW bbox, not the passed databbox.
+      const newbbox = vprop.PropSize(databbox); // store calculated overall size
       vprop.KidsSize({ w: 0, h: 0 }); // no children, so no dimension
-      return databbox; // end recursion by returning known value
+      return newbbox; // end recursion by returning known value
     }
     /*** CASE 2: THERE ARE CHILDREN */
     let childSizes = []; // collect sizes of each child
@@ -518,8 +528,10 @@ VProp.SizeComponents = () => {
     };
     // add additional vertical padding
     bbox.h += childIds.length > 1 ? childIds.length * PAD.MIN : PAD.MIN;
-    vprop.PropSize(bbox);
-    return bbox;
+    // PropSize will adjust the vprop's bbox to account for badges
+    // so we need to return the NEW bbox, not the passed databbox.
+    const finalbbox = vprop.PropSize(bbox);
+    return finalbbox;
   }
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -13,6 +13,7 @@ They are controlled components.
 import React from 'react';
 import PropTypes from 'prop-types';
 import ClassNames from 'classnames';
+import DATAMAP from '../../system/common-datamap';
 // Material UI Elements
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
@@ -41,7 +42,6 @@ import StickyNoteButton from './StickyNoteButton';
 import RatingButton from './RatingButton';
 import LinkButton from './LinkButton';
 import { Dropzone } from './Dropzone';
-import PMCData from '../modules/pmc-data';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -464,10 +464,14 @@ class EvidenceLink extends React.Component {
     let sourceType;
     let sourceLabel;
     if (propId !== undefined && propId !== null && DATA.HasProp(propId) && DATA.Prop(propId)) {
-      sourceType = 'prop';
+      if (DATA.Prop(propId).propType === DATAMAP.PMC_MODELTYPES.OUTCOME.id) {
+        sourceType = DATAMAP.PMC_MODELTYPES.OUTCOME.id;
+      } else {
+        sourceType = DATAMAP.PMC_MODELTYPES.COMPONENT.id;
+      }
       sourceLabel = DATA.Prop(propId).name;
     } else if (mechId !== undefined && mechId !== null && DATA.Mech(mechId)) {
-      sourceType = 'mech';
+      sourceType = DATAMAP.PMC_MODELTYPES.MECHANISM.id;
       sourceLabel = DATA.Mech(mechId).name;
     } else {
       sourceType = undefined;

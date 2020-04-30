@@ -41,6 +41,30 @@ const DBCMDS = new Map([
   ['remove', 'NET:SRV_DBREMOVE']
 ]);
 
+/// list of valid model data types for Props and Mechs in PMC DATA
+/// `id` is unique identifier used in database.
+///      This should NOT ever be changed or it will result in
+///      data loss.
+/// 'label' is a human friendly display name used in dialogs
+/// 'plural' is a human friendly plural version of the 'label'
+const PMC_MODELTYPES = {
+  COMPONENT: {
+    id: 'cmp',
+    label: 'entity',
+    plural: 'entities'
+  },
+  OUTCOME: {
+    id: 'out',
+    label: 'outcome',
+    plural: 'outcomes'
+  },
+  MECHANISM: {
+    id: 'mch',
+    label: 'process',
+    plural: 'processes'
+  }
+};
+
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DBG = false;
@@ -111,6 +135,8 @@ class DataMap {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 DataMap.DBKEYS = DBKEYS;
 DataMap.DBCMDS = DBCMDS;
+DataMap.PMC_MODELTYPES = PMC_MODELTYPES;
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** returns an array of valid TOP LEVEL collections
  */
@@ -361,6 +387,14 @@ DataMap.MutateObject = (obj, idObj) => {
   retobj.meta = undefined;
   return retobj;
 };
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** Returns the PMC_MODELTYPE label for the PMC_MODELTYPE id
+ */
+DataMap.ModelTypeLabel = (id) => {
+  let key = Object.keys(PMC_MODELTYPES).find(key => PMC_MODELTYPES[key].id === id);
+  return key ? PMC_MODELTYPES[key].label : undefined;
+}
 
 /// INITIALIZATION ////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

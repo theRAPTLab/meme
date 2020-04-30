@@ -40,14 +40,23 @@ const DEFAULTS = {
     DumpObj
   },
   COLOR: {
-    MECH: 'orange',
+    MECH: '#F70',
     MECH_SEL: '#44F',
     MECH_HOV: '#FFC78F',
+    MECH_LINK: '#FF990066',
     MECH_LABEL: '#FF6600',
     MECH_LABEL_BG: 'rgba(240,240,255,0.9)', // match background of svg
-    PROP: '#44F',
+    MECH_TOOLSPANEL_BG: '#FFF3E0',
+    PROP: '#08F',
     PROP_SEL: '#44F',
-    PROP_HOV: '#FFA244',
+    PROP_HOV: '#26F',
+    PROP_LINK: '#0088FF66',
+    PROP_TOOLSPANEL_BG: '#E3F2FD',
+    OUTCOME: '#62F',
+    OUTCOME_SEL: '#F3E',
+    OUTCOME_HOV: '#84F',
+    OUTCOME_LINK: '#6622FF66',
+    OUTCOME_TOOLSPANEL_BG: '#F3E5F5',
     STICKY_BUTTON: '#ffdd11'
   }
 };

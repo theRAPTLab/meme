@@ -1,11 +1,11 @@
-import { blue, green, grey, indigo, orange, red, teal, yellow } from '@material-ui/core/colors';
+import { blue, green, grey, indigo, orange, purple, red, teal, yellow } from '@material-ui/core/colors';
 import { registerMorphableType } from '@svgdotjs/svg.js/src/main';
 import { Hidden } from '@material-ui/core';
 import DEFAULTS from '../modules/defaults';
 
 const { COLOR } = DEFAULTS;
 
-const m_drawerWidth = 100;
+const m_drawerWidth = 110;
 const m_primary = indigo[500];
 const m_selectedColor = indigo[800];
 const m_evidenceColor = teal[100];
@@ -66,10 +66,6 @@ const styles = theme => {
       flex: 1,
       backgroundColor: '#f0f0ff'
     },
-    fab: {
-      margin: theme.spacing(2),
-      marginBottom: '8px'
-    },
     projectTitle: {
       backgroundColor: 'transparent'
     },
@@ -77,43 +73,46 @@ const styles = theme => {
       color: '#fff',
       backgroundColor: 'transparent'
     },
+    toolsPanelGroup: {
+      width: '100%',
+      padding: '5px 0 10px 2px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    },
+    treeView: {
+      width: '100%'
+    },
     treeItem: {
-      margin: '0 2px 2px -24px',
-      padding: '2px',
+      margin: '0 0 2px -24px',
+      padding: '2px 0',
       fontSize: '10px',
       borderRadius: '2px',
       overflow: 'hidden',
       wordBreak: 'break-all',
       cursor: 'pointer'
     },
-    treeItemHovered: {
-      border: '2px solid',
-      borderColor: orange[800]
-    },
-    treeItemSelected: {
-      border: '2px solid',
-      borderColor: m_selectedColor
-    },
-    treePropItem: {
-      color: indigo[600],
-      backgroundColor: indigo[50]
-    },
+    treeItemSelected: {},
     treePropItemColor: {
-      color: indigo[600]
+      color: COLOR.PROP,
+      backgroundColor: COLOR.PROP_TOOLSPANEL_BG // necessary to trigger hover brightness filter
+    },
+    treeOutcomeItemColor: {
+      color: COLOR.OUTCOME,
+      backgroundColor: COLOR.OUTCOME_TOOLSPANEL_BG // necessary to trigger hover brightness filter
     },
     treeSubPropItem: {
-      marginLeft: '0.5em',
+      margin: '0 0 0 0.5em',
       fontSize: '10px',
       fontStyle: 'italic',
-      color: indigo[300]
+      backgroundColor: 'inherit' // necessary to trigger hover brightness filter
     },
     treeMechItem: {
-      color: orange[800],
-      backgroundColor: orange[50]
+      color: COLOR.MECH,
+      backgroundColor: COLOR.MECH_TOOLSPANEL_BG
     },
-    edgeButton: {
-      backgroundColor: orange[500],
-      '&:hover': { backgroundColor: orange[700] }
+    treeItemHovered: {
+      filter: 'brightness(90%) saturate(200%)'
     },
     edgeDialogWindowLabel: {
       fontSize: m_systemLabelFontSize,
@@ -405,14 +404,25 @@ const styles = theme => {
       overflow: 'hidden'
     },
     evidenceLinkSourcePropAvatarSelected: {
-      color: indigo[900],
-      backgroundColor: indigo[100],
-      padding: '0 7px'
+      color: '#fff',
+      backgroundColor: COLOR.PROP
+    },
+    evidenceLinkSourcePropAvatarDisabled: {
+      backgroundColor: COLOR.PROP_LINK
+    },
+    evidenceLinkSourceOutcomeAvatarSelected: {
+      color: '#fff',
+      backgroundColor: COLOR.OUTCOME
+    },
+    evidenceLinkSourceOutcomeAvatarDisabled: {
+      backgroundColor: COLOR.OUTCOME_LINK
     },
     evidenceLinkSourceMechAvatarSelected: {
-      color: orange[900],
-      backgroundColor: orange[100],
-      padding: '0 7px'
+      color: '#fff',
+      backgroundColor: COLOR.MECH
+    },
+    evidenceLinkSourceMechAvatarDisabled: {
+      backgroundColor: COLOR.MECH_LINK
     },
     ratingIconSelected: {
       color: yellow[800]
@@ -527,7 +537,8 @@ const styles = theme => {
     },
     helpViewText: {
       display: 'block', // override default MDReactComponent <span>
-      padding: '10px 0 5px 0'
+      padding: '10px 0 5px 0',
+      fontSize: '11px'
     },
     screenshotViewPaper: {
       position: 'absolute',
@@ -563,10 +574,13 @@ const styles = theme => {
       color: 'white'
     },
     descriptionViewPaperPropColor: {
-      backgroundColor: indigo[400]
+      backgroundColor: COLOR.PROP
+    },
+    descriptionViewPaperOutcomeColor: {
+      backgroundColor: COLOR.OUTCOME
     },
     descriptionViewPaperMechColor: {
-      backgroundColor: orange[800]
+      backgroundColor: COLOR.MECH
     },
     descriptionViewText: {
       display: 'block', // override default MDReactComponent <span>

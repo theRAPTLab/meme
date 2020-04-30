@@ -58,6 +58,7 @@ import RoutedView from './RoutedView';
 import DATA from '../../modules/data';
 import ADM from '../../modules/data';
 import ASET from '../../modules/adm-settings';
+import DATAMAP from '../../../system/common-datamap';
 import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -87,6 +88,7 @@ class ViewMain extends React.Component {
     this.OnChangeModelTitle = this.OnChangeModelTitle.bind(this);
     this.DoSaveModelTitle = this.DoSaveModelTitle.bind(this);
     this.DoSubmitModelTitleForm = this.DoSubmitModelTitleForm.bind(this);
+    this.OnOutcomeAdd = this.OnOutcomeAdd.bind(this);
     this.OnPropAdd = this.OnPropAdd.bind(this);
     this.OnPropDelete = this.OnPropDelete.bind(this);
     this.OnAddPropComment = this.OnAddPropComment.bind(this);
@@ -108,6 +110,7 @@ class ViewMain extends React.Component {
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Subscribe('MODEL_TITLE_UPDATED', this.DoModelTitleUpdate);
+    UR.Subscribe('OUTCOME_ADD', this.OnOutcomeAdd);
     UR.Subscribe('PROP_ADD', this.OnComponentAdd);
     UR.Subscribe('PROPDIALOG_CLOSE', this.OnPropDialogClose);
     UR.Subscribe('MECH_ADD', this.OnMechAdd);
@@ -127,7 +130,8 @@ class ViewMain extends React.Component {
       addEdgeOpen: false,
       addEdgeSource: '', // Add Mech Dialog
       addEdgeTarget: '', // Add Mech Dialog
-      componentIsSelected: false, // A component or property has been selected by user.  Used for pro-centric actions.
+      componentIsSelected: false, // A component or component property has been selected by user.  Used for pro-centric actions.
+      outcomeIsSelected: false, // A outcome or outcome property has been selected by user.  Used for pro-centric actions.
       mechIsSelected: false // A mechanism is slected by user.  Used for mech-centric actions.
     };
   }
@@ -149,6 +153,7 @@ class ViewMain extends React.Component {
     UR.Unsubscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Unsubscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Unsubscribe('MODEL_TITLE_UPDATED', this.DoModelTitleUpdate);
+    UR.Unsubscribe('OUTCOME_ADD', this.OnOutcomeAdd);
     UR.Unsubscribe('PROP_ADD', this.OnComponentAdd);
     UR.Unsubscribe('PROPDIALOG_CLOSE', this.OnPropDialogClose);
     UR.Unsubscribe('MECH_ADD', this.OnMechAdd);
@@ -217,16 +222,24 @@ class ViewMain extends React.Component {
   DoSaveModelTitle() {
     ADM.DB_ModelTitleUpdate(this.state.modelId, this.state.title);
   }
-  
+
   DoSubmitModelTitleForm(e) {
     e.preventDefault();
     e.stopPropagation();
     document.activeElement.blur(); // will trigger save
   }
 
+  // User clicked on "(+) Add Outcome" drawer button
+  OnOutcomeAdd() {
+    UR.Publish('PROPDIALOG_OPEN', { isProperty: false, propType: DATAMAP.PMC_MODELTYPES.OUTCOME.id });
+    this.setState({
+      addPropOpen: true
+    });
+  }
+
   // User clicked on "(+) Add Component" drawer button
   OnComponentAdd() {
-    UR.Publish('PROPDIALOG_OPEN', { isProperty: false });
+    UR.Publish('PROPDIALOG_OPEN', { isProperty: false, propType: DATAMAP.PMC_MODELTYPES.COMPONENT.id });
     this.setState({
       addPropOpen: true
     });
@@ -234,7 +247,8 @@ class ViewMain extends React.Component {
 
   // User selected component/prop and clicked on "(+) Add Property Button"
   OnPropAdd() {
-    UR.Publish('PROPDIALOG_OPEN', { isProperty: true });
+    let propType = this.state.componentIsSelected ? DATAMAP.PMC_MODELTYPES.COMPONENT.id : DATAMAP.PMC_MODELTYPES.OUTCOME.id;
+    UR.Publish('PROPDIALOG_OPEN', { isProperty: true, propType });
     this.setState({
       addPropOpen: true
     });
@@ -249,6 +263,7 @@ class ViewMain extends React.Component {
       UR.Publish('PROPDIALOG_OPEN', {
         label: prop.name,
         propId,
+        propType: prop.propType,
         description: prop.description,
         isProperty: false
       });
@@ -444,8 +459,19 @@ class ViewMain extends React.Component {
     // If more than one component is selected, hide the component
     // editing buttons
     let componentIsSelected = false;
-    if (selectedPropIds.length === 1 && !this.state.addEdgeOpen) componentIsSelected = true;
-
+    let outcomeIsSelected = false;
+    if (selectedPropIds.length === 1 && !this.state.addEdgeOpen) {
+      let selectedProp = DATA.Prop(selectedPropIds[0]);
+      switch (selectedProp.propType) {
+        case DATAMAP.PMC_MODELTYPES.OUTCOME.id:
+          outcomeIsSelected = true;
+          break;
+        default:
+        case DATAMAP.PMC_MODELTYPES.COMPONENT.id:
+          componentIsSelected = true;
+          break;
+      }
+    }
     // Set mechIsSelected for Mech Editing
     // If more than one mech is selected, hide the mech
     // editing buttons
@@ -457,6 +483,7 @@ class ViewMain extends React.Component {
       addEdgeSource: sourceId,
       addEdgeTarget: targetId,
       componentIsSelected,
+      outcomeIsSelected,
       mechIsSelected
     });
   }
@@ -472,7 +499,7 @@ class ViewMain extends React.Component {
     UR.Publish('RATING_CLOSE');
     ADM.Logout();
   }
-  
+
   OnHelp() {
     UR.Publish('HELP_OPEN');
   }
@@ -492,6 +519,7 @@ class ViewMain extends React.Component {
       addPropOpen,
       addEdgeOpen,
       componentIsSelected,
+      outcomeIsSelected,
       mechIsSelected,
       suppressSelection
     } = this.state;
@@ -500,9 +528,9 @@ class ViewMain extends React.Component {
     const model = ADM.GetModelById(modelId);
     const classroomId = model ? ADM.GetClassroomIdByGroup(model.groupId) : '';
     const resources = classroomId !== '' ? ADM.GetResourcesForClassroom(classroomId) : [];
-    
+
     const isViewOnly = ADM.IsViewOnly();
-    
+
     return (
       <div className={classes.root}>
         <CssBaseline />
@@ -658,8 +686,8 @@ class ViewMain extends React.Component {
           hidden={suppressSelection}
         >
           <Fab
-            hidden={!(componentIsSelected || mechIsSelected) || isViewOnly}
-            onClick={componentIsSelected ? this.OnPropDelete : this.OnMechDelete}
+            hidden={!(componentIsSelected || outcomeIsSelected || mechIsSelected) || isViewOnly}
+            onClick={ (componentIsSelected || outcomeIsSelected) ? this.OnPropDelete : this.OnMechDelete}
             color="secondary"
             variant="extended"
             size="small"
@@ -668,16 +696,20 @@ class ViewMain extends React.Component {
             &nbsp;&nbsp;Delete&nbsp;
           </Fab>
           <Fab
-            hidden={!(componentIsSelected || mechIsSelected) || isViewOnly}
-            onClick={componentIsSelected ? this.DoPropEdit : this.OnMechEdit}
+            hidden={!(componentIsSelected || outcomeIsSelected || mechIsSelected) || isViewOnly}
+            onClick={(componentIsSelected || outcomeIsSelected) ? this.DoPropEdit : this.OnMechEdit}
             color="primary"
             variant="extended"
           >
             <EditIcon />
-            &nbsp;&nbsp;Edit {componentIsSelected ? 'Component / Property' : 'Mechanism'}
+            &nbsp;&nbsp;Edit {componentIsSelected
+              ? DATAMAP.PMC_MODELTYPES.COMPONENT.label
+              : outcomeIsSelected
+                ? DATAMAP.PMC_MODELTYPES.OUTCOME.label
+                : DATAMAP.PMC_MODELTYPES.MECHANISM.label}
           </Fab>
           <Fab
-            hidden={!componentIsSelected || isViewOnly}
+            hidden={!(componentIsSelected || outcomeIsSelected) || isViewOnly}
             onClick={this.OnPropAdd}
             color="primary"
             variant="extended"
@@ -685,8 +717,8 @@ class ViewMain extends React.Component {
             <AddIcon /> Add property
           </Fab>
           <Fab
-            hidden={!(componentIsSelected || mechIsSelected)}
-            onClick={componentIsSelected ? this.OnAddPropComment : this.OnAddMechComment}
+            hidden={!(componentIsSelected || outcomeIsSelected || mechIsSelected)}
+            onClick={(componentIsSelected || outcomeIsSelected) ? this.OnAddPropComment : this.OnAddMechComment}
             variant="extended"
           >
             <ChatBubbleOutlineIcon htmlColor={yellow[800]} />

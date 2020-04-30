@@ -28,6 +28,7 @@ import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import DATA from '../modules/data';
 import ASET from '../modules/adm-settings';
+import DATAMAP from '../../system/common-datamap';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -44,7 +45,7 @@ class PropDialog extends React.Component {
     this.DoClose = this.DoClose.bind(this);
     this.OnLabelChange = this.OnLabelChange.bind(this);
     this.OnDescriptionChange = this.OnDescriptionChange.bind(this);
-    this.OnClick = this.OnClick.bind(this);
+    this.OnSubmit = this.OnSubmit.bind(this);
 
     this.state = {
       isOpen: false,
@@ -66,6 +67,7 @@ class PropDialog extends React.Component {
       this.setState({
         isOpen: true,
         propId: data.propId || '', // new prop, so clear propId
+        propType: data.propType || DATAMAP.PMC_MODELTYPES.COMPONENT.id,
         label: data.label || '', // clear the old property name
         description: data.description || '',
         isProperty: data.isProperty
@@ -83,16 +85,18 @@ class PropDialog extends React.Component {
         status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
         if (rdata.success) {
           console.log('do something here because u-locked!');
+          console.log('propsdialog editing', data);
           this.setState({
             isOpen: true,
             propId: data.propId || '', // new prop, so clear propId
+            propType: data.propType || DATAMAP.PMC_MODELTYPES.COMPONENT.id, // default to component for backward compatibility
             label: data.label || '', // clear the old property name
             description: data.description || '',
             isProperty: data.isProperty
           });
         } else {
           console.log('aw, locked by', rdata.lockedBy);
-          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Component / Property right now.  Please try again later.`)
+          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this ${data.propType} right now.  Please try again later.`)
           UR.Publish('PROPDIALOG_CLOSE'); // tell ViewMain to re-enable ToolsPanel
         }
       });
@@ -114,11 +118,11 @@ class PropDialog extends React.Component {
     this.setState({ description: e.target.value });
   }
 
-  OnClick(e) {
+  OnSubmit(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    const { propId, label, description, isProperty } = this.state;
+    const { propId, propType, label, description, isProperty } = this.state;
 
     if (DBG) console.log('create prop');
     if (isProperty) {
@@ -128,31 +132,32 @@ class PropDialog extends React.Component {
         let parentPropId = selectedPropIds[0];
         if (DBG) console.log('...setting parent of', label, 'to', parentPropId);
         // Create new prop
-        const propObj = { name: label, description, parent: parentPropId };
+        const propObj = { name: label, propType, description, parent: parentPropId };
         DATA.PMC_PropAdd(propObj);
       }
     } else if (propId !== '') {
       // Update existing prop
-      const propObj = { name: label, description };
+      const propObj = { name: label, propType, description };
       DATA.PMC_PropUpdate(propId, propObj);
     } else {
       // Create new prop
-      const propObj = { name: label, description };
+      const propObj = { name: label, propType, description };
       DATA.PMC_PropAdd(propObj);
     }
     this.DoClose();
   }
 
   render() {
-    const { isOpen, propId, label, description, isProperty } = this.state;
+    const { isOpen, propId, propType, label, description, isProperty } = this.state;
     const { classes } = this.props;
+    const propTypeLabel = DATAMAP.ModelTypeLabel(propType) + (isProperty ? ' property' : '');
 
     return (
       <Dialog open={isOpen} onClose={this.DoClose} aria-labelledby="form-dialog-title">
-        <form onSubmit={this.OnClick}>
-          <DialogTitle id="form-dialog-title">Add Component/Property</DialogTitle>
+        <form onSubmit={this.OnSubmit}>
+          <DialogTitle id="form-dialog-title">Add {propTypeLabel}</DialogTitle>
           <DialogContent>
-            <DialogContentText>Type a name for your component or property.</DialogContentText>
+            <DialogContentText>Type a name for your {propTypeLabel}.</DialogContentText>
             <TextField
               autoFocus
               margin="dense"
@@ -162,6 +167,7 @@ class PropDialog extends React.Component {
               onChange={this.OnLabelChange}
               value={label}
             />
+            <br /><br />
             <DialogContentText>Add a description.</DialogContentText>
             <TextField
               margin="dense"
