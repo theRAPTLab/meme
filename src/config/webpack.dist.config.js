@@ -32,6 +32,8 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const baseConfig = require('./webpack.base.config');
 const PROMPTS = require('../system/util/prompts');
 //
+const PACKAGE = require('../../package.json');
+//
 const { CW, CR } = PROMPTS;
 const PR = `${CW}${PROMPTS.Pad('webpack')}${CR}
 `;
@@ -115,7 +117,10 @@ const electronConfiguration = env => {
     }),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify('development'),
-      __REACT_DEVTOOLS_GLOBAL_HOOK__: '({ isDisabled: true })'
+      __REACT_DEVTOOLS_GLOBAL_HOOK__: '({ isDisabled: true })',
+      PACKAGE_TITLE: JSON.stringify(PACKAGE.title),
+      PACKAGE_VERSION: JSON.stringify(PACKAGE.version),
+      PACKAGE_DESCRIPTION: JSON.stringify(PACKAGE.description)
     }),
     new CopyWebpackPlugin([
       {

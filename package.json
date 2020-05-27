@@ -1,7 +1,8 @@
 {
   "name": "meme-boilerplate",
-  "version": "0.0.1",
-  "description": "Boilerplate for LAN webapps served by an Electron host",
+  "version": "1.2.0-alpha.1",
+  "title": "MEME",
+  "description": "Model and Evidence Mapping Environment",
   "repository": {
     "type": "git",
     "url": "https://gitlab.com/inq-seeds/boilerplate.git"

@@ -48,15 +48,18 @@ const App = withStyles(styles)(props => {
       <CssBaseline />
       <AppBar position="static">
         <Toolbar variant="dense">
-          <IconButton className={classes.menuButton} color="inherit" aria-label="Menu">
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" color="inherit">
-            MEME SERVER
+          <Typography variant="h4" color="inherit">
+            {PACKAGE_TITLE} {PACKAGE_VERSION}
           </Typography>
         </Toolbar>
       </AppBar>
-      <Typography style={{ padding: '1em' }}>
+      <Paper style={{ padding: '0.5em 24px', borderRadius: 0 }}>
+        <Typography>{PACKAGE_DESCRIPTION}</Typography>
+      </Paper>
+      <Typography variant="h6" style={{ padding: '1.5em 0 0 24px' }}>
+        Connection Instructions:
+      </Typography>
+      <Typography style={{ padding: '1em 0 2em 24px' }}>
         Admin: open <b>{main}/#/admin</b>
         <br />
         Students: open <b>{client}</b>

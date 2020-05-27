@@ -21,8 +21,11 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const PROMPTS = require('../system/util/prompts');
 //
+const PACKAGE = require('../../package.json');
+//
 const { CW, CR } = PROMPTS;
 const PR = `${CW}${PROMPTS.Pad('webpack')}${CR}`;
+//
 
 /// CONSTANTS ///////////////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -48,7 +51,10 @@ const electronRendererConfig = env => {
     }),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify('development'),
-      COMPILED_BY: JSON.stringify('console.config.js')
+      COMPILED_BY: JSON.stringify('console.config.js'),
+      PACKAGE_TITLE: JSON.stringify(PACKAGE.title),
+      PACKAGE_VERSION: JSON.stringify(PACKAGE.version),
+      PACKAGE_DESCRIPTION: JSON.stringify(PACKAGE.description)
     }),
     new CopyWebpackPlugin([
       {
