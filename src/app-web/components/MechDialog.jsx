@@ -15,6 +15,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
+import DialogContentText from '@material-ui/core/DialogContentText';
 import Paper from '@material-ui/core/Paper';
 import Slide from '@material-ui/core/Slide';
 import TextField from '@material-ui/core/TextField';
@@ -423,7 +424,10 @@ class MechDialog extends React.Component {
       <Card className={classes.edgeDialog} hidden={!isOpen}>
         <Paper className={classes.edgeDialogPaper}>
           <form onSubmit={this.OnCreateClick}>
-            <div className={classes.edgeDialogWindowLabel}>ADD {DATAMAP.PMC_MODELTYPES.MECHANISM.label.toUpperCase()}</div>
+            <div className={classes.edgeDialogWindowLabel}>
+              ADD {DATAMAP.PMC_MODELTYPES.MECHANISM.label.toUpperCase()}<br />
+              <div>{DATAMAP.PMC_MODELTYPES.MECHANISM.description}</div>
+            </div>
             <div className={classes.edgeDialogInput}>
               <Slide direction={reversing ? 'left' : 'up'} in={slideIn}>
                 <LinkButton

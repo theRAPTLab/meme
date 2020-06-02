@@ -7,6 +7,7 @@
 /// LIBRARIES /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import React from 'react';
+import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import ClassNames from 'classnames';
 // Material UI Theming
@@ -15,7 +16,8 @@ import { withStyles } from '@material-ui/core/styles';
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Material UI Elements
-import { blue, orange, purple } from '@material-ui/core/colors';
+import { indigo } from '@material-ui/core/colors';
+import Button from '@material-ui/core/Button';
 import Divider from '@material-ui/core/Divider';
 import Drawer from '@material-ui/core/Drawer';
 import Fab from '@material-ui/core/Fab';
@@ -23,8 +25,8 @@ import Tooltip from '@material-ui/core/Tooltip';
 import TreeView from '@material-ui/lab/TreeView';
 import TreeItem from '@material-ui/lab/TreeItem';
 import Typography from '@material-ui/core/Typography';
-
 // Material UI Icons
+import DoubleArrowIcon from '@material-ui/icons/DoubleArrow';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 // MEME Modules and Utils
@@ -292,7 +294,7 @@ class ToolsPanel extends React.Component {
   }
 
   render() {
-    const { classes, isDisabled } = this.props;
+    const { classes, isDisabled, isOpen, toggleOpen } = this.props;
 
     const outcomesList = this.RenderComponentsList(DATA.Components(), DATAMAP.PMC_MODELTYPES.OUTCOME.id);
     const componentsList = this.RenderComponentsList(DATA.Components(), DATAMAP.PMC_MODELTYPES.COMPONENT.id);
@@ -303,90 +305,113 @@ class ToolsPanel extends React.Component {
     return (
       <Drawer
         className={classes.drawer}
-        variant="permanent"
+        variant="persistent"
         classes={{
           paper: classes.drawerPaper
         }}
         anchor="left"
+        open={isOpen}
       >
-        <div className={classes.toolsPanelGroup} style={{ backgroundColor: COLOR.OUTCOME_TOOLSPANEL_BG }}>
-          <TreeView
-            defaultCollapseIcon={<ExpandMoreIcon />}
-            defaultExpandIcon={<ChevronRightIcon />}
-            className={classes.treeView}
-          >
-            <SmallTreeItem nodeId={'outcomes'} label={DATAMAP.PMC_MODELTYPES.OUTCOME.plural.toUpperCase()}>
-              {outcomesList}
-            </SmallTreeItem>
-          </TreeView>
-          <SmallFab
-            color="inherit"
-            size="small"
-            variant="extended"
-            aria-label="Add"
-            onClick={this.OnOutcomeAdd}
-            disabled={isDisabled}
-            hidden={isViewOnly}
-            style={{ backgroundColor: COLOR.OUTCOME }}
-          >
-            Add {DATAMAP.PMC_MODELTYPES.OUTCOME.label}
-          </SmallFab>
+        <div className={clsx(classes.drawerAppBar, classes.toolsPanelAppBar)}>
+          <Button onClick={toggleOpen} color="inherit" size="small" style={{ width: '100%' }}>
+            <DoubleArrowIcon style={{ transform: 'rotate(180deg)' }} />
+            <div style={{ width: '100%', textAlign: 'left' }}></div>
+          </Button>
         </div>
+        <div className={classes.toolsPanelList}>
 
-        <div className={classes.toolsPanelGroup} style={{ backgroundColor: COLOR.MECH_TOOLSPANEL_BG }}>
-          <TreeView
-            defaultExpanded={['mechanisms']}
-            defaultCollapseIcon={<ExpandMoreIcon />}
-            defaultExpandIcon={<ChevronRightIcon />}
-            className={classes.treeView}
+          <div
+            className={classes.toolsPanelGroup}
+            style={{ backgroundColor: COLOR.OUTCOME_TOOLSPANEL_BG }}
           >
-            <SmallTreeItem
-              nodeId={'mechanisms'}
-              label={DATAMAP.PMC_MODELTYPES.MECHANISM.plural.toUpperCase()}
+            <TreeView
+              defaultCollapseIcon={<ExpandMoreIcon />}
+              defaultExpandIcon={<ChevronRightIcon />}
+              className={classes.treeView}
             >
-              {mechanismsList}
-            </SmallTreeItem>
-          </TreeView>
-          <SmallFab
-            color="inherit"
-            size="small"
-            variant="extended"
-            aria-label="Add"
-            onClick={this.OnMechAdd}
-            disabled={isDisabled}
-            hidden={isViewOnly}
-            style={{ backgroundColor: COLOR.MECH }}
-          >
-            Add {DATAMAP.PMC_MODELTYPES.MECHANISM.label}
-          </SmallFab>
-        </div>
+              <SmallTreeItem
+                nodeId={'outcomes'}
+                label={DATAMAP.PMC_MODELTYPES.OUTCOME.plural.toUpperCase()}
+              >
+                {outcomesList}
+              </SmallTreeItem>
+            </TreeView>
+            <SmallFab
+              color="inherit"
+              size="small"
+              variant="extended"
+              aria-label="Add"
+              onClick={this.OnOutcomeAdd}
+              disabled={isDisabled}
+              hidden={isViewOnly}
+              style={{ backgroundColor: COLOR.OUTCOME }}
+            >
+              Add {DATAMAP.PMC_MODELTYPES.OUTCOME.label}
+            </SmallFab>
+          </div>
 
-        <div className={classes.toolsPanelGroup} style={{ backgroundColor: COLOR.PROP_TOOLSPANEL_BG }}>
-          <TreeView
-            defaultCollapseIcon={<ExpandMoreIcon />}
-            defaultExpandIcon={<ChevronRightIcon />}
-            className={classes.treeView}
+          <div
+            className={classes.toolsPanelGroup}
+            style={{ backgroundColor: COLOR.MECH_TOOLSPANEL_BG }}
           >
-            <SmallTreeItem
-              nodeId={'components'}
-              label={DATAMAP.PMC_MODELTYPES.COMPONENT.plural.toUpperCase()}
+            <TreeView
+              defaultExpanded={['mechanisms']}
+              defaultCollapseIcon={<ExpandMoreIcon />}
+              defaultExpandIcon={<ChevronRightIcon />}
+              className={classes.treeView}
             >
-              {componentsList}
-            </SmallTreeItem>
-          </TreeView>
-          <SmallFab
-            color="inherit"
-            size="small"
-            variant="extended"
-            aria-label="Add"
-            className={classes.fab}
-            onClick={this.OnComponentAdd}
-            disabled={isDisabled}
-            hidden={isViewOnly}
-            style={{ backgroundColor: COLOR.PROP }}
+              <SmallTreeItem
+                nodeId={'mechanisms'}
+                label={DATAMAP.PMC_MODELTYPES.MECHANISM.plural.toUpperCase()}
+              >
+                {mechanismsList}
+              </SmallTreeItem>
+            </TreeView>
+            <SmallFab
+              color="inherit"
+              size="small"
+              variant="extended"
+              aria-label="Add"
+              onClick={this.OnMechAdd}
+              disabled={isDisabled}
+              hidden={isViewOnly}
+              style={{ backgroundColor: COLOR.MECH }}
+            >
+              Add {DATAMAP.PMC_MODELTYPES.MECHANISM.label}
+            </SmallFab>
+          </div>
+
+          <div
+            className={classes.toolsPanelGroup}
+            style={{ backgroundColor: COLOR.PROP_TOOLSPANEL_BG }}
           >
-            Add {DATAMAP.PMC_MODELTYPES.COMPONENT.label}
-          </SmallFab>
+            <TreeView
+              defaultCollapseIcon={<ExpandMoreIcon />}
+              defaultExpandIcon={<ChevronRightIcon />}
+              className={classes.treeView}
+            >
+              <SmallTreeItem
+                nodeId={'components'}
+                label={DATAMAP.PMC_MODELTYPES.COMPONENT.plural.toUpperCase()}
+              >
+                {componentsList}
+              </SmallTreeItem>
+            </TreeView>
+            <SmallFab
+              color="inherit"
+              size="small"
+              variant="extended"
+              aria-label="Add"
+              className={classes.fab}
+              onClick={this.OnComponentAdd}
+              disabled={isDisabled}
+              hidden={isViewOnly}
+              style={{ backgroundColor: COLOR.PROP }}
+            >
+              Add {DATAMAP.PMC_MODELTYPES.COMPONENT.label}
+            </SmallFab>
+          </div>
+
         </div>
       </Drawer>
     );

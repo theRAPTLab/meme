@@ -109,7 +109,7 @@ class StickyNote extends React.Component {
 
   DoOpenSticky() {
     const { comment } = this.props;
-    const criteria = ADM.GetCriteriaByClassroom();
+    const criteria = ADM.GetCriteriaByModel(); // always use the current model's criteria
     const currentGroup = ADM.GetGroupByStudent();
     const authorGroup = ADM.GetGroupByStudent(comment.author);
     const isAuthor = currentGroup === authorGroup;

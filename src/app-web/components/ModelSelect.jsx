@@ -76,11 +76,6 @@ class ModelSelect extends React.Component {
 
   DoModelDialogOpen() {
     if (ADM.GetSelectedModelId() !== undefined) {
-      console.log(
-        '@@@@@@ ModelSelect opening b/c of ADMDAataUpdate, selecteModelId is"',
-        ADM.GetSelectedModelId(),
-        '"'
-      );
       const studentId = ADM.GetAuthorId();
       const groupName = ADM.GetGroupNameByStudent(studentId);
       const classroomName = ADM.GetClassroomNameByStudent(studentId);

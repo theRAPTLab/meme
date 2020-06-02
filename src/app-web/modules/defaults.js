@@ -58,6 +58,9 @@ const DEFAULTS = {
     OUTCOME_LINK: '#6622FF66',
     OUTCOME_TOOLSPANEL_BG: '#F3E5F5',
     STICKY_BUTTON: '#ffdd11'
+  },
+  TEXT: {
+    ADD_EVIDENCE: 'Link Evidence'
   }
 };
 

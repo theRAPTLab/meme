@@ -77,7 +77,7 @@ class VBadge {
     pt.x = mouseEvent.clientX;
     pt.y = mouseEvent.clientY;
     let svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
-    
+
     // Which component got the click?
     if (this.gStickyButtons && this.gStickyButtons.inside(svgPt.x, svgPt.y)) {
       // StickyButton got the click
@@ -102,7 +102,7 @@ class VBadge {
     this.height = vparent.height;
     this.Draw(vparent);
   }
-  
+
   /**
    * Returns the actual width of badges.  Used by parent component when resizing
    * to account for width of badges. (`this.width` is set to be as wide as parent
@@ -220,7 +220,7 @@ class VBadge {
     // Move gStickyButtons only AFTER setting display state, otherwise, the icon will get drawn at 0,0
     if (isVMech) {
       // left-justified
-      this.gStickyButtons.move(baseX + xx + this.gStickyButtons.bbox().w + m_pad, baseY); // always move in case evlink badges change      
+      this.gStickyButtons.move(baseX + xx + this.gStickyButtons.bbox().w + m_pad, baseY); // always move in case evlink badges change
     } else {
       // right-justified
       this.gStickyButtons.move(baseX + xx - this.gStickyButtons.bbox().w - m_pad, baseY); // always move in case evlink badges change
@@ -299,13 +299,13 @@ VBadge.SVGEvLink = (evlink, vparent) => {
 
   gBadge.gLabel = gBadge
     .text(evlink.numberLabel)
-    .font({ fill: '#fff', size: '1em', anchor: 'middle' })
-    .move(m_pad, m_pad / 2)
+    .font({ fill: '#fff', size: '12px', anchor: 'middle' })
+    .dmove(radius / 2, 2)
     .attr({ cursor: 'pointer' });
 
   gBadge.gRating = VBadge.SVGRating(evlink, gBadge).move(
-    (3 - Math.max(1, Math.abs(evlink.rating))) * 4, // always shift at least 1 symbol, since no rating is 0
-    radius
+    1 + (3 - Math.max(1, Math.abs(evlink.rating))) * 4, // always shift at least 1 symbol, since no rating is 0
+    radius + 1
   );
 
   return gBadge;
@@ -325,7 +325,7 @@ VBadge.SVGRating = (evlink, gBadge) => {
     for (let i = 0; i < rating; i++) {
       gRatings
         .use(SVGSYMBOLS.get('ratingsPositive'))
-        .move(i * (5 + m_pad), m_pad)
+        .dmove(i * (5 + m_pad / 2), 0)
         .scale(0.4);
     }
   } else if (rating < 0) {
@@ -333,14 +333,14 @@ VBadge.SVGRating = (evlink, gBadge) => {
     for (let i = 0; i < -rating; i++) {
       gRatings
         .use(SVGSYMBOLS.get('ratingsNegative'))
-        .move(i * (5 + m_pad), m_pad)
+        .dmove(i * (5 + m_pad / 2), 0)
         .scale(0.4);
     }
   } else {
     // Not Rated
     gRatings
       .use(SVGSYMBOLS.get('ratingsNeutral'))
-      .move(m_pad, m_pad)
+      .move(m_pad / 2 - 1, 0)
       .scale(0.4);
   }
 
@@ -351,7 +351,7 @@ VBadge.SVGRating = (evlink, gBadge) => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  *  Creates and returns a sticky button group object with three buttons to turn on/off
- * 
+ *
  *  Click Events
  *  VProp's drag handler prevents click and mouseup events from propagating
  *  down to the gStickyButtons group.

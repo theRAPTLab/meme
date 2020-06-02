@@ -10,8 +10,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Switch, Route } from 'react-router-dom';
 // Material UI Theming
-import { withStyles, createMuiTheme } from '@material-ui/core/styles';
-import { yellow } from '@material-ui/core/colors';
+import { withStyles } from '@material-ui/core/styles';
 
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -20,35 +19,12 @@ import Drawer from '@material-ui/core/Drawer';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
-import List from '@material-ui/core/List';
 import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
 import Button from '@material-ui/core/Button';
-import Fab from '@material-ui/core/Fab';
 import InputBase from '@material-ui/core/InputBase';
-// Material UI Icons
-import AddIcon from '@material-ui/icons/Add';
-import ChatBubbleOutlineIcon from '@material-ui/icons/ChatBubbleOutline';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
-import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
-import EditIcon from '@material-ui/icons/Edit';
-import MenuIcon from '@material-ui/icons/Menu';
-import ZoomInMapIcon from '@material-ui/icons/CenterFocusWeak';
-import ZoomOutMapIcon from '@material-ui/icons/ZoomOutMap';
 // MEME App Components
-import DescriptionView from '../../components/DescriptionView';
-import HelpView from '../../components/HelpView';
 import Login from '../../components/Login';
-import MechDialog from '../../components/MechDialog';
 import ModelSelect from '../../components/ModelSelect';
-import PropDialog from '../../components/PropDialog';
-import ResourceView from '../../components/ResourceView';
-import ResourceItem from '../../components/ResourceItem';
-import RatingsDialog from '../../components/RatingsDialog';
-import ScreenshotView from '../../components/ScreenshotView';
-import StickyNoteButton from '../../components/StickyNoteButton';
-import StickyNoteCollection from '../../components/StickyNoteCollection';
-import ToolsPanel from './ToolsPanel';
 // MEME Modules and Utils
 import MEMEStyles from '../../components/MEMEStyles';
 import UR from '../../../system/ursys';
@@ -57,6 +33,7 @@ import RoutedView from './RoutedView';
 import DATA from '../../modules/data';
 import ADM from '../../modules/data';
 import ASET from '../../modules/adm-settings';
+import DATAMAP from '../../../system/common-datamap';
 import { cssreact, cssdraw, cssalert } from '../../modules/console-styles';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
@@ -101,6 +78,7 @@ class PrintMain extends React.Component {
       studentId: '',
       studentName: '',
       studentGroup: '',
+      criteria: [],
       viewHeight: 0 // need to init this to prevent error with first render of resourceList
     };
   }
@@ -147,7 +125,8 @@ class PrintMain extends React.Component {
       isModelAuthor,
       studentId: userStudentId,
       studentName: ADM.GetLggedInUserName(),
-      studentGroup: ADM.GetLoggedInGroupName()
+      studentGroup: ADM.GetLoggedInGroupName(),
+      criteria: ADM.GetCriteriaByModel()
     });
   }
 
@@ -190,8 +169,17 @@ class PrintMain extends React.Component {
 
   /// PRINTING  /////////////////////////////////////////////////////////////////
   /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  RenderComponentsList(propIds) {
-    return propIds.map(propId => {
+  RenderComponentsList(propIds, filterByPropType) {
+    let relevantProps = propIds.filter(id => {
+      const prop = DATA.Prop(id);
+      if (filterByPropType === DATAMAP.PMC_MODELTYPES.COMPONENT.id) {
+        return prop.propType === DATAMAP.PMC_MODELTYPES.COMPONENT.id || prop.propType === undefined; // for backward compatibility
+        // project data that predated propTypes assumed all props were components
+      } else {
+        return prop.propType === filterByPropType;
+      }
+    });
+    return relevantProps.map(propId => {
       return this.RenderComponentsListItem(propId);
     });
   }
@@ -211,6 +199,7 @@ class PrintMain extends React.Component {
       <div key={propId} style={{ marginLeft: isSub ? '25px' : '10px' }}>
         <div>LABEL: {prop.name}</div>
         <div>DESCRIPTION: {prop.description}</div>
+        {this.RenderComments(propId)}
         <br />
         {children.length > 0
           ? children.map(childId => this.RenderComponentsListItem(childId, true))
@@ -229,16 +218,25 @@ class PrintMain extends React.Component {
       const targetObj = DATA.Prop(mechId.w);
       // protect against corrupt data
       const source = sourceObj ? sourceObj.name : 'missing prop';
+      const sourceType = sourceObj
+        ? sourceObj.propType !== undefined
+          ? DATAMAP.ModelTypeLabel( sourceObj.propType )
+          : DATAMAP.PMC_MODELTYPES.COMPONENT.label
+        : 'missing prop';
       const target = targetObj ? targetObj.name : 'missing prop';
+      const targetType = targetObj
+        ? targetObj.propType !== undefined
+          ? DATAMAP.ModelTypeLabel( targetObj.propType )
+          : DATAMAP.PMC_MODELTYPES.COMPONENT.label
+        : 'missing prop';
       i++;
       return (
-        <div
-          key={`mech${i}`}
-          style={{ marginLeft: '10px' }}
-        >
-          <div>SOURCE: {source}</div>
-          <div>TARGET: {target}</div>
+        <div key={`mech${i}`} style={{ marginLeft: '10px' }}>
+          <div>SOURCE: {sourceType}/{source}</div>
+          <div>TARGET: {targetType}/{target}</div>
           <div>LABEL: {mech.name}</div>
+          <div>DESCRIPTION: {mech.description}</div>
+          {this.RenderComments(mech.id)}
           <br />
         </div>
       );
@@ -255,20 +253,23 @@ class PrintMain extends React.Component {
       month: 'short',
       day: 'numeric'
     });
+    const selectedCriteria = this.state.criteria.find(crit => crit.id === comment.criteriaId);
+    const criteriaLabel = selectedCriteria !== undefined ? selectedCriteria.label + ': ' : '';
+    const criteriaDescription = selectedCriteria !== undefined ? selectedCriteria.description: '';
     return (
       <div key={index}>
         <br />
         <div>AUTHOR: {comment.author}</div>
         <div>DATE: {timestring} {datestring}</div>
+        <div>COMMENT CRITERIA: {criteriaLabel}{criteriaDescription}</div>
         <div>COMMENT: {comment.text}</div>
-        <div>CRITERIA: {comment.criteriaId}</div>
       </div>
     );
   }
 
   RenderComments(refId) {
     const comments = DATA.GetComments(refId);
-    return <div>COMMENTS: {comments.map((comment, i) => this.RenderComment(comment, i))}</div>;
+    return <div style={{ marginLeft: '25px' }}>COMMENTS: {comments.map((comment, i) => this.RenderComment(comment, i))}</div>;
   }
 
   RenderEvidence(evlink, index) {
@@ -276,10 +277,12 @@ class PrintMain extends React.Component {
     let sourceType;
     let sourceLabel;
     if (propId !== undefined && propId !== null && DATA.HasProp(propId) && DATA.Prop(propId)) {
-      sourceType = 'prop';
+      console.log('evidence source is prop', DATA.Prop(propId));
+      sourceType = DATAMAP.ModelTypeLabel( DATA.Prop(propId).propType ) || DATAMAP.PMC_MODELTYPES.COMPONENT.label; // default to component for backward compatibility
       sourceLabel = DATA.Prop(propId).name;
     } else if (mechId !== undefined && mechId !== null && DATA.Mech(mechId)) {
-      sourceType = 'mech';
+      console.log('evidence source is mech', DATA.Mech(mechId));
+      sourceType = DATAMAP.PMC_MODELTYPES.MECHANISM.label;
       sourceLabel = DATA.Mech(mechId).name;
     } else {
       sourceType = 'missing source Type';
@@ -352,15 +355,9 @@ class PrintMain extends React.Component {
       modelAuthorGroupName,
       isModelAuthor,
       title,
-      studentId,
       studentName,
       studentGroup,
-      resourceLibraryIsOpen,
-      addPropOpen,
-      addEdgeOpen,
-      componentIsSelected,
-      mechIsSelected,
-      suppressSelection
+      resourceLibraryIsOpen
     } = this.state;
 
     // we need to use the model author here, not the currently logged in student.
@@ -371,7 +368,8 @@ class PrintMain extends React.Component {
     const isViewOnly = ADM.IsViewOnly();
 
     // print
-    const componentsList = this.RenderComponentsList(DATA.Components());
+    const componentsList = this.RenderComponentsList(DATA.Components(), DATAMAP.PMC_MODELTYPES.COMPONENT.id);
+    const outcomesList = this.RenderComponentsList(DATA.Components(), DATAMAP.PMC_MODELTYPES.OUTCOME.id);
     const mechanismsList = this.RenderMechanismsList(DATA.AllMechs());
     const resourcesList = this.RenderResourceList(resources);
 
@@ -471,13 +469,16 @@ class PrintMain extends React.Component {
             {this.RenderComments(modelId)}
             <br />
 
-            <h3>Components</h3>
+            <h3>{DATAMAP.PMC_MODELTYPES.COMPONENT.plural.toUpperCase()}</h3>
             {componentsList}
 
-            <h3>Mechanisms</h3>
+            <h3>{DATAMAP.PMC_MODELTYPES.OUTCOME.plural.toUpperCase()}</h3>
+            {outcomesList}
+
+            <h3>{DATAMAP.PMC_MODELTYPES.MECHANISM.plural.toUpperCase()}</h3>
             {mechanismsList}
 
-            <h3>Resource Library</h3>
+            <h3>RESOURCE LIBRARY</h3>
             {resourcesList}
           </div>
         </main>

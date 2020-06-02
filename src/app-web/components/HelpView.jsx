@@ -29,6 +29,8 @@ import { withStyles } from '@material-ui/core/styles';
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
 import ADM from '../modules/data';
+import DEFAULTS from '../modules/defaults';
+import UTILS from '../modules/utils';
 import CriteriaList from '../views/ViewAdmin/components/AdmCriteriaList';
 import DATAMAP from '../../system/common-datamap';
 
@@ -46,27 +48,47 @@ class HelpView extends React.Component {
     this.DoOpen = this.DoOpen.bind(this);
     this.DoClose = this.DoClose.bind(this);
 
+    const component = UTILS.InitialCaps(DATAMAP.PMC_MODELTYPES.COMPONENT.label);
+    const mechanism = UTILS.InitialCaps(DATAMAP.PMC_MODELTYPES.MECHANISM.label);
+    const outcome = UTILS.InitialCaps(DATAMAP.PMC_MODELTYPES.OUTCOME.label);
+
     this.state = {
       isOpen: false,
       helptext: `
-###### Create a ${DATAMAP.PMC_MODELTYPES.COMPONENT.label}
-1. Click on 'Add ${DATAMAP.PMC_MODELTYPES.COMPONENT.label}'
 
-###### Create a ${DATAMAP.PMC_MODELTYPES.MECHANISM.label}
-1. Click on 'Add ${DATAMAP.PMC_MODELTYPES.MECHANISM.label}'
-2. Click on the source ${DATAMAP.PMC_MODELTYPES.COMPONENT.label}/${DATAMAP.PMC_MODELTYPES.OUTCOME.label}/property
-3. Click on the target ${DATAMAP.PMC_MODELTYPES.COMPONENT.label}/${DATAMAP.PMC_MODELTYPES.OUTCOME.label}/property
+###### Definitions
+
+**${component}** -- ${DATAMAP.PMC_MODELTYPES.COMPONENT.description}
+
+**${mechanism}** -- ${DATAMAP.PMC_MODELTYPES.MECHANISM.description}
+
+**${outcome}** -- ${DATAMAP.PMC_MODELTYPES.OUTCOME.description}
+
+---
+
+###### Create an ${component} or ${outcome}
+1. Click on 'Add ${component}' or 'Add ${outcome}'
+2. Type in a label
+3. Type in a description, or you can add it later
+4. Click 'Create'
+
+###### Create a ${mechanism}
+1. Click on 'Add ${mechanism}'
+2. Click on the source ${component}/${outcome}/property
+3. Click on the target ${component}/${outcome}/property
 4. Type in a label
-5. Click 'Add'
+5. Type in a description, or you can add it later
+6. Click 'Add'
 
 ###### Create an Evidence Link
-Evidence Links should describe how a resource supports or contradicts your model's ${DATAMAP.PMC_MODELTYPES.COMPONENT.label}, ${DATAMAP.PMC_MODELTYPES.OUTCOME.label}, or ${DATAMAP.PMC_MODELTYPES.MECHANISM.label},
-1. View the Resource by clicking on it in the Resource Library.
-2. Click 'Create Evidence' button
-3. Type in a description.
-4. Click on 'Set Target' to close the resource view and select a ${DATAMAP.PMC_MODELTYPES.COMPONENT.label}, ${DATAMAP.PMC_MODELTYPES.OUTCOME.label}, or ${DATAMAP.PMC_MODELTYPES.MECHANISM.label}in your model.
-5. Give it a rating.
-6. Click 'Save'
+Evidence Links should describe how a resource supports or contradicts your model's ${component}, ${outcome}, or ${mechanism}
+1. View the Resource by clicking on it in the Resource Library
+2. Click '${DEFAULTS.TEXT.ADD_EVIDENCE}' button
+3. Type in a description
+4. Click on 'Set Target' to close the resource view and select a ${component}, ${outcome}, or ${mechanism}in your model.
+5. Give it a rating for how well it supports the element of the model
+6. Explain 'why' you think that raiting fits
+7. Click 'Save'
 
 ###### Add a Comment
 1. Click on the comment icon
@@ -93,7 +115,7 @@ Evidence Links should describe how a resource supports or contradicts your model
   render() {
     const { isOpen, helptext } = this.state;
     const { classes } = this.props;
-    const criteria = ADM.GetCriteriaByClassroom();
+    const criteria = ADM.GetCriteriaByModel(); // always use the current model's criteria
 
     return (
       <Draggable>
@@ -106,8 +128,8 @@ Evidence Links should describe how a resource supports or contradicts your model
             <CloseIcon />
           </IconButton>
           <Typography variant="h6">HELP</Typography>
-          <Divider style={{ marginBottom: '0.5em' }}/>
-          <div style={{ overflowY: 'scroll' }}>
+          <Divider style={{ marginBottom: '0.5em' }} />
+          <div style={{ overflowY: 'scroll', paddingRight: '5px' }}>
             <h6>Criteria</h6>
             <CriteriaList Criteria={criteria} IsInEditMode={false} />
             <MDReactComponent className={classes.helpViewText} text={helptext} />

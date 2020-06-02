@@ -50,6 +50,7 @@ See MechDialog and EvidenceLink for example implementations.
 /// LIBRARIES /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import React from 'react';
+import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import Button from '@material-ui/core/Button';
 import DATAMAP from '../../system/common-datamap';
@@ -69,7 +70,7 @@ const { COLOR } = DEFAULTS;
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const LButton = withStyles(theme => ({
   root: {
-    padding: '0 7px',
+    padding: '2px 7px',
     lineHeight: '1.2em',
     '&$disabled': {
       color: 'rgba(0,0,0,0.3)'
@@ -157,6 +158,7 @@ class LinkButton extends React.Component {
           root: evidenceLinkSelectButtonClass,
           disabled: classes.disabled
         }}
+        className={clsx({ [classes.evidenceLinkSelectButtonExpanded]: isExpanded })}
         disabled={isDisabled}
         size={'small'}
       >

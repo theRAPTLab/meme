@@ -36,6 +36,7 @@ import ASET from '../modules/adm-settings';
 import PMCObj from '../modules/pmc-objects';
 import UTILS from '../modules/utils';
 import EvidenceList from './EvidenceList';
+import DEFAULTS from '../modules/defaults';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -126,7 +127,9 @@ class ResourceView extends React.Component {
         if (rdata.success) {
           this.setState({ noteIsDisabled: false });
         } else {
-          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Resource Note right now.  Please try again later. (You can still Create Evidence.)`)
+          alert(
+            `Sorry, someone else (${rdata.lockedBy}) is editing this Resource Note right now.  Please try again later. (You can still ${DEFAULTS.TEXT.ADD_EVIDENCE}.)`
+          );
         }
       });
 
@@ -199,6 +202,7 @@ class ResourceView extends React.Component {
 
     // don't render if resource hasn't been defined yet
     if (resource === undefined || resource.id === undefined) return '';
+    const links = resource.links || 0;
 
     return (
       <Paper className={classes.resourceViewPaper} hidden={!isOpen}>
@@ -227,7 +231,7 @@ class ResourceView extends React.Component {
               <Typography variant="overline">Links:&nbsp;</Typography>
               <Chip
                 className={classes.resourceViewLinksBadge}
-                label={resource.links}
+                label={links}
                 color="primary"
               />
             </CardContent>
@@ -237,7 +241,12 @@ class ResourceView extends React.Component {
           </Button>
         </div>
         <div style={{ display: 'flex', height: 'inherit' }}>
-          <iframe id='resourceFrame' src={resource.url} style={{ height: '90%', flexGrow: '1' }} title="resource" />
+          <iframe
+            id="resourceFrame"
+            src={resource.url}
+            style={{ height: '90%', flexGrow: '1' }}
+            title="resource"
+          />
           <div className={classes.resourceViewSidebar}>
             <TextField
               id="informationNote"
@@ -264,7 +273,7 @@ class ResourceView extends React.Component {
               color="primary"
               hidden={ADM.IsViewOnly()}
             >
-              Create Evidence
+              {DEFAULTS.TEXT.ADD_EVIDENCE}
             </Button>
           </div>
         </div>

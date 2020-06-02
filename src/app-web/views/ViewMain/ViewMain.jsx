@@ -9,6 +9,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ClassNames from 'classnames';
+import clsx from 'clsx';
 import { Switch, Route } from 'react-router-dom';
 // Material UI Theming
 import { withStyles, createMuiTheme } from '@material-ui/core/styles';
@@ -30,7 +31,7 @@ import InputBase from '@material-ui/core/InputBase';
 // Material UI Icons
 import AddIcon from '@material-ui/icons/Add';
 import ChatBubbleOutlineIcon from '@material-ui/icons/ChatBubbleOutline';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import DoubleArrowIcon from '@material-ui/icons/DoubleArrow';
 import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';
 import EditIcon from '@material-ui/icons/Edit';
 import MenuIcon from '@material-ui/icons/Menu';
@@ -88,6 +89,8 @@ class ViewMain extends React.Component {
     this.OnChangeModelTitle = this.OnChangeModelTitle.bind(this);
     this.DoSaveModelTitle = this.DoSaveModelTitle.bind(this);
     this.DoSubmitModelTitleForm = this.DoSubmitModelTitleForm.bind(this);
+    this.OnToolsPanelToggle = this.OnToolsPanelToggle.bind(this);
+    this.OnShowEvidenceLink = this.OnShowEvidenceLink.bind(this);
     this.OnOutcomeAdd = this.OnOutcomeAdd.bind(this);
     this.OnPropAdd = this.OnPropAdd.bind(this);
     this.OnPropDelete = this.OnPropDelete.bind(this);
@@ -110,6 +113,7 @@ class ViewMain extends React.Component {
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Subscribe('MODEL_TITLE_UPDATED', this.DoModelTitleUpdate);
+    UR.Subscribe('SHOW_EVIDENCE_LINK', this.OnShowEvidenceLink);
     UR.Subscribe('OUTCOME_ADD', this.OnOutcomeAdd);
     UR.Subscribe('PROP_ADD', this.OnComponentAdd);
     UR.Subscribe('PROPDIALOG_CLOSE', this.OnPropDialogClose);
@@ -125,6 +129,7 @@ class ViewMain extends React.Component {
       studentName: '',
       studentGroup: '',
       viewHeight: 0, // need to init this to prevent error with first render of resourceList
+      toolsPanelIsOpen: true,
       resourceLibraryIsOpen: true,
       addPropOpen: false,
       addEdgeOpen: false,
@@ -152,6 +157,7 @@ class ViewMain extends React.Component {
     UR.Unsubscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Unsubscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Unsubscribe('MODEL_TITLE_UPDATED', this.DoModelTitleUpdate);
+    UR.Unsubscribe('SHOW_EVIDENCE_LINK', this.OnShowEvidenceLink);
     UR.Unsubscribe('OUTCOME_ADD', this.OnOutcomeAdd);
     UR.Unsubscribe('PROP_ADD', this.OnComponentAdd);
     UR.Unsubscribe('PROPDIALOG_CLOSE', this.OnPropDialogClose);
@@ -226,6 +232,15 @@ class ViewMain extends React.Component {
     e.preventDefault();
     e.stopPropagation();
     document.activeElement.blur(); // will trigger save
+  }
+
+  OnToolsPanelToggle() {
+    console.log('toggle open')
+    this.setState({ toolsPanelIsOpen: !this.state.toolsPanelIsOpen });
+  }
+
+  OnShowEvidenceLink() {
+    this.setState({ resourceLibraryIsOpen: true });
   }
 
   // User clicked on "(+) Add Outcome" drawer button
@@ -448,8 +463,6 @@ class ViewMain extends React.Component {
   handleEvLinkSourceSelectRequest(urdata) {
     this.setState({ resourceViewOpen: false }, () => {
       UR.Publish('RESOURCEVIEW:CLOSE');
-      UR.Publish('RESOURCES:COLLAPSE_ALL');
-      UR.Publish('SHOW_EVIDENCE_LINK', { evId: urdata.evId, rsrcId: urdata.rsrcId });
       UR.Publish('EVLINK:ENABLE_SOURCE_SELECT', { evId: urdata.evId });
     });
   }
@@ -529,6 +542,7 @@ class ViewMain extends React.Component {
       studentName,
       studentGroup,
       resourceLibraryIsOpen,
+      toolsPanelIsOpen,
       addPropOpen,
       addEdgeOpen,
       componentIsSelected,
@@ -555,14 +569,25 @@ class ViewMain extends React.Component {
         <ModelSelect />
         <AppBar
           position="fixed"
-          className={classes.appBar}
+          className={clsx(
+            classes.appBar,
+            { [classes.toolsPanelClosedShift]: !toolsPanelIsOpen },
+            { [classes.appBarToolsPanelClosedShift]: !toolsPanelIsOpen }
+          )}
           color={isModelAuthor ? 'primary' : 'default'}
         >
-          <Toolbar>
+          <Toolbar className={classes.appBarToolbar}>
             <Switch>
               <Route path="/:mode" />
             </Switch>
-            <Button onClick={this.OnCloseModel} color="inherit">
+            <Button
+              onClick={() => this.setState({ toolsPanelIsOpen: true })}
+              hidden={toolsPanelIsOpen}
+              color="inherit"
+            >
+              <MenuIcon />
+            </Button>
+            <Button onClick={this.OnCloseModel} color="inherit" style={{ marginLeft: '20px' }}>
               Model:&nbsp;&nbsp;
             </Button>
             <form onSubmit={this.DoSubmitModelTitleForm}>
@@ -609,9 +634,16 @@ class ViewMain extends React.Component {
         </AppBar>
 
         {/* Left Tool Sidebar */}
-        <ToolsPanel isDisabled={addPropOpen || addEdgeOpen} />
+        <ToolsPanel
+          isDisabled={addPropOpen || addEdgeOpen}
+          isOpen={toolsPanelIsOpen}
+          toggleOpen={this.OnToolsPanelToggle}
+        />
 
-        <main className={classes.content} ref={this.refMain}>
+        <main
+          className={clsx(classes.content, { [classes.toolsPanelClosedShift]: !toolsPanelIsOpen })}
+          ref={this.refMain}
+        >
           <div className={classes.toolbar} ref={this.refToolbar} />
           <div
             className={classes.view}
@@ -667,26 +699,26 @@ class ViewMain extends React.Component {
 
         {/* Resource Library */}
         <Drawer variant="persistent" anchor="right" open={resourceLibraryIsOpen}>
-          {/*<div style={{ height: this.state.viewHeight + 64, overflowY: 'scroll', zIndex: 1250 }}>*/}
-          <Paper className={classes.resourceList}>
-            <div className={classes.resourceListLabel}>
+          <div className={classes.resourceList}>
+            <div className={clsx(classes.drawerAppBar, classes.resourceListAppBar)}>
               <Button
                 onClick={() => this.setState({ resourceLibraryIsOpen: false })}
                 color="inherit"
                 size="small"
                 style={{ width: '100%' }}
               >
-                <div style={{ width: '100%', textAlign: 'left' }}>RESOURCE LIBRARY</div>
-                <ChevronRightIcon style={{ float: 'right' }} />
+                <div style={{ textAlign: 'left', flexGrow: 1 }}>RESOURCE LIBRARY</div>
+                <DoubleArrowIcon />
               </Button>
             </div>
-            <List dense>
-              {resources.map(resource => (
-                <ResourceItem key={resource.id} resource={resource} />
-              ))}
-            </List>
-          </Paper>
-          {/* </div> */}
+            <Paper className={classes.resourceListList}>
+              <List dense>
+                {resources.map(resource => (
+                  <ResourceItem key={resource.id} resource={resource} />
+                ))}
+              </List>
+            </Paper>
+          </div>
         </Drawer>
 
         {/* Resource View */}

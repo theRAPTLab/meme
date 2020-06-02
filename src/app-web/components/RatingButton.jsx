@@ -4,20 +4,20 @@ RatingButton
 
 The RatingButton is part of a positive/neutral/negative rating system.
 
-The RatingButton is primarily a display component.  It's main purpose is 
+The RatingButton is primarily a display component.  It's main purpose is
 display the currently selected rating.
 
-It handles a click request to change the rating, passing off the 
+It handles a click request to change the rating, passing off the
 update to RatingsDialog.jsx.
 
 Features:
 * Any number of ratings can be set
 * Supports an expanded and collasped (minified) view.
 
-      
+
 RATIONALE
 
-The goal is to make this a generalized component that can be used in 
+The goal is to make this a generalized component that can be used in
 various different circumstances.  So we rely on props calls to communicate
 with the parent component.
 
@@ -105,7 +105,7 @@ class RatingButton extends React.Component {
     const label = ratingObject ? ratingObject.label : 'Label not found';
 
     return (
-      <Button onClick={this.OnClick}>
+      <Button onClick={this.OnClick} style={{ paddingTop: 0, paddingBottom: 0 }}>
         {icons}&nbsp;
         <div style={{ textAlign: 'left', fontSize: '0.8em' }}>{isExpanded ? label : ''}</div>
       </Button>

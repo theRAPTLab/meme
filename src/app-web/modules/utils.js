@@ -8,6 +8,15 @@ import ASET from './adm-settings';
 const UTILS = {};
 
 /**
+ * Initial Caps
+ *
+ * Capitalizes the first letter of the string
+ */
+UTILS.InitialCaps = str => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
  * Researcher Logs
  *
  * This will write events out to the server runtime logs at '../../runtime/logs';

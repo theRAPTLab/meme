@@ -60,6 +60,10 @@ ADMData.InitializeData = data => {
   adm_db = data;
   // clear settings
   ASET.clear();
+
+  // Listener
+  UR.Subscribe('ADM_MODEL_MODIFIED', ADMData.OnModelModificationUpdate);
+
   // dbg info
   if (DBG) console.log('DBG:INITIALIZE: adm_db', adm_db);
 };
@@ -113,7 +117,7 @@ ADMData.SyncAddedData = data => {
           adm_db.models.push(model);
           UR.Publish('ADM_DATA_UPDATED', data);
         } else {
-          // Usually tjos fires before DB_NewModel's then() so the model is already added
+          // Usually this fires before DB_NewModel's then() so the model is already added
           if (DBG) console.error(`SyncAddedData: Model ${value.id} already added, skipping`);
         }
         break;
@@ -188,6 +192,7 @@ ADMData.SyncUpdatedData = data => {
       case 'models':
         const model = ADMData.GetModelById(value.id);
         model.dateModified = value.dateModified;
+        UR.Publish('ADM_DATA_UPDATED', data);
         if (model.title !== value.title) {
           model.title = value.title;
           UR.Publish('MODEL_TITLE_UPDATED', { id: value.id, title: value.title });
@@ -782,7 +787,32 @@ ADMData.DB_NewModel = (data, cb) => {
     cb(rdata);
   });
   */
+}; /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * Handles modification date updates for the model
+ * This is called by pmc-data via a UR 'ADM_MODEL_MODIFIED' message
+ * whenver it updates objects in the model, e.g. props, comments
+ *
+ * FIX ME: The new date should be generated and saved on the server side, not client.
+ *
+ * @param {string} date
+ */
+ADMData.OnModelModificationUpdate = data => {
+  if (data === undefined || data.modelId === undefined) throw Error('ADM_MODEL_MODIFIED called with no modelId');
+  ADMData.DB_ModelModificationUpdate(data.modelId);
+}
+ADMData.DB_ModelModificationUpdate = (modelId, date = new Date()) => {
+  return UR.DBQuery('update', {
+    models: {
+      id: modelId,
+      dateModified: date
+    }
+  }).then(() => {
+    // No RLog for model date update
+    // UTILS.RLog('ModelUpdate', `id "${modelId}" to "${title}"`);
+  });
 };
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  * Handles text input updates for the model title
@@ -1007,6 +1037,17 @@ ADMData.DB_NewCriteria = (data, cb) => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ADMData.GetCriteriaByClassroom = (classroomId = ASET.selectedClassroomId) => {
   return adm_db.criteria.filter(crit => crit.classroomId === classroomId);
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ADMData.GetCriteriaByGroup = groupId => {
+  const classroomId = ADMData.GetClassroomIdByGroup(groupId);
+  return ADMData.GetCriteriaByClassroom(classroomId);
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ADMData.GetCriteriaByModel = (modelId = ASET.selectedModelId) => {
+  const model = ADMData.GetModelById(modelId);
+  if (model === undefined) return []; // No model loaded
+  return ADMData.GetCriteriaByGroup(model.groupId);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ADMData.GetCriteriaLabel = (criteriaId, classroomId = ADMData.GetSelectedClassroomId()) => {

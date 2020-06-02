@@ -30,6 +30,14 @@ import UR from '../../../../system/ursys';
 const DBG = false;
 const PKG = 'AdminCriteriaList';
 
+/// CONSTANTS /////////////////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const SmTableCell = withStyles(theme => ({
+  root: {
+    padding: '2px 10px 2px 2px'
+  }
+}))(props => <TableCell {...props} />);
+
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -45,40 +53,40 @@ class CriteriaList extends React.Component {
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>LABEL</TableCell>
-            <TableCell>DESCRIPTION</TableCell>
-            <TableCell>{IsInEditMode ? 'DELETE' : ''}</TableCell>
+            <SmTableCell>LABEL</SmTableCell>
+            <SmTableCell>DESCRIPTION</SmTableCell>
+            <SmTableCell>{IsInEditMode ? 'DELETE' : ''}</SmTableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {Criteria.map(crit =>
             IsInEditMode ? (
               <TableRow key={crit.id}>
-                <TableCell>
+                <SmTableCell>
                   <TextField
                     value={crit.label}
                     placeholder="Label"
                     onChange={e => UpdateField(crit.id, 'label', e.target.value)}
                   />
-                </TableCell>
-                <TableCell>
+                </SmTableCell>
+                <SmTableCell>
                   <TextField
                     value={crit.description}
                     placeholder="Description"
                     style={{ width: '20em' }}
                     onChange={e => UpdateField(crit.id, 'description', e.target.value)}
                   />
-                </TableCell>
-                <TableCell>
+                </SmTableCell>
+                <SmTableCell>
                   <IconButton size="small" onClick={() => OnDeleteCriteriaClick(crit.id)}>
                     <DeleteIcon />
                   </IconButton>
-                </TableCell>
+                </SmTableCell>
               </TableRow>
             ) : (
               <TableRow key={crit.id}>
-                <TableCell>{crit.label}</TableCell>
-                <TableCell>{crit.description}</TableCell>
+                <SmTableCell>{crit.label}</SmTableCell>
+                <SmTableCell>{crit.description}</SmTableCell>
               </TableRow>
             )
           )}

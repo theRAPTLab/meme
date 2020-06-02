@@ -32,7 +32,8 @@ function HumanDate(timestamp) {
   const date = new Date(timestamp);
   const timestring = date.toLocaleTimeString('en-Us', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    second: '2-digit'
   });
   const datestring = date.toLocaleDateString('en-US', {
     month: 'short',

@@ -43,7 +43,7 @@ class EvidenceList extends React.Component {
     if (evLinks === undefined) return '';
     // evLinks [ { id: <pmcid> propId: mechId: rsrcId: note: }, ... ]
     return (
-      <div key={this.props.rsrcId}>
+      <div key={rsrcId}>
         {evLinks.map((evlink, index) => (
           <EvidenceLink evlink={evlink} key={index} />
         ))}
