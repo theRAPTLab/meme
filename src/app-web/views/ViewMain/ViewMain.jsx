@@ -450,8 +450,6 @@ class ViewMain extends React.Component {
   handleEvLinkSourceSelectRequest(urdata) {
     this.setState({ resourceViewOpen: false }, () => {
       UR.Publish('RESOURCEVIEW:CLOSE');
-      UR.Publish('RESOURCES:COLLAPSE_ALL');
-      UR.Publish('SHOW_EVIDENCE_LINK', { evId: urdata.evId, rsrcId: urdata.rsrcId });
       UR.Publish('EVLINK:ENABLE_SOURCE_SELECT', { evId: urdata.evId });
     });
   }

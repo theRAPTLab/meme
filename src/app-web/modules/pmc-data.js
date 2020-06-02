@@ -327,6 +327,10 @@ PMCData.SyncUpdatedData = data => {
   if (ASET.selectedModelId === '' || m_graph === undefined) return;
   // skip update if data is for a different model
   if (data.pmcDataId !== ASET.selectedPMCDataId) return;
+  // skip update if no data is changed
+  // This is necessary so that we can skip an extra BuildModel due to
+  // admData changing the modification date of models.
+  let dataWasUpdated = false;
 
   const syncitems = DATAMAP.ExtractSyncData(data);
   syncitems.forEach(item => {
@@ -343,6 +347,7 @@ PMCData.SyncUpdatedData = data => {
             description: value.description
           });
           f_NodeSetParent(value.id, value.parent);
+          dataWasUpdated = true;
           break;
         case 'mech':
           // 1. Remove the old edge first.
@@ -355,6 +360,7 @@ PMCData.SyncUpdatedData = data => {
             name: value.name,
             description: value.description
           });
+          dataWasUpdated = true;
           break;
         case 'evidence':
           const { id, propId, mechId, rsrcId, numberLabel, rating, why, note, imageURL } = value;
@@ -371,11 +377,12 @@ PMCData.SyncUpdatedData = data => {
           };
           const i = a_evidence.findIndex(e => e.id === id);
           a_evidence.splice(i, 1, evlink);
+console.log('...SyncUpdateData: evidence was updated');
+          dataWasUpdated = true;
           break;
         default:
           throw Error('unexpected proptype');
       }
-      PMCData.BuildModel();
     }
 
     if (subkey === 'comments') {
@@ -384,6 +391,7 @@ PMCData.SyncUpdatedData = data => {
       if (i < 0) throw Error('Trying to update non-existent comments');
       const comment = Object.assign(a_comments[i], newComment);
       a_comments.splice(i, 1, comment);
+      dataWasUpdated = true;
       UR.Publish('DATA_UPDATED');
     }
 
@@ -391,6 +399,12 @@ PMCData.SyncUpdatedData = data => {
       // marked read really doesn't get updates
     }
   }); // syncitems
+
+  if (dataWasUpdated) {
+    console.log('SyncUpdatedData=>BuildModel')
+    PMCData.BuildModel();
+  }
+
   if (DBG && data['pmcData.comments']) console.log('PMCData.comments update');
   // do stuff here
 
@@ -1237,27 +1251,33 @@ PMCData.PMC_EvidenceUpdate = (evId, newData) => {
 /**
  *  @param {String} evId
  *  @param {String||undefined} propId - Set propId to `undefined` to unlink
+ *  @return promise
  */
 PMCData.SetEvidenceLinkPropId = (evId, propId) => {
   const newData = {
     propId,
     mechId: null // clear this in case it was set
   };
-  PMCData.PMC_EvidenceUpdate(evId, newData);
   if (propId !== undefined)
     // Only log when setting, not when programmatically clearing
     UTILS.RLog('EvidenceSetTarget', `Attaching evidence "${evId}" to Property "${propId}"`);
+  return PMCData.PMC_EvidenceUpdate(evId, newData);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *  @param {String} evId
+ *  @param {String||undefined} mechId - Set mechId to `undefined` to unlink
+ *  @return promise
+ */
 PMCData.SetEvidenceLinkMechId = (evId, mechId) => {
   const newData = {
     propId: null, // clear this in case it was set
     mechId
   };
-  PMCData.PMC_EvidenceUpdate(evId, newData);
   if (mechId !== undefined)
     // Only log when setting, not when programmatically clearing
     UTILS.RLog('EvidenceSetTarget', `Attaching evidence "${evId}" to Mechanism "${mechId}"`);
+  return PMCData.PMC_EvidenceUpdate(evId, newData);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PMCData.SetEvidenceLinkNote = (evId, note) => {
@@ -1282,6 +1302,17 @@ PMCData.SetEvidenceLinkWhy = (evId, why) => {
   };
   PMCData.PMC_EvidenceUpdate(evId, newData);
   UTILS.RLog('EvidenceSetWhy', `Set evidence rating why to "${why}"`);
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// This comebines the Description Note and Why cllas into a single call
+/// to reduce the number of DB updatess
+PMCData.SetEvidenceLinkTextFields = (evId, data) => {
+  const newData = {
+    note: data.note,
+    why: data.why
+  };
+  UTILS.RLog('EvidenceSetTextFields', `Saving note "${data.note}" and why "${data.why}"`);
+  return PMCData.PMC_EvidenceUpdate(evId, newData);
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
