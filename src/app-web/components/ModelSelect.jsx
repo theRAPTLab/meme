@@ -76,7 +76,11 @@ class ModelSelect extends React.Component {
 
   DoModelDialogOpen() {
     if (ADM.GetSelectedModelId() !== undefined) {
-      console.log('@@@@@@ ModelSelect opening b/c of ADMDAataUpdate, selecteModelId is"', ADM.GetSelectedModelId(), '"')
+      console.log(
+        '@@@@@@ ModelSelect opening b/c of ADMDAataUpdate, selecteModelId is"',
+        ADM.GetSelectedModelId(),
+        '"'
+      );
       const studentId = ADM.GetAuthorId();
       const groupName = ADM.GetGroupNameByStudent(studentId);
       const classroomName = ADM.GetClassroomNameByStudent(studentId);
@@ -131,6 +135,18 @@ class ModelSelect extends React.Component {
     const isTeacher = SESSION.IsTeacher();
     const myModels = isTeacher ? ADM.GetModelsByTeacher() : ADM.GetModelsByStudent();
     const ourModels = ADM.GetMyClassmatesModels(ADM.GetSelectedClassroomId(), studentId);
+    const readOnlyStatus = ADM.IsDBReadOnly() ? (
+      <Typography variant="caption">READ ONLY MODE</Typography>
+    ) : (
+      undefined
+    );
+    const createNewModelButton = ADM.IsDBReadOnly() ? (
+      undefined
+    ) : (
+      <Button onClick={this.OnNewModel} color="primary" variant="contained">
+        Create New Model
+      </Button>
+    );
     return (
       <Dialog
         disableBackdropClick
@@ -140,6 +156,7 @@ class ModelSelect extends React.Component {
         fullScreen
       >
         <DialogActions>
+          {readOnlyStatus}
           <Typography variant="caption">MY GROUP: {groupName} | </Typography>
           <Typography variant="caption">MY CLASS: {classroomName} | </Typography>
           <Typography variant="caption">MY TEACHER: {teacherName}</Typography>
@@ -151,11 +168,7 @@ class ModelSelect extends React.Component {
         <DialogTitle>Hi {ADM.GetStudentName()}!</DialogTitle>
         <DialogContent>
           <Grid container spacing={2}>
-            <Grid item>
-              <Button onClick={this.OnNewModel} color="primary" variant="contained">
-                Create New Model
-              </Button>
-            </Grid>
+            <Grid item>{createNewModelButton}</Grid>
           </Grid>
           <Divider style={{ margin: '2em' }} />
           <Grid container spacing={2}>

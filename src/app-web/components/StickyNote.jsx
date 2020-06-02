@@ -3,40 +3,40 @@
 Sticky Note
 
     For documentation, see boilerplate/src/app-web/components/StickyNoteCollection.jsx
-    
+
     NOTE: The text input needs a mouseDown handler to stopProgation of
-    the click to the react-draggable component in the parent 
+    the click to the react-draggable component in the parent
     StickyNoteCollection component.  Otherwise, the user won't be able
     to click on the field to enter text.
-    
+
 props
 
     comment           Comment data passed from the parent StickyNote
-    
+
     OnStartEdit       prop func called by StickyNote when user clicks "Edit"
                       This sets isBeingEdited mode on the StickyNoteCollection
                       paren, which hides the "Comment" button.
-    
+
     OnUpdateComment   prop func called by StickyNote when user is
                       finished editing and ready to save.
-    
+
 state
 
     isBeingEdited     User is editing card, show input field, hide Edit button
-    
+
     allowedToEdit     User is the comment author or in the same group so allowed
                       to edit the comment.
-    
+
     allowedToDelete   User is the comment author, so allowed to delete the
                       comment.  NOTE: We might want to restrict this to
                       teachers only.
-    
+
     showEditButtons   Boolean flag to show edit and delete buttons for the card.
-    
+
     criteria          The menu for selecting criteria
-    
+
     comment           A local state copy of the comment text.
-                      This is updated/read on the intial construction from 
+                      This is updated/read on the intial construction from
                       this.props.comment.
 
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * /////////////////////////////////////*/
@@ -49,7 +49,6 @@ import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 import Grid from '@material-ui/core/Grid';
 import IconButton from '@material-ui/core/IconButton';
 import Input from '@material-ui/core/Input';
-import FilledInput from '@material-ui/core/FilledInput';
 import InputLabel from '@material-ui/core/InputLabel';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
@@ -63,7 +62,6 @@ import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import MEMEStyles from './MEMEStyles';
 import UR from '../../system/ursys';
-import DATAMAP from '../../system/common-datamap';
 import ADM from '../modules/data';
 import PMC from '../modules/pmc-data';
 import ASET from '../modules/adm-settings';
@@ -116,8 +114,10 @@ class StickyNote extends React.Component {
     const authorGroup = ADM.GetGroupByStudent(comment.author);
     const isAuthor = currentGroup === authorGroup;
     const isTeacher = ADM.IsTeacher();
-    let allowedToEdit = isAuthor;
-    let allowedToDelete = isAuthor || isTeacher; // REVIEW: Only teachers are allowed to delete?
+    const isDBReadOnly = ADM.IsDBReadOnly();
+
+    let allowedToEdit = isAuthor && !isDBReadOnly;
+    let allowedToDelete = (isAuthor || isTeacher) && !isDBReadOnly; // REVIEW: Only teachers are allowed to delete?
     if (comment.text === '') {
       if (comment.author.toUpperCase() === ADM.GetAuthorId()) { // force UpperCase for backward compatibility
         // automatically turn on editing if this is a new empty comment
@@ -141,51 +141,38 @@ class StickyNote extends React.Component {
   DoEditStart() {
     const pmcDataId = ASET.selectedPMCDataId;
     const intCommentId = Number(this.props.comment.id);
-    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId])
-      .then(rdata => {
-        const { success, semaphore, uaddr, lockedBy } = rdata;
-        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
-        if (rdata.success) {
-          console.log('do something here because u-locked!');
-          this.setState({ isBeingEdited: true }, () => {
-            this.FocusTextInput();
-            this.props.OnStartEdit();
-          });
-        } else {
-          console.log('aw, locked by', rdata.lockedBy);
-          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Comment right now.  Please try again later.`)
-        }
-      });
+    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId]).then(rdata => {
+      const { success, semaphore, uaddr, lockedBy } = rdata;
+      status += success
+        ? `${semaphore} lock acquired by ${uaddr} `
+        : `failed to acquired ${semaphore} lock `;
+      if (rdata.success) {
+        console.log('do something here because u-locked!');
+        this.setState({ isBeingEdited: true }, () => {
+          this.FocusTextInput();
+          this.props.OnStartEdit();
+        });
+      } else {
+        console.log('aw, locked by', rdata.lockedBy);
+        alert(
+          `Sorry, someone else (${rdata.lockedBy}) is editing this Comment right now.  Please try again later.`
+        );
+      }
+    });
   }
-  
+
   DoSave() {
+    if (ADM.IsDBReadOnly()) return;
+
     // Automatically mark read by author
     const comment = this.state.comment;
     const author = ADM.GetAuthorId();
-    
+
     if (this.state.isBeingEdited) {
       // save
-      PMC.DB_CommentUpdate(
-        this.props.refId,
-        comment,
-        rdata => {
-          // Don't Mark Read.  Let StickyNoteCollection take care of that.
-          // // retrieve the comment.id so we can mark it read
-          // const syncitems = DATAMAP.ExtractSyncData(rdata);
-          // syncitems.forEach(item => {
-          //   const { colkey, subkey, value } = item;
-          //   if (subkey === 'comments') {
-          //     if (value.id !== undefined) {
-          //       // save it locally
-          //       comment.id = value.id;
-          //       PMC.DB_MarkRead(value.id, author);
-          //     }
-          //   }
-          // });
-          // then tell StickyNoteCollection to exit edit mode
-          this.props.OnUpdateComment();
-        }
-      );
+      PMC.DB_CommentUpdate(this.props.refId, comment, rdata => {
+        this.props.OnUpdateComment();
+      });
       const pmcDataId = ASET.selectedPMCDataId;
       const intCommentId = Number(this.props.comment.id);
       UR.DBTryRelease('pmcData.comments', [pmcDataId, intCommentId]);
@@ -200,19 +187,22 @@ class StickyNote extends React.Component {
   DoDelete() {
     const pmcDataId = ASET.selectedPMCDataId;
     const intCommentId = Number(this.props.comment.id);
-    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId])
-      .then(rdata => {
-        const { success, semaphore, uaddr, lockedBy } = rdata;
-        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
-        if (rdata.success) {
-          console.log('do something here because u-locked!');
-          PMC.DB_CommentDelete(this.state.comment.id);
-          this.props.OnUpdateComment(); // tell StickyNoteCollection to exit edit mode
-        } else {
-          console.log('aw, locked by', rdata.lockedBy);
-          alert(`Sorry, someone else (${rdata.lockedBy}) is editing this Comment right now.  Please try again later.`)
-        }
-      });
+    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId]).then(rdata => {
+      const { success, semaphore, uaddr, lockedBy } = rdata;
+      status += success
+        ? `${semaphore} lock acquired by ${uaddr} `
+        : `failed to acquired ${semaphore} lock `;
+      if (rdata.success) {
+        console.log('do something here because u-locked!');
+        PMC.DB_CommentDelete(this.state.comment.id);
+        this.props.OnUpdateComment(); // tell StickyNoteCollection to exit edit mode
+      } else {
+        console.log('aw, locked by', rdata.lockedBy);
+        alert(
+          `Sorry, someone else (${rdata.lockedBy}) is editing this Comment right now.  Please try again later.`
+        );
+      }
+    });
   }
 
   OnEditClick(e) {

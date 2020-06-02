@@ -1,3 +1,5 @@
+/* eslint-disable global-require */
+/* eslint-disable import/no-dynamic-require */
 /* eslint-disable no-param-reassign */
 /*//////////////////////////////// ABOUT \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
@@ -21,6 +23,7 @@ const LOGGER = require('./server-logger');
 const PROMPTS = require('../system/util/prompts');
 const UNET = require('./server-network');
 const DATESTR = require('./util/datestring');
+const SESSION = require('../system/common-session');
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -33,9 +36,6 @@ const RUNTIMEPATH = PATH.join(__dirname, '../../runtime');
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 let m_options; // saved initialization options
 let m_db; // loki database
-const { DBCMDS } = DATAMAP; // key lookup for incoming data packets
-let send_queue = []; // queue outgoing data
-let recv_queue = []; // queue incoming requests
 
 /// API METHODS ///////////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -47,6 +47,36 @@ const DB_DATASETS = {
 const DB = {};
 
 /// INITIALIZE DATABASE ///////////////////////////////////////////////////////
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+DB.ReInitializeDatabase = (options = {}) => {
+  const dbg = console.log; // ()={} to disable debugging
+  const assert = console.assert;
+  //
+  const { tempdb, memehost } = options;
+  assert(tempdb, PR, 'tempdb properties required in option');
+  assert(!memehost, PR, 'memehost is option with tempdb');
+  const { archivepath, dbfile, appmode } = tempdb;
+  // reinitialize the m_db instance
+  dbg(PR, `resetting db to '${dbfile}.loki' [appmode=${appmode}]`);
+  /*/
+  At this point, we want to mirror InitializeDatabase.
+  /*/
+  const db_file = `${archivepath}/runtime/${dbfile}.loki`;
+  FS.ensureDirSync(PATH.dirname(db_file));
+  return new Promise((resolve, reject) => {
+    if (!FS.existsSync(db_file)) reject(Error(`couldn't find ${db_file}`));
+    let ropt = {
+      autoload: true,
+      autosave: false,
+      autoloadCallback: () => {
+        dbg(PR, `db reset to '${dbfile}.loki' for readonly session`);
+        SESSION.SetDBReadOnly();
+        resolve();
+      }
+    };
+    m_db = new Loki(db_file, ropt);
+  });
+};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** Initialize database, creating blank DB file if necessary.
  */
@@ -104,6 +134,13 @@ DB.InitializeDatabase = (options = {}) => {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // callback on load
   function f_LoadDataset() {
+    /** TODO (6): The DB is loaded, so this is where we'd call our new MIGRATION
+     *  method to increment version and update the database to the current
+     *  version supported by MEME. At this point, the m_db instance should be
+     *  up-to-date, and the .loki file is also autosaved within 3 seconds
+     *  (this is set by ropts above)
+     */
+
     // on the first load of (non-existent database), we will have no
     // collections so we can detect the absence of our collections and
     // add (and configure) them now.
@@ -130,7 +167,7 @@ DB.InitializeDatabase = (options = {}) => {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   function f_LoadCollection(col) {
     // ensure collection exists
-    const isInit = m_db.getCollection(col) !== null ? false : true;
+    const isInit = m_db.getCollection(col) === null;
     if (isInit) {
       m_db.addCollection(col, {
         asyncListeners: false,
@@ -143,11 +180,12 @@ DB.InitializeDatabase = (options = {}) => {
     collection.on('insert', u_CopyLokiId);
     // get datapath
     const dpath = PATH.join(__dirname, `/datasets/${dataset}/${col}.db`);
-    const overridden = process.env.DATASET ? `(ENV.DATASET='${process.env.DATASET}')` : '';
     // if running devserver, always overwrite
     if (options.memehost === 'devserver') {
-      // otherwise...reset the dataset from template .db.js files
+      // output a message of dataset had been overridden at the begining of f_LoadDataset
+      const overridden = process.env.DATASET ? `(ENV.DATASET='${process.env.DATASET}')` : '';
       console.log(PR, `resetting dataset '${col}.db' ${overridden}`);
+      // clear the collection, then load dpath into it.
       collection.clear();
       collection.insert(require(dpath));
       return;
@@ -157,7 +195,6 @@ DB.InitializeDatabase = (options = {}) => {
     if (isInit) {
       console.log(PR, `${options.memehost} fresh init: '${dataset}/${col}.db'`);
       collection.insert(require(dpath));
-      return;
     } else {
       console.log(PR, `${options.memehost}: '${col}' has ${collection.count()} elements`);
     }
@@ -194,7 +231,7 @@ DB.InitializeDatabase = (options = {}) => {
 // returns the contents of a collection as an array of objects
 // stored in the collection, suitable for delivering as JSON
 function f_GetCollectionData(col) {
-  collection = m_db.getCollection(col);
+  const collection = m_db.getCollection(col);
   if (!collection) throw Error(`Collection '${col}' doesn't exist`);
   return collection.chain().data({ removeMeta: true });
 }
@@ -292,7 +329,7 @@ DB.PKT_Release = pkt => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** MESSAGE HANDLER: 'NET:SRV_DBLOCKS'
  * return contents of LOCKS database
- */ DB.PKT_GetLockTable = pkt => {
+ */ DB.PKT_GetLockTable = () => {
   const locks = m_db.getCollection('session_locks');
   return locks.chain().data({ removeMeta: true });
 };
@@ -302,7 +339,7 @@ function m_RemoveSocketLocks(data) {
   const { uaddr } = data;
   if (!uaddr) {
     console.error(PR, 'missing uaddr');
-    return;
+    return undefined;
   }
   const locks = m_db.getCollection('session_locks');
   const found = locks.chain().find({ uaddr: { $eq: uaddr } });
@@ -345,7 +382,6 @@ DB.PKT_Add = pkt => {
   queries.forEach(query => {
     let { colkey, subkey, value } = query;
     const dbc = m_db.getCollection(colkey);
-    let retval;
     // add!
     if (!subkey) {
       // IS NORMAL ADD
@@ -385,7 +421,7 @@ DB.PKT_Add = pkt => {
             return; // process error outside query loop
           }
           if (value[subkey].id) {
-            error += `${reskey} should not have an id prop ${JSON.stringify(newobj)}`;
+            error += `${reskey} should not have an id prop ${JSON.stringify(value)}`;
             return; // process error outside query loop
           }
 
@@ -485,8 +521,6 @@ DB.PKT_Update = pkt => {
               const visuals = record[subkey];
               retval = value[subkey];
               visuals.push(retval);
-            } else {
-              console.log(PR, `couldn't find ${id} in obj[${propname}]`, list);
             } // if subkey==='visuals'
           } // if !retval
         } else {
@@ -551,7 +585,6 @@ DB.PKT_Remove = pkt => {
       return;
     }
     const colid = value.id;
-    let reskey = colkey;
     // remove
     const found = dbc.chain().find({ id: { $eq: colid } }); // e.g. pmcdata model
     if (found.count() === 0) {
@@ -562,6 +595,7 @@ DB.PKT_Remove = pkt => {
     if (DBG) console.log(PR, `remove found match for id:${colid} in collection:${colkey}`);
     if (!subkey) {
       // IS NORMAL REMOVE - pure database remove
+      // eslint-disable-next-line no-shadow
       const reskey = colkey;
       results[reskey] = results[reskey] || [];
       const retval = found.branch().data({ removeMeta: true });
@@ -571,6 +605,7 @@ DB.PKT_Remove = pkt => {
     } else {
       // IS SUBKEY REMOVE - database modify and update record
       found.update(record => {
+        // eslint-disable-next-line no-shadow
         const reskey = `${colkey}.${subkey}`;
         results[reskey] = results[reskey] || [];
         record[subkey] = record[subkey] || []; // make sure array exists in record

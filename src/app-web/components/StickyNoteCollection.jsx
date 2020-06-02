@@ -3,96 +3,96 @@
 Sticky Note Collection
 
 state
-    parent      We don't update the parent object directly, 
+    parent      We don't update the parent object directly,
                 we call PMC to do the update.
                 The parent object is just used to retrieve comments
                 and the refId.
 
 props
     classes     MEMEStyles MaterialUI styles implementation.
-    
-    
+
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 ABOUT THE STICKY NOTE SYSTEM
 
     There are four components to the Sticky Note System:
-    
+
     1. StickyNoteButton
     2. VBadge
     3. StickyNoteCollection
     4. StickyNote
-    
+
 StickyNoteButton
-    
+
     StickyNoteButtons serve two functions:
     1. Display the read/unread/blank status of a sticky note
     2. Clicking on the button will open up the sticky note display
-    
+
     StickyNoteButtons are designed to be attachable to any React component
     (including Evidence and the model itself).
-    
+
     They retain only a minimal amount of data (refId) and
     retrieve status updates directly from PMCData.
-    
+
     When they open a StickyNoteCollection, they use an URSYS.Publish call.
-    
+
 VBadge
 
     VBadges play the role of StickyNoteButtons for VProps and VMechs
     i.e. SVG objects (StickyNoteButton is used for React Components).
-    
+
     VBadges independently display the read/unread status of comments,
     creating new comments, and updating existing comments.
-    
+
     They trigger StickyNoteCollection via the same STICKY_OPEN call.
-    
+
     VBadges also maintain an array of Evidence Link badges.
 
 StickyNoteCollection
-    
+
     A StickyNoteCollection is the container component for StickyNotes.
     Each StickyNoteCollection can contain any number of StickyNotes.
     StickyNotes display individual comments from different authors.
-    
-    There is only a single StickyNoteCollection object in ViewMain.  It gets 
+
+    There is only a single StickyNoteCollection object in ViewMain.  It gets
     repurposed for each note that is opened.
-    
+
     StickNotesCollection are opened via an URSYS.Publish('STICKY_OPEN') call.
-    
+
     StickNotesCollection does not handle the data for StickyNotes.
     StickyNotes handles data itself, except...
-    
+
     StickNotesCollection manages the read status of notes, marking
     each notes as read when it closes.
-        
+
 StickyNote
 
     StickyNotes display individual comments from different authors.
-    
-    Text changes on the text input field are updated locally via the 
-    props reference to the StickyNoteCollection's comment object.  
-    
+
+    Text changes on the text input field are updated locally via the
+    props reference to the StickyNoteCollection's comment object.
+
     Updates to the comment data are sent directly to PMCData via a
     PMC.DB_CommentUpdate() call.
 
-    We then trigger onUpdateComment to tell StickyNoteCollection to 
+    We then trigger onUpdateComment to tell StickyNoteCollection to
     exit edit state.
 
     props
-      
+
       comment -- This is the comment data (id, text, etc.) that will be displayed
       by the StickNote.
-      
-      onStartEdit -- This is called whenever the user clicks on the edit button. 
-      This is passed to StickyNoteCollection so that StickyNoteCollection can hide 
-      buttons that shouldn't be shown during edit (e.g. Reply)
-      
-      onUpdateComment -- This is called whenever the user edits the comment text
-      field or when the user is finished editing and ready to close the sticky.  
 
-    
+      onStartEdit -- This is called whenever the user clicks on the edit button.
+      This is passed to StickyNoteCollection so that StickyNoteCollection can hide
+      buttons that shouldn't be shown during edit (e.g. Reply)
+
+      onUpdateComment -- This is called whenever the user edits the comment text
+      field or when the user is finished editing and ready to close the sticky.
+
+
 
 
 
@@ -149,6 +149,7 @@ class StickyNoteCollection extends React.Component {
     this.state = {
       isHidden: true,
       isBeingEdited: false,
+      isDBReadOnly: false,
       comments: [],
       top: 0,
       left: 0,
@@ -179,15 +180,16 @@ class StickyNoteCollection extends React.Component {
   }
 
   /**
-   * 
+   *
    * @param {Object} data - {refId, x, y}
    */
   DoOpenSticky(data) {
     if (DBG) console.log(PKG, 'DoOpenSticky', data);
     const { refId, x, y } = data;
+    const isDBReadOnly = ADM.IsDBReadOnly();
     let isBeingEdited = false;
     const comments = PMC.GetComments(refId);
-    if (comments.length < 1) {
+    if (comments.length < 1 && !isDBReadOnly) {
       // if no comments yet, add an empty comment automatically
       const comment = this.NewComment(refId);
       PMC.DB_CommentAdd(refId, comment);
@@ -197,6 +199,7 @@ class StickyNoteCollection extends React.Component {
       comments,
       isHidden: false,
       isBeingEdited,
+      isDBReadOnly,
       top: y,
       left: x - 375, // width of stickyonotecard HACK!!!
       refId
@@ -209,7 +212,7 @@ class StickyNoteCollection extends React.Component {
     PMC.DB_CommentAdd(this.state.refId, comment);
     // comment will get added via sync
   }
-  
+
   // PMC has updated sticky data, usually unread status
   // Update our existing data directly from PMC.
   DoStickyUpdate() {
@@ -224,13 +227,13 @@ class StickyNoteCollection extends React.Component {
 
   DoCloseSticky() {
     if (DBG) console.log(PKG, 'DoCloseSticky');
-    
+
     UR.Publish('STICKY_CLOSED');
 
     // Mark Comments Read
     const author = ADM.GetAuthorId();
     this.state.comments.forEach(comment => {
-      if (!PMC.HasBeenRead(comment.id, author)) {
+      if (!PMC.HasBeenRead(comment.id, author) && !this.state.isDBReadOnly) {
         PMC.DB_MarkRead(comment.id, author);
       }
     });
@@ -287,7 +290,7 @@ class StickyNoteCollection extends React.Component {
 
   render() {
     const { classes } = this.props;
-    const { comments, isHidden, isBeingEdited, top, left, refId } = this.state;
+    const { comments, isHidden, isBeingEdited, isDBReadOnly, top, left, refId } = this.state;
     return (
       <Draggable>
         <Paper className={classes.stickynotePaper} hidden={isHidden} style={{ top, left }}>
@@ -313,7 +316,7 @@ class StickyNoteCollection extends React.Component {
             size="small"
             style={{ margin: '5px' }}
             variant="outlined"
-            hidden={isBeingEdited}
+            hidden={isBeingEdited || isDBReadOnly}
             onClick={this.OnReplyClick}
           >
             Comment

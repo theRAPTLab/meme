@@ -120,7 +120,8 @@ const electronConfiguration = env => {
       __REACT_DEVTOOLS_GLOBAL_HOOK__: '({ isDisabled: true })',
       PACKAGE_TITLE: JSON.stringify(PACKAGE.title),
       PACKAGE_VERSION: JSON.stringify(PACKAGE.version),
-      PACKAGE_DESCRIPTION: JSON.stringify(PACKAGE.description)
+      PACKAGE_DESCRIPTION: JSON.stringify(PACKAGE.description),
+      __static: JSON.stringify(path.resolve(DIR_OUTPUT, 'console/static/'))
     }),
     new CopyWebpackPlugin([
       {

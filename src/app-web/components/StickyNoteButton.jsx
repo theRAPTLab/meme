@@ -83,7 +83,7 @@ class StickyNoteButton extends React.Component {
   DoSetClosed() {
     this.setState({ isOpen: false });
   }
-  
+
   /**
    * When Stickynote data is updated, we take a look at comments and figure out
    * if there are unread comments, new comments, or whatever, and set state of
@@ -106,7 +106,7 @@ class StickyNoteButton extends React.Component {
     e.stopPropagation();
 
     this.setState({ isOpen: true });
-    
+
     UR.Publish('STICKY_OPEN', {
       refId: this.props.refId,
       x: e.clientX,
@@ -120,7 +120,7 @@ class StickyNoteButton extends React.Component {
     const { hasNoComments, hasUnreadComments, isOpen } = this.state;
     const { classes } = this.props;
     const iconCSS = isOpen ? classes.stickynoteIconOpen : classes.stickynoteIcon;
-    
+
     // Figure out which icon to show
     let icon;
     if (hasNoComments) {
@@ -140,7 +140,7 @@ class StickyNoteButton extends React.Component {
 
 StickyNoteButton.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
-  classes: PropTypes.object,
+  classes: PropTypes.object
 };
 
 StickyNoteButton.defaultProps = {

@@ -19,7 +19,7 @@ const SESSION = require('./common-session');
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const DBG = { init: true, calls: false, client: true };
 
-const { TERM_NET: CLR, TR } = PROMPTS;
+const { TERM_NET: CLR, TR, CWARN } = PROMPTS;
 const PR = `${CLR}${PROMPTS.Pad('UR_NET')}${TR}`;
 
 const ERR_SS_EXISTS = 'socket server already created';
@@ -39,6 +39,7 @@ let mu_wss; // websocket server
 let mu_options; // websocket options
 let mu_sockets = new Map(); // sockets mapped by socket id
 let mu_sid_counter = 0; // for generating  unique socket ids
+let SUSPEND_NETWORK = false;
 // storage
 let m_server_handlers = new Map(); // message map storing sets of functions
 let m_remote_handlers = new Map(); // message map storing other handlers
@@ -80,6 +81,7 @@ UNET.StartNetwork = () => {
   // create listener.
   if (DBG.init) console.log(PR, `initializing web socket server on port ${mu_options.port}`);
   mu_wss = new WSS(mu_options);
+  SUSPEND_NETWORK = false;
   mu_wss.on('listening', () => {
     if (DBG.init) console.log(PR, `socket server listening on port ${mu_options.port}`);
     mu_wss.on('connection', (socket, req) => {
@@ -212,6 +214,44 @@ UNET.ClientList = () => {
   });
   return clientsByMessage;
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** Disconnect all clients
+ *  This should fire the close handler for each socket
+ */
+UNET.CloseNetwork = () => {
+  // disable network packet handling
+  console.log(PR, `${CWARN}suspended network processing${TR}`);
+  SUSPEND_NETWORK = true;
+  //
+  if (mu_sockets.size === 0) return Promise.resolve();
+  console.log(PR, `${CWARN}closing ${mu_sockets.size} connected clients${TR}`);
+  // return a promise that resolves after checking for slow socket disconnects
+  return new Promise(resolve => {
+    // initiate close
+    mu_sockets.forEach(socket => {
+      socket.close();
+    });
+    // cleanup if there was an issues
+    setTimeout(() => {
+      const numsocks = mu_sockets.size;
+      if (numsocks) console.log(PR, `${CWARN}closing ${numsocks} slow connections${TR}`);
+      mu_sockets.forEach(socket => {
+        if ([socket.OPEN, socket.CLOSING].includes(socket.readyState)) {
+          m_SocketDelete(socket);
+        }
+      });
+      resolve();
+    }, 1000);
+  });
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** Reenable networking
+ */
+UNET.OpenNetwork = () => {
+  console.log(PR, `${CWARN}opening network processing${TR}`);
+  SUSPEND_NETWORK = false;
+};
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** Handles URSYS REGISTRATION PACKETS from connecting clients. It is the first
  * packet sent on successful socket connection.
@@ -397,6 +437,7 @@ function m_SocketClientAck(socket) {
     UADDR: socket.UADDR,
     SERVER_UADDR,
     PEERS,
+    DBREADONLY: SESSION.IsDBReadOnly(),
     ULOCAL: socket.ULOCAL
   };
   socket.send(JSON.stringify(data));
@@ -471,6 +512,16 @@ function m_SocketLookup(uaddr) {
  * @param {NetMessage} pkt - NetMessage packet instance
  */
 async function m_HandleMessage(socket, pkt) {
+  // (0) if the network is suspended, then let callers know and abort
+  if (SUSPEND_NETWORK) {
+    if (pkt.IsType('mcall')) {
+      pkt.SetData({
+        error: 'Server is restarting'
+      });
+      pkt.ReturnTransaction(socket);
+    }
+    return;
+  }
   // (1) Is the incoming message a response to a message that the server sent?
   // It might have been a duplicate packet ('forwarded') or one the server itself sent.
   // In either case, the packet will invoke whatever function handler is associated with

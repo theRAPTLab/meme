@@ -153,7 +153,7 @@ NETWORK.Connect = (datalink, opt) => {
 /*/
 function m_HandleRegistrationMessage(msgEvent) {
   let regData = JSON.parse(msgEvent.data);
-  let { HELLO, UADDR, SERVER_UADDR, PEERS, ULOCAL } = regData;
+  let { HELLO, UADDR, SERVER_UADDR, PEERS, DBREADONLY, ULOCAL } = regData;
   // (1) after receiving the initial message, switch over to regular
   // message handler
   NETWORK.RemoveListener('message', m_HandleRegistrationMessage);
@@ -166,6 +166,7 @@ function m_HandleRegistrationMessage(msgEvent) {
     netsocket: NETSOCK.ws,
     server_uaddr: SERVER_UADDR,
     peers: PEERS,
+    is_dbreadonly: DBREADONLY,
     is_local: ULOCAL
   });
   // (3) connect regular message handler
@@ -178,7 +179,9 @@ function m_HandleRegistrationMessage(msgEvent) {
     if (DBG.reg) console.log('updating URSESSION with registration data');
     window.URSESSION.CLIENT_UADDR = UADDR;
     window.URSESSION.USRV_UADDR = SERVER_UADDR;
+    window.URSESSION.CLIENT_DBREADONLY = DBREADONLY;
   }
+  // (6) update session
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**

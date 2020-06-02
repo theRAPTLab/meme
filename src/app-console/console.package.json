@@ -4,6 +4,7 @@
   "description": "Dependencies for packaged MEME app. It does not require developer libraries or webpack-related live reload.",
   "main": "console/console-main.js",
   "dependencies": {
+    "adm-zip": "^0.4.14",
     "cookie-parser": "^1.4.4",
     "ejs": "^2.7.1",
     "express": "^4.17.1",

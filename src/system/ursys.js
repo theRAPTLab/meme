@@ -40,6 +40,8 @@ let MEMEXT_INSTALLED = false;
 EXEC.Hook(__dirname, 'CONFIGURE', () => {
   // attempt to connect to extension
   EXT.ConnectToExtension(SocketUADDR());
+  // set SESSION.ReadOnly mode
+  if (NetMessage.IsReadOnly()) SESSION.SetDBReadOnly();
   // check for admin override thenreturn
   const qs = SESSION.AdminPlaintextPassphrase();
   if (document.location.hash.includes(qs)) {
@@ -53,7 +55,6 @@ EXEC.Hook(__dirname, 'CONFIGURE', () => {
     SESSION.SetAdminKey('localhost');
     return;
   }
-  // code here runs only if non-localhost regular user
 });
 
 /// PUBLIC METHODS ////////////////////////////////////////////////////////////
@@ -170,11 +171,11 @@ function SocketUADDR() {
 function PromiseCaptureScreen(options) {
   if (!EXT.IsConnected()) return Promise.resolve({ error: 'Extension not connected' });
   let res = EXT.ExtCallAsync('CAPTURE_SCREEN', options)
-    .then(async (data) => {
+    .then(async data => {
       let { dataURI } = data;
       return await EXT.DataURI2File(dataURI);
     })
-    .then(async (file) => {
+    .then(async file => {
       return await EXT.PromiseUploadFile(file);
     });
   return res;
@@ -218,19 +219,19 @@ window.ur.SESSION = SESSION;
 window.ur.LINK = ULINK;
 window.ur.DBQuery = DBQuery;
 window.ur.DBLock = (dbkey, dbids) => {
-  DBTryLock(dbkey, dbids).then((data) => {
+  DBTryLock(dbkey, dbids).then(data => {
     console.log(data);
   });
   return 'testing DBLock...';
 };
 window.ur.DBRelease = (dbkey, dbids) => {
-  DBTryRelease(dbkey, dbids).then((data) => {
+  DBTryRelease(dbkey, dbids).then(data => {
     console.log(data);
   });
   return 'testing DBRelease...';
 };
 window.ur.GetLockTable = () => {
-  NetCall('NET:SRV_DBLOCKS').then((data) => {
+  NetCall('NET:SRV_DBLOCKS').then(data => {
     Object.keys(data).forEach((key, index) => {
       const item = data[key];
       console.log(`${index})\t"${item.semaphore}" locked by ${item.uaddr}`);
@@ -239,7 +240,7 @@ window.ur.GetLockTable = () => {
   return 'retrieving lock table';
 };
 window.ur.tnc = (msg, data) => {
-  NetCall(msg, data).then((rdata) => {
+  NetCall(msg, data).then(rdata => {
     console.log(`netcall '${msg}' returned`, rdata);
   });
   return `testing netcall '${msg}'`;
@@ -252,7 +253,7 @@ window.ur.clientinfo = () => {
   return `testing clientinfo`;
 };
 window.ur.scap = (opt = { sx: 45, sy: 195, sw: 1950, sh: 1200 }) => {
-  PromiseCaptureScreen(opt).then((data) => {
+  PromiseCaptureScreen(opt).then(data => {
     const { href, error } = data;
     if (error) {
       console.log('error', error);

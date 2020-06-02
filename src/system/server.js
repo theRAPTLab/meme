@@ -14,6 +14,7 @@ const UNET = require('./server-network');
 const UDB = require('./server-database');
 const LOGGER = require('./server-logger');
 const EXPRESS = require('./server-express');
+const ARCHIVE = require('./server-archive');
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -36,14 +37,23 @@ let URSYS = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** API: Main Entry Point
  */
-URSYS.Initialize = (options = {}) => {
+URSYS.Initialize = async (options = {}) => {
+  if (options.tempdb) {
+    console.log(PR, `${CS}LOADING MEME ARCHIVE${CR}`);
+    await EXPRESS.CloseAppServer();
+    await UNET.CloseNetwork();
+    await UDB.ReInitializeDatabase(options);
+    await UNET.OpenNetwork();
+    await EXPRESS.OpenAppServer();
+    return;
+  }
   LOGGER.Write(LPR, `initializing network`);
   if (options.memehost) console.log(PR, `${CC}MEMEHOST${TR} ${options.memehost}`);
   if (process.env.DATASET) console.log(PR, `${CC}DATASET=${TR} ${process.env.DATASET}`);
   console.log(PR, `${CS}STARTING UR SOCKET SERVER${CR}`);
   URSYS.RegisterHandlers();
   UDB.InitializeDatabase(options);
-  return UNET.InitializeNetwork(options);
+  UNET.InitializeNetwork(options);
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /** Server message handlers. All messages with the prefix 'NET:SRV_' are always
@@ -69,35 +79,37 @@ URSYS.RegisterHandlers = () => {
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-URSYS.StartWebServer = callback => {
+URSYS.StartWebServer = async callback => {
   LOGGER.Write(LPR, `starting web server`);
   // returns an optional promise hook
   console.log(PR, `${CS}STARTING UR WEB SERVER${CR}`);
-  (async () => {
-    try {
-      await EXPRESS.Start();
-      let out = `\n---\n`;
-      out += `${CS}SYSTEM INITIALIZATION COMPLETE${CR}\n`;
-      out += `GO TO ONE OF THESE URLS in CHROME WEB BROWSER\n`;
-      out += `ADMIN    - ${SERVER_INFO.main}/#/admin\n`;
-      out += `STUDENTS - ${SERVER_INFO.client}\n`;
-      out += `---\n`;
-      if (typeof callback === 'function') callback(out);
-      console.log(out);
-    } catch (err) {
-      console.log(PR, `${CC}${err}${CR}`);
-      console.log(PR, `... exiting with errors\n`);
-      process.exit(0);
-    }
-  })();
+  try {
+    await EXPRESS.Start();
+    let out = `\n---\n`;
+    out += `${CS}SYSTEM INITIALIZATION COMPLETE${CR}\n`;
+    out += `GO TO ONE OF THESE URLS in CHROME WEB BROWSER\n`;
+    out += `ADMIN    - ${SERVER_INFO.main}/#/admin\n`;
+    out += `STUDENTS - ${SERVER_INFO.client}\n`;
+    out += `---\n`;
+    if (typeof callback === 'function') callback(out);
+    console.log(out);
+  } catch (err) {
+    console.log(PR, `${CC}${err}${CR}`);
+    console.log(PR, `... exiting with errors\n`);
+    process.exit(0);
+  }
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  */
-URSYS.StartNetwork = () => {
+URSYS.StartNetwork = async () => {
   LOGGER.Write(LPR, `starting network`);
-  UNET.StartNetwork();
+  await UNET.StartNetwork();
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** make a zip of the runtime directory
+ */
+URSYS.MakeDataArchive = () => {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 URSYS.PKT_Reflect = pkt => {
   // get reference to modify
@@ -130,7 +142,9 @@ URSYS.PKT_Services = pkt => {
   const clients = UNET.ClientList();
   return { server, clients };
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /// EXPORT MODULE DEFINITION //////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+URSYS.ARCHIVE = ARCHIVE;
 module.exports = URSYS;

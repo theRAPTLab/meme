@@ -57,12 +57,12 @@ class Login extends React.Component {
     this.DoADMDataUpdate();
     if (AUTOBOB) {
       this.setState({ loginId: 'bob-z4in' }, () => {
-        this.OnLogin({ preventDefault: function () { } });
+        this.OnLogin({ preventDefault: function() {} });
       });
     }
   }
 
-  componentWillUnmount() { }
+  componentWillUnmount() {}
 
   DoADMDataUpdate() {
     if (ADM.IsLoggedOut()) {
@@ -103,6 +103,8 @@ class Login extends React.Component {
   render() {
     const { classes } = this.props;
     const { loginId, loginDialogOpen, isValidLogin } = this.state;
+    const loginTitle = ADM.IsDBReadOnly() ? 'MEME Login (READ ONLY)' : 'MEME Login';
+
     return (
       <Dialog
         disableBackdropClick
@@ -116,7 +118,7 @@ class Login extends React.Component {
         }}
       >
         <form onSubmit={this.OnLogin}>
-          <DialogTitle>MEME Login</DialogTitle>
+          <DialogTitle>{loginTitle}</DialogTitle>
           <DialogContent>
             {this.memo}
             <DialogContentText>Please enter your login token:</DialogContentText>

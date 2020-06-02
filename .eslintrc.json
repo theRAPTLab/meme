@@ -7,13 +7,19 @@
   },
   "extends": ["airbnb", "prettier", "prettier/react"],
   "parserOptions": {
-    "ecmaVersion": 8,
+    "ecmaVersion": 2018,
     "ecmaFeatures": {
       "jsx": true
     },
     "sourceType": "module"
   },
-  "plugins": ["import", "airbnb", "prettier", "react"],
+  "globals":{
+    "PACKAGE_TITLE": "readonly",
+    "PACKAGE_VERSION": "readonly",
+    "PACKAGE_DESCRIPTION": "readonly",
+    "__static": "readonly"
+  },
+  "plugins": ["import", "prettier", "react"],
   "rules": {
     "prettier/prettier": ["warn"],
     "no-console": "off",

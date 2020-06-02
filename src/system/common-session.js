@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-return */
 /* eslint-disable no-param-reassign */
 /*//////////////////////////////// ABOUT \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*\
 
@@ -39,9 +40,10 @@ const UPLOAD_URL = `${SSHOT_URL}/upload`;
 
 /// MODULE DECLARATIONS ///////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-let m_current_name = undefined; // global decoded name (only for browsers)
+let m_current_name; // global decoded name (only for browsers)
 let m_current_idsobj = {}; // global decoded props (only for browsers)
 let m_access_key = ''; // global access key (saved only for browsers)
+let m_readonly = false; // global access readonly view
 
 /// SESSION ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -52,8 +54,10 @@ const SESSION = {};
     complete decode succes. groupId is also set if successful
 /*/
 SESSION.DecodeToken = hashedToken => {
-  let studentName, hashedData; // token
-  let groupId, classroomId; // decoded data
+  let studentName;
+  let hashedData; // token
+  let groupId; // decoded data
+  let classroomId;
   let isValid = false;
   // is a valid token?
   if (typeof hashedToken !== 'string') return { isValid, error: 'token must be a string' };
@@ -100,8 +104,8 @@ SESSION.IsValidToken = token => {
 SESSION.MakeToken = (studentName, dataIds = {}) => {
   // type checking
   if (typeof studentName !== 'string') throw Error(`classId arg1 '${studentName}' must be string`);
-  let err;
-  if ((err = f_checkIdValue(dataIds))) {
+  let err = f_checkIdValue(dataIds);
+  if (err) {
     console.warn(`Could not make token. ${err}`);
     return undefined;
   }
@@ -124,8 +128,8 @@ SESSION.MakeToken = (studentName, dataIds = {}) => {
 SESSION.MakeTeacherToken = (teacherName, dataIds = {}) => {
   // type checking
   if (typeof teacherName !== 'string') throw Error(`classId arg1 '${teacherName}' must be string`);
-  let err;
-  if ((err = f_checkIdValue(dataIds))) {
+  let err = f_checkIdValue(dataIds);
+  if (err) {
     console.warn(`Could not make token. ${err}`);
     return undefined;
   }
@@ -166,8 +170,8 @@ function f_checkIdValue(idsObj) {
  * as an authentication key based on a login token
  * @param {...*} var_args - string arguments
  */
-SESSION.MakeAccessKey = (/* args */) => {
-  const name = [...arguments].join(':');
+SESSION.MakeAccessKey = (...args) => {
+  const name = [...args].join(':');
   const key = UUIDv5(name, UUID_NAMESPACE);
   return key;
 };
@@ -197,9 +201,7 @@ SESSION.DecodeAndSet = token => {
       m_current_idsobj.classroomId = undefined;
     }
     if (DBG) console.log('DecodeAndSet() success', studentName, groupId, classroomId);
-  } else {
-    if (DBG) console.log('DecodeAndSet() failed', token);
-  }
+  } else if (DBG) console.log('DecodeAndSet() failed', token);
   return isValid;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -209,7 +211,7 @@ SESSION.DecodeAndSet = token => {
 SESSION.Clear = () => {
   if (DBG) console.log('Clearing session');
   m_current_name = undefined;
-  m_current_idsob = undefined;
+  m_current_idsobj = {};
   m_access_key = undefined;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -253,15 +255,24 @@ SESSION.AdminKey = () => {
 SESSION.LoggedInProps = () => {
   const { groupId, classroomId, teacherId } = m_current_idsobj;
   if (groupId === 0) {
-    return { teacherName: m_current_name, teacherId: teacherId };
+    return { teacherName: m_current_name, teacherId };
   }
   return { studentName: m_current_name, groupId, classroomId };
 };
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** flags used to turn on/off various features in UI
+ */
 SESSION.IsStudent = () => {
   return SESSION.LoggedInProps().studentName !== undefined;
 };
 SESSION.IsTeacher = () => {
   return SESSION.LoggedInProps().teacherName !== undefined;
+};
+SESSION.IsDBReadOnly = () => {
+  return m_readonly;
+};
+SESSION.SetDBReadOnly = () => {
+  m_readonly = true;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**

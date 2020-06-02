@@ -22,13 +22,14 @@ const DBG = false;
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 ///	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const { TERM_EXP: CLR, TERM_WPACK, TR } = PROMPTS;
+const { TERM_EXP: CLR, CWARN, TR } = PROMPTS;
 const PORT = 3000;
 const PR = `${CLR}${PROMPTS.Pad('UR_EXPRESS')}${TR}`;
 const SCREENSHOT_POST_URL = SESSION.ScreenshotPostURL();
 const SCREENSHOT_URL = SESSION.ScreenshotURL();
 const RUNTIMEPATH = path.join(__dirname, '../../runtime');
 const UPLOADPATH = path.join(RUNTIMEPATH, SCREENSHOT_URL);
+let PAUSE_LISTENING = false;
 
 /// SERVER DECLARATIONS ///////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -72,74 +73,74 @@ function Start() {
     });
     promise = Promise.resolve();
   } else {
-    const configWebApp = require('../config/webpack.webapp.config');
-    const wpack = require('webpack');
-    const wpack_mid = require('webpack-dev-middleware'); //webpack hot reloading middleware
-    const wpack_hot = require('webpack-hot-middleware');
-    // otherwise, we are running as straight node out of npm scripts, or
-    // a generic Electron binary was used to load us (Electron works just
-    // as a node interpreter ya know!
-    console.log(PR, `COMPILING WEBSERVER w/ WEBPACK - THIS MAY TAKE SEVERAL SECONDS...`);
-    DOCROOT = path.resolve(__dirname, '../../built/web');
+  const configWebApp = require('../config/webpack.webapp.config');
+  const wpack = require('webpack');
+  const wpack_mid = require('webpack-dev-middleware'); //webpack hot reloading middleware
+  const wpack_hot = require('webpack-hot-middleware');
+  // otherwise, we are running as straight node out of npm scripts, or
+  // a generic Electron binary was used to load us (Electron works just
+  // as a node interpreter ya know!
+  console.log(PR, `COMPILING WEBSERVER w/ WEBPACK - THIS MAY TAKE SEVERAL SECONDS...`);
+  DOCROOT = path.resolve(__dirname, '../../built/web');
 
-    // RUN WEBPACK THROUGH API
-    // first create a webpack instance with our chosen config file
-    const webConfig = configWebApp();
-    const compiler = wpack(webConfig);
+  // RUN WEBPACK THROUGH API
+  // first create a webpack instance with our chosen config file
+  const webConfig = configWebApp();
+  const compiler = wpack(webConfig);
 
-    // add webpack middleware to express
-    // also add the hot module reloading middleware
-    const instance = wpack_mid(compiler, {
-      // logLevel: 'silent', // turns off [wdm] messages
-      publicPath: webConfig.output.publicPath,
-      stats: 'errors-only' // see https://webpack.js.org/configuration/stats/
-    });
-    app.use(instance);
-    app.use(wpack_hot(compiler));
+  // add webpack middleware to express
+  // also add the hot module reloading middleware
+  const instance = wpack_mid(compiler, {
+    // logLevel: 'silent', // turns off [wdm] messages
+    publicPath: webConfig.output.publicPath,
+    stats: 'errors-only' // see https://webpack.js.org/configuration/stats/
+  });
+  app.use(instance);
+  app.use(wpack_hot(compiler));
 
-    // compilation start message
-    // we'll start the server after webpack bundling is complete
-    // but we still have some configuration to do
-    compiler.hooks.afterCompile.tap('StartServer', () => {
-      if (!server) {
-        server = app.listen(PORT, () => {
-          console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT}`);
-          console.log(PR, `SERVING '${DOCROOT}'`);
-          console.log(PR, `LIVE RELOAD ENABLED`);
-        });
+  // compilation start message
+  // we'll start the server after webpack bundling is complete
+  // but we still have some configuration to do
+  compiler.hooks.afterCompile.tap('StartServer', () => {
+    if (!server) {
+      server = app.listen(PORT, () => {
+        console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT}`);
+        console.log(PR, `SERVING '${DOCROOT}'`);
+        console.log(PR, `LIVE RELOAD ENABLED`);
+      });
+    }
+  });
+
+  // return promise when server starts
+    promise = new Promise((resolve, reject) => {
+    let INTERVAL_COUNT = 0;
+    const INTERVAL_MAX = 15;
+    let COMPILE_RESOLVED = false;
+    const INTERVAL_PERIOD = 2000;
+    const COMPILE_TIME = Math.floor((INTERVAL_MAX * INTERVAL_PERIOD) / 1000);
+    // start compile status update timer
+    let INTERVAL = setInterval(() => {
+      if (++INTERVAL_COUNT < INTERVAL_MAX) {
+        console.log(PR, `... webpack compiling`);
+      } else {
+        clearInterval(INTERVAL);
+        const emsg = `webpack compile time > INTERVAL_MAX (${COMPILE_TIME} seconds)`;
+        const err = new Error(emsg);
+        reject(err);
+      }
+    }, INTERVAL_PERIOD);
+    // set resolver
+    compiler.hooks.afterCompile.tap('ResolvePromise', () => {
+      if (!COMPILE_RESOLVED) {
+        console.log(PR, `... webpack done`);
+        clearInterval(INTERVAL);
+        resolve();
+        COMPILE_RESOLVED = true;
+      } else {
+        console.log(PR, `RECOMPILED SOURCE CODE and RELOADING`);
       }
     });
-
-    // return promise when server starts
-    promise = new Promise((resolve, reject) => {
-      let INTERVAL_COUNT = 0;
-      const INTERVAL_MAX = 15;
-      let COMPILE_RESOLVED = false;
-      const INTERVAL_PERIOD = 2000;
-      const COMPILE_TIME = Math.floor((INTERVAL_MAX * INTERVAL_PERIOD) / 1000);
-      // start compile status update timer
-      let INTERVAL = setInterval(() => {
-        if (++INTERVAL_COUNT < INTERVAL_MAX) {
-          console.log(PR, `... webpack compiling`);
-        } else {
-          clearInterval(INTERVAL);
-          const emsg = `webpack compile time > INTERVAL_MAX (${COMPILE_TIME} seconds)`;
-          const err = new Error(emsg);
-          reject(err);
-        }
-      }, INTERVAL_PERIOD);
-      // set resolver
-      compiler.hooks.afterCompile.tap('ResolvePromise', () => {
-        if (!COMPILE_RESOLVED) {
-          console.log(PR, `... webpack done`);
-          clearInterval(INTERVAL);
-          resolve();
-          COMPILE_RESOLVED = true;
-        } else {
-          console.log(PR, `RECOMPILED SOURCE CODE and RELOADING`);
-        }
-      });
-    });
+  });
   }
 
   // RESUME WITH COMMON SERVER SETUP //
@@ -159,13 +160,19 @@ function Start() {
   app.set('view engine', 'ejs');
   // handle special case for root url to serve our ejs template
   app.get('/', (req, res) => {
-    const URSessionParams = GetTemplateValues(req);
-    res.render(`${DOCROOT}/index`, URSessionParams);
+    if (!PAUSE_LISTENING) {
+      const URSessionParams = GetTemplateValues(req);
+      res.render(`${DOCROOT}/index`, URSessionParams);
+    } else {
+      console.log(PR, 'appserver is paused, ignoring request');
+      res.status(503);
+      res.send('MEME SERVER IS RESTARTING. Please try again in a few seconds.');
+    }
   });
   // for everything else...
   app.use('/', express.static(DOCROOT));
   // handle image uploads
-  app.post(SCREENSHOT_POST_URL, upload.single('screenshot'), function(req, res, next) {
+  app.post(SCREENSHOT_POST_URL, upload.single('screenshot'), (req, res, next) => {
     const { originalname, mimetype, destination, filename } = req.file;
     const data = { originalname, filename };
     res.header('Content-Type', mimetype);
@@ -177,6 +184,19 @@ function Start() {
   // return promise for async users
   return promise;
 }
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** when re-initializing the database during an import, don't allow client
+ *  connections
+ */
+function CloseAppServer() {
+  console.log(PR, `${CWARN}suspending appserver${TR}`);
+  PAUSE_LISTENING = true;
+}
+function OpenAppServer() {
+  console.log(PR, `${CWARN}opening appserver${TR}`);
+  PAUSE_LISTENING = false;
+}
+
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function GetTemplateValues(req) {
   let { ip, hostname } = req;
@@ -191,4 +211,4 @@ function GetTemplateValues(req) {
   return params;
 }
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-module.exports = { Start };
+module.exports = { Start, CloseAppServer, OpenAppServer };
