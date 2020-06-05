@@ -9,7 +9,7 @@
   },
   "main": "main.js",
   "scripts": {
-    "start": "node meme",
+    "start": "node meme production",
     "dev": "node meme dev",
     "doc": "node meme doc",
     "electron": "node meme electron",

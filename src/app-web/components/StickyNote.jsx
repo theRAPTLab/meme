@@ -147,13 +147,11 @@ class StickyNote extends React.Component {
         ? `${semaphore} lock acquired by ${uaddr} `
         : `failed to acquired ${semaphore} lock `;
       if (rdata.success) {
-        console.log('do something here because u-locked!');
         this.setState({ isBeingEdited: true }, () => {
           this.FocusTextInput();
           this.props.OnStartEdit();
         });
       } else {
-        console.log('aw, locked by', rdata.lockedBy);
         alert(
           `Sorry, someone else (${rdata.lockedBy}) is editing this Comment right now.  Please try again later.`
         );
@@ -193,11 +191,9 @@ class StickyNote extends React.Component {
         ? `${semaphore} lock acquired by ${uaddr} `
         : `failed to acquired ${semaphore} lock `;
       if (rdata.success) {
-        console.log('do something here because u-locked!');
         PMC.DB_CommentDelete(this.state.comment.id);
         this.props.OnUpdateComment(); // tell StickyNoteCollection to exit edit mode
       } else {
-        console.log('aw, locked by', rdata.lockedBy);
         alert(
           `Sorry, someone else (${rdata.lockedBy}) is editing this Comment right now.  Please try again later.`
         );

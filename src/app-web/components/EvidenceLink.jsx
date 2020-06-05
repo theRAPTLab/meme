@@ -351,10 +351,8 @@ class EvidenceLink extends React.Component {
         ? `${semaphore} lock acquired by ${uaddr} `
         : `failed to acquired ${semaphore} lock `;
       if (rdata.success) {
-        console.log('do something here because u-locked!');
         DATA.PMC_DeleteEvidenceLink(this.props.evlink.id);
       } else {
-        console.log('aw, locked by', rdata.lockedBy);
         alert(
           `Sorry, someone else (${rdata.lockedBy}) is editing this Evidence Link right now.  Please try again later.`
         );

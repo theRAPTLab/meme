@@ -128,7 +128,6 @@ class MechDialog extends React.Component {
           const { success, semaphore, uaddr, lockedBy } = rdata;
           status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
           if (rdata.success) {
-            console.log('do something here because u-locked!');
             this.setState(
               {
                 isOpen: true,
@@ -149,7 +148,6 @@ class MechDialog extends React.Component {
               () => this.DoSelectSourceAndTarget(sourceId, targetId) // show the selected props
             );
           } else {
-            console.log('aw, locked by', rdata.lockedBy);
             alert(`Sorry, someone else (${rdata.lockedBy}) is editing this ${DATAMAP.PMC_MODELTYPES.MECHANISM.label} right now.  Please try again later.`)
             UR.Publish('MECHDIALOG_CLOSED'); // tell ViewMain to re-enable ToolsPanel
           }

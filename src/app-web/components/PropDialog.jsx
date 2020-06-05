@@ -86,8 +86,6 @@ class PropDialog extends React.Component {
         ? `${semaphore} lock acquired by ${uaddr} `
         : `failed to acquired ${semaphore} lock `;
       if (rdata.success) {
-        console.log('do something here because u-locked!');
-        console.log('propsdialog editing', data);
         this.setState({
           isOpen: true,
           propId: data.propId || '', // new prop, so clear propId
@@ -97,7 +95,6 @@ class PropDialog extends React.Component {
           isProperty: data.isProperty
         });
       } else {
-        console.log('aw, locked by', rdata.lockedBy);
         alert(
           `Sorry, someone else (${rdata.lockedBy}) is editing this ${data.propType} right now.  Please try again later.`
         );

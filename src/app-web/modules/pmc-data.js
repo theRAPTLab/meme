@@ -301,7 +301,6 @@ PMCData.SyncAddedData = data => {
 
     if (subkey === 'comments') {
       const comment = PMCObj.Comment(value);
-      console.log('....adding comment', comment);
       a_comments.push(comment);
       UR.Publish('DATA_UPDATED');
     }

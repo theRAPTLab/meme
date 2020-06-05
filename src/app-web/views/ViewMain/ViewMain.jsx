@@ -312,7 +312,6 @@ class ViewMain extends React.Component {
           ? `${semaphore} lock acquired by ${uaddr} `
           : `failed to acquired ${semaphore} lock `;
         if (rdata.success) {
-          console.log('do something here because u-locked!');
           DATA.PMC_PropDelete(propId);
           if (this.state.addEdgeSource === propId) {
             this.setState({
@@ -320,7 +319,6 @@ class ViewMain extends React.Component {
             });
           }
         } else {
-          console.log('aw, locked by', rdata.lockedBy);
           alert(
             `Sorry, someone else (${rdata.lockedBy}) is editing this Component / Property right now.  Please try again later.`
           );
@@ -413,10 +411,8 @@ class ViewMain extends React.Component {
           ? `${semaphore} lock acquired by ${uaddr} `
           : `failed to acquired ${semaphore} lock `;
         if (rdata.success) {
-          console.log('do something here because u-locked!');
           DATA.PMC_MechDelete(mechId);
         } else {
-          console.log('aw, locked by', rdata.lockedBy);
           alert(
             `Sorry, someone else (${rdata.lockedBy}) is editing this Mechanism right now.  Please try again later.`
           );

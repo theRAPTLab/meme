@@ -48,7 +48,10 @@ const PATH_WEBPACK = `./node_modules/webpack/bin`;
 
 switch (param1) {
   case 'dev':
-    f_RunDevServer();
+    f_RunDevServer({ memehost: 'devserver' });
+    break;
+  case 'production':
+    f_RunDevServer({ memehost: 'production' });
     break;
   case 'clean':
     f_Clean({ all: argv.all });
@@ -80,7 +83,7 @@ function u_checkError(execResults) {
   process.exit(0);
 }
 
-function f_RunDevServer() {
+function f_RunDevServer(memehost) {
   //    "dev": "echo '\n*** USING WEBPACK HOT DEV SERVER' && webpack-dev-server  --mode development --inline --hot --host 0.0.0.0 --config=./src/config/webpack.webapp.config.js --env.HMR_MODE='wds'",
   console.log(`\n`);
   console.log(PR, `running Development Server`);
@@ -104,7 +107,7 @@ function f_RunDevServer() {
 
   // run ursys socket server
   // note: in electron mode, this server is loaded from inside electron's console-main.js
-  URSERVER.Initialize({ memehost: 'devserver' });
+  URSERVER.Initialize(memehost);
   URSERVER.StartNetwork();
   URSERVER.StartWebServer();
 }

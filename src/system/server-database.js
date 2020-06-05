@@ -42,7 +42,8 @@ let m_db; // loki database
 const DB_DATASETS = {
   init: '_blank',
   electron: 'meme',
-  devserver: 'test'
+  devserver: 'test',
+  production: 'meme'
 }; //
 const DB = {};
 
