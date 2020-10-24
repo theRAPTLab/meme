@@ -172,7 +172,7 @@ PMCData.InitializeModel = (model, admdb) => {
               id: obj.id,
               name: obj.name,
               description: obj.description,
-              bidirectional: obj.bidirectional
+              bidirectional: obj.bidirectional || false // for backward compatibility
             });
           break;
         case 'evidence':
@@ -278,7 +278,7 @@ PMCData.SyncAddedData = data => {
             id: value.id,
             name: value.name,
             description: value.description,
-            bidirectional: value.bidirectional
+            bidirectional: value.bidirectional || false // for backward compatibility
           });
           break;
         case 'evidence':
@@ -360,7 +360,7 @@ PMCData.SyncUpdatedData = data => {
             id: value.id,
             name: value.name,
             description: value.description,
-            bidirectional: value.bidirectional
+            bidirectional: value.bidirectional || false // for backward compatibility
           });
           dataWasUpdated = true;
           break;
@@ -1411,7 +1411,7 @@ PMCData.DB_CommentsUpdate = (refId, comments, cb) => {
       // last one so add the callback
       callback = cb;
     }
-    PMCData.DB_CommentUpdate(refId, comment[i], callback);
+    PMCData.DB_CommentUpdate(refId, comments[i], callback);
   }
 };
 

@@ -607,7 +607,7 @@ class ViewMain extends React.Component {
             <div
               className={resourceLibraryIsOpen ? classes.appBarRight : classes.appBarRightExpanded}
             >
-              <StickyNoteButton refId="model" />
+              <StickyNoteButton refId="9999" />
               &nbsp;&nbsp; &nbsp;&nbsp;
               <Button onClick={this.OnCloseModel} color="inherit">
                 <div>{studentName}</div>

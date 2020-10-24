@@ -250,6 +250,8 @@ class ModelSelect extends React.Component {
                 </Typography>
                 <ModelsListTable
                   models={myModels}
+                  isAdmin={false}
+                  showGroup={false}
                   OnModelSelect={this.OnModelEdit}
                   OnModelClone={this.OnModelClone}
                   OnModelMove={this.OnModelMove}
@@ -260,6 +262,8 @@ class ModelSelect extends React.Component {
                 <Typography variant="h4">My Class&rsquo; Models</Typography>
                 <ModelsListTable
                   models={ourModels}
+                  isAdmin={false}
+                  showGroup
                   OnModelSelect={this.OnModelView}
                   OnModelClone={this.OnModelClone}
                   OnModelMove={this.OnModelMove}
@@ -271,6 +275,8 @@ class ModelSelect extends React.Component {
                   <Typography variant="h4">Deleted Models</Typography>
                   <ModelsListTable
                     models={deletedModels}
+                    isAdmin
+                    showGroup
                     OnModelSelect={this.OnModelView}
                     OnModelClone={this.OnModelClone}
                     OnModelMove={this.OnModelMove}
