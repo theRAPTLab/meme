@@ -453,7 +453,7 @@ class MechDialog extends React.Component {
         <Paper className={classes.edgeDialogPaper}>
           <form onSubmit={this.OnCreateClick}>
             <div className={classes.edgeDialogWindowLabel}>
-              ADD {DATAMAP.PMC_MODELTYPES.MECHANISM.label.toUpperCase()}
+              <b>ADD {DATAMAP.PMC_MODELTYPES.MECHANISM.label.toUpperCase()}</b>
               <br />
               <div>{DATAMAP.PMC_MODELTYPES.MECHANISM.description}</div>
             </div>

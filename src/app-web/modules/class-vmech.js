@@ -279,6 +279,10 @@ class VMech {
           // this.textpath.attr('startOffset', m_blen);
         }
 
+        // Need to redraw arrow colors based on selection status during Update
+        // since Draw() is not called during a drag.
+        this.UpdateArrowStates();
+
         // VBadge hack position of horizText
         this.pathLabelGroup.show();
         this.pathLabelGroup.x(this.pathLabel.x() - this.pathLabelBox.width() / 2); // center it on the path
@@ -300,20 +304,45 @@ class VMech {
   }
 
   /**
+   * Swap out markers.  Since markers are shared symbols, we can't just
+   * modify the fill, we actually have to switch to using a different marker
+   * Update() sets the direction.  This function just colors any
+   * existing markers according to the selection.  It is used by both
+   * Upate() and Draw().
+   */
+  UpdateArrowStates() {
+    if (this.visualState.IsSelected()) {
+      if (this.path.reference('marker-start'))
+        this.path.marker('start', SVGDEFS.get('arrowStartHeadSelected'));
+      if (this.path.reference('marker-end'))
+        this.path.marker('end', SVGDEFS.get('arrowEndHeadSelected'));
+    } else if (this.visualState.IsSelected('hover')) {
+      if (this.path.reference('marker-start'))
+        this.path.marker('start', SVGDEFS.get('arrowStartHeadHover'));
+      if (this.path.reference('marker-end'))
+        this.path.marker('end', SVGDEFS.get('arrowEndHeadHover'));
+    } else {
+      if (this.path.reference('marker-start'))
+        this.path.marker('start', SVGDEFS.get('arrowStartHead'));
+      if (this.path.reference('marker-end')) this.path.marker('end', SVGDEFS.get('arrowEndHead'));
+    }
+  }
+
+  /**
    * Handle any post-Update() drawing, such as selection state
    */
   Draw() {
-    if (this.visualState.IsSelected('hover')) {
-      // Hover
-      this.path.stroke({ width: PATHWIDTH, color: COL_HOV, dasharray: '6 3' });
-      this.pathLabel.fill(COL_HOV);
-      this.horizText.fill(COL_HOV);
-    } else if (this.visualState.IsSelected()) {
+    if (this.visualState.IsSelected()) {
       // Selected
       this.path.stroke({ width: PATHWIDTH, color: COL_MECH_SEL, dasharray: '6 3' });
       // markers.forEach(marker => marker.fill(COL_MECH_SEL));
       this.pathLabel.fill(COL_MECH_SEL);
       this.horizText.fill(COL_MECH_SEL);
+    } else if (this.visualState.IsSelected('hover')) {
+      // Hover
+      this.path.stroke({ width: PATHWIDTH, color: COL_HOV, dasharray: '6 3' });
+      this.pathLabel.fill(COL_HOV);
+      this.horizText.fill(COL_HOV);
     } else {
       // Normal
       this.path.stroke({ width: PATHWIDTH, color: COL_MECH, dasharray: '6 3' });
@@ -321,6 +350,7 @@ class VMech {
       this.pathLabel.fill(COL_MECH);
       this.horizText.fill(COL_MECH_LABEL);
     }
+    this.UpdateArrowStates();
     this.vBadge.Draw(this);
   }
 

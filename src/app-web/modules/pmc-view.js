@@ -235,12 +235,44 @@ PMCView.DefineDefs = svg => {
       .attr({ id: 'arrowEndHead', orient: 'auto', refX: 4 })
   );
   SVGDEFS.set(
+    'arrowEndHeadHover',
+    svg
+      .marker(4, 4, add => {
+        add.path('M0,0 L0,4 L4,2 Z').fill(COLOR.MECH_HOV);
+      })
+      .attr({ id: 'arrowEndHeadHover', orient: 'auto', refX: 4 })
+  );
+  SVGDEFS.set(
+    'arrowEndHeadSelected',
+    svg
+      .marker(4, 4, add => {
+        add.path('M0,0 L0,4 L4,2 Z').fill(COLOR.MECH_SEL);
+      })
+      .attr({ id: 'arrowEndHeadSelected', orient: 'auto', refX: 4 })
+  );
+  SVGDEFS.set(
     'arrowStartHead',
     svg
       .marker(4, 4, add => {
         add.path('M4,4 L4,0 L0,2 Z').fill(COLOR.MECH);
       })
       .attr({ id: 'arrowStartHead', orient: 'auto', refX: 0 })
+  );
+  SVGDEFS.set(
+    'arrowStartHeadHover',
+    svg
+      .marker(4, 4, add => {
+        add.path('M4,4 L4,0 L0,2 Z').fill(COLOR.MECH_HOV);
+      })
+      .attr({ id: 'arrowStartHeadHover', orient: 'auto', refX: 0 })
+  );
+  SVGDEFS.set(
+    'arrowStartHeadSelected',
+    svg
+      .marker(4, 4, add => {
+        add.path('M4,4 L4,0 L0,2 Z').fill(COLOR.MECH_SEL);
+      })
+      .attr({ id: 'arrowStartHeadSelected', orient: 'auto', refX: 0 })
   );
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

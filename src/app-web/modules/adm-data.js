@@ -282,6 +282,22 @@ ADMData.SyncRemovedData = data => {
         });
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
+      case 'resources': {
+        value.forEach(val => {
+          const i = adm_db.resources.findIndex(r => r.id === val.id);
+          adm_db.resources.splice(i, 1);
+        });
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      }
+      case 'classroomResources': {
+        value.forEach(val => {
+          const i = adm_db.classroomResources.findIndex(r => r.id === val.id);
+          adm_db.classroomResources.splice(i, 1);
+        });
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      }
       default:
     }
   });
@@ -1457,6 +1473,17 @@ ADMData.DB_ResourceUpdate = resource => {
   return UR.DBQuery('update', {
     resources: resource
   });
+};
+/**
+ *  @param {Integer} resourceId
+ */
+ADMData.DB_ResourceDelete = resourceId => {
+  // First remove the resource from all classrooms
+  adm_db.classrooms.forEach(c => {
+    ADMData.DB_ClassroomResourceSet(resourceId, false, c.id);
+  });
+  // Then remove the resource completely
+  return UR.DBQuery('remove', { resources: { id: resourceId } });
 };
 
 // Returns all of the resource objects.

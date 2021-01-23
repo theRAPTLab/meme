@@ -160,10 +160,8 @@ const styles = theme => {
       filter: 'brightness(90%) saturate(200%)'
     },
     edgeDialogWindowLabel: {
-      fontSize: '0.8em',
-      color: m_systemTextColor,
-      marginBottom: '-10px',
-      marginTop: '-1em'
+      fontSize: '1em',
+      color: m_systemTextColor
     },
     edgeDialogTextField: {
       color: orange[500],

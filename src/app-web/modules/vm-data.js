@@ -341,7 +341,8 @@ function DeselectAllProps() {
   // tell all vprops to clear themselves
   selected_vprops.forEach(vpid => {
     const vprop = VM.VM_VProp(vpid);
-    if (vprop) { // even if vprop has been deleted, it still might be selected
+    if (vprop) {
+      // even if vprop has been deleted, it still might be selected
       vprop.visualState.Deselect();
       vprop.Draw();
     }
@@ -446,7 +447,7 @@ VM.VM_SelectedMechIds = () => {
  */
 VM.VM_SaveVPropPosition = vprop => {
   if (DATA.IsViewOnly()) return; // don't save position of view only
-  
+
   const pmcDataId = ASET.selectedPMCDataId;
   const id = Number(vprop.Id());
   const x = Number(vprop.X());

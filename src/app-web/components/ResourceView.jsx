@@ -20,9 +20,7 @@ import Modal from '@material-ui/core/Modal';
 import Paper from '@material-ui/core/Paper';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
-// Material UI Icons
-import ImageIcon from '@material-ui/icons/Image';
-import DescriptionIcon from '@material-ui/icons/Description';
+
 // Material UI Theming
 import { withStyles } from '@material-ui/core/styles';
 
@@ -37,6 +35,24 @@ import PMCObj from '../modules/pmc-objects';
 import UTILS from '../modules/utils';
 import EvidenceList from './EvidenceList';
 import DEFAULTS from '../modules/defaults';
+
+/// RESOURCE TYPES /////////////////////////////////////////////////////////////////
+// Material UI Icons
+// I want to move this somewhere centralized but wasn't sure the best way, so this is a teemporary shifting
+// in how it is referenced to make it easier later
+import ImageIcon from '@material-ui/icons/Image';
+import DescriptionIcon from '@material-ui/icons/Description';
+import EmojiObjectsIcon from '@material-ui/icons/EmojiObjects';
+import ContactSupportIcon from '@material-ui/icons/ContactSupport';
+
+const RESOURCE_TYPES = {
+  simulation: <ImageIcon />,
+  assumption: <EmojiObjectsIcon />,
+  idea: <EmojiObjectsIcon />,
+  report: <DescriptionIcon />,
+  question: <ContactSupportIcon />,
+  other: <DescriptionIcon />
+};
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -90,7 +106,7 @@ class ResourceView extends React.Component {
         // no comment defined yet, so create a new comment
         const comment = PMCObj.Comment({
           refId: noteRefId,
-          author: ADM.GetAuthorId(),
+          author: ADM.GetAuthorId()
         });
         DATA.DB_CommentAdd(noteRefId, comment, () => this.ContinueOpen(resource, noteRefId));
       } else {
@@ -114,24 +130,26 @@ class ResourceView extends React.Component {
 
   ContinueOpen(resource, noteRefId) {
     const comments = DATA.GetComments(noteRefId);
-    if (comments.length < 1) throw Error('There should be at least one comment saved as a Resource note!');
+    if (comments.length < 1)
+      throw Error('There should be at least one comment saved as a Resource note!');
     const note = comments[0].text;
     const commentId = comments[0].id;
 
     const pmcDataId = ASET.selectedPMCDataId;
     const intCommentId = Number(commentId);
-    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId])
-      .then(rdata => {
-        const { success, semaphore, uaddr, lockedBy } = rdata;
-        status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
-        if (rdata.success) {
-          this.setState({ noteIsDisabled: false });
-        } else {
-          alert(
-            `Sorry, someone else (${rdata.lockedBy}) is editing this Resource Note right now.  Please try again later. (You can still ${DEFAULTS.TEXT.ADD_EVIDENCE}.)`
-          );
-        }
-      });
+    UR.DBTryLock('pmcData.comments', [pmcDataId, intCommentId]).then(rdata => {
+      const { success, semaphore, uaddr, lockedBy } = rdata;
+      status += success
+        ? `${semaphore} lock acquired by ${uaddr} `
+        : `failed to acquired ${semaphore} lock `;
+      if (rdata.success) {
+        this.setState({ noteIsDisabled: false });
+      } else {
+        alert(
+          `Sorry, someone else (${rdata.lockedBy}) is editing this Resource Note right now.  Please try again later. (You can still ${DEFAULTS.TEXT.ADD_EVIDENCE}.)`
+        );
+      }
+    });
 
     this.setState({
       isOpen: true,
@@ -157,10 +175,11 @@ class ResourceView extends React.Component {
         const { href, error } = rdata;
         if (error) console.log('PromiseCaptureScreen:', error);
         // Always create evidence link even if href is undefined
-        DATA.PMC_AddEvidenceLink({ rsrcId, imageURL: href }, id => UR.Publish('SHOW_EVIDENCE_LINK', { evId: id, rsrcId }));
+        DATA.PMC_AddEvidenceLink({ rsrcId, imageURL: href }, id =>
+          UR.Publish('SHOW_EVIDENCE_LINK', { evId: id, rsrcId })
+        );
       });
     }
-
   }
 
   // User has edited the note by typing
@@ -174,11 +193,8 @@ class ResourceView extends React.Component {
       text: this.state.note,
       refId: this.state.noteRefId,
       author: ADM.GetAuthorId()
-    })
-    DATA.DB_CommentUpdate(
-      this.state.noteRefId,
-      note
-    );
+    });
+    DATA.DB_CommentUpdate(this.state.noteRefId, note);
   }
 
   OnClose() {
@@ -222,18 +238,16 @@ class ResourceView extends React.Component {
               <Typography variant="overline">Type:&nbsp;</Typography>
               <Typography variant="body2">
                 {resource.type}{' '}
-                {resource.type === 'simulation' ? <ImageIcon /> : <DescriptionIcon />}
+                {RESOURCE_TYPES[resource.type]
+                  ? RESOURCE_TYPES[resource.type]
+                  : RESOURCE_TYPES.other}
               </Typography>
             </CardContent>
           </Card>
           <Card className={classes.resourceViewCard}>
             <CardContent className={classes.resourceViewCardContent}>
               <Typography variant="overline">Links:&nbsp;</Typography>
-              <Chip
-                className={classes.resourceViewLinksBadge}
-                label={links}
-                color="primary"
-              />
+              <Chip className={classes.resourceViewLinksBadge} label={links} color="primary" />
             </CardContent>
           </Card>
           <Button className={classes.evidenceCloseBtn} onClick={this.OnClose} color="primary">
@@ -253,7 +267,7 @@ class ResourceView extends React.Component {
               label="Our Notes"
               placeholder="We noticed..."
               multiline
-              rows="5"
+              rows="15"
               className={classes.resourceViewNote}
               margin="normal"
               variant="outlined"
