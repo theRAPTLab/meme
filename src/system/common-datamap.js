@@ -69,7 +69,7 @@ const PMC_MODELTYPES = {
     label: 'process',
     plural: 'processes',
     description:
-      'Processes describe how entities act and how they effect each other or produce outcomes. These are usually verbs. A process can connect an entity to an entity it is changing, or to an outcome it is producing.'
+      'A process explains how an entity changes another entity, or how an entity leads to an outcome. An example would be to say that fish use up the oxygen.'
   }
 };
 

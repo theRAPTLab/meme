@@ -15,9 +15,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
-import DialogContentText from '@material-ui/core/DialogContentText';
+import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
 import Slide from '@material-ui/core/Slide';
+import Switch from '@material-ui/core/Switch';
 import TextField from '@material-ui/core/TextField';
 // Material UI Theming
 import { withStyles } from '@material-ui/core/styles';
@@ -31,6 +32,7 @@ import ASET from '../modules/adm-settings';
 import UTILS from '../modules/utils';
 import LinkButton from './LinkButton';
 import DATAMAP from '../../system/common-datamap';
+import MechArrow from './MechArrow';
 
 /// CONSTANTS /////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -42,7 +44,7 @@ const PKG = 'MechDialog:';
 
 class MechDialog extends React.Component {
   constructor(props) {
-    super(props);
+    super();
     this.DoAdd = this.DoAdd.bind(this);
     this.DoEdit = this.DoEdit.bind(this);
     this.DoClose = this.DoClose.bind(this);
@@ -54,6 +56,7 @@ class MechDialog extends React.Component {
     this.OnTargetLinkButtonClick = this.OnTargetLinkButtonClick.bind(this);
     this.OnTextChange = this.OnTextChange.bind(this);
     this.OnDescriptionChange = this.OnDescriptionChange.bind(this);
+    this.OnToggleBidirection = this.OnToggleBidirection.bind(this);
     this.OnReverse = this.OnReverse.bind(this);
     this.DoSaveData = this.DoSaveData.bind(this);
     this.OnCreateClick = this.OnCreateClick.bind(this);
@@ -73,11 +76,13 @@ class MechDialog extends React.Component {
       origTargetId: '',
       saveButtonLabel: 'Add',
       reversing: false,
-      slideIn: true
+      slideIn: true,
+      bidirectional: false
     };
 
     UR.Subscribe('MECHDIALOG:ADD', this.DoAdd);
     UR.Subscribe('MECHDIALOG:EDIT', this.DoEdit);
+    UR.Subscribe('MECHDIALOG:CLOSE', this.DoClose);
     UR.Subscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Subscribe('PROP_DELETE', this.DoPropDelete);
   }
@@ -87,6 +92,7 @@ class MechDialog extends React.Component {
   componentWillUnmount() {
     UR.Unsubscribe('MECHDIALOG:ADD', this.DoAdd);
     UR.Unsubscribe('MECHDIALOG:EDIT', this.DoEdit);
+    UR.Unsubscribe('MECHDIALOG:CLOSE', this.DoClose);
     UR.Unsubscribe('SELECTION_CHANGED', this.DoSelectionChange);
     UR.Unsubscribe('PROP_DELETE', this.DoPropDelete);
   }
@@ -109,7 +115,8 @@ class MechDialog extends React.Component {
         origTargetId: '',
         listenForSourceSelection: true,
         listenForTargetSelection: true,
-        saveButtonLabel: 'Add'
+        saveButtonLabel: 'Add',
+        bidirectional: false
       },
       () => {
         this.DoSelectionChange(); // Read selection to prepopulate
@@ -119,49 +126,55 @@ class MechDialog extends React.Component {
 
   DoEdit(data) {
     if (DBG) console.log(PKG, 'Edit Mech!', data);
-    const { id, label, description, sourceId, targetId } = data;
+    const { id, label, description, bidirectional, sourceId, targetId } = data;
     const pmcDataId = ASET.selectedPMCDataId;
     const intMechId = Number(data.id);
     if (intMechId) {
-      UR.DBTryLock('pmcData.entities', [pmcDataId, intMechId])
-        .then(rdata => {
-          const { success, semaphore, uaddr, lockedBy } = rdata;
-          status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
-          if (rdata.success) {
-            this.setState(
-              {
-                isOpen: true,
-                editExisting: true,
-                id,
-                sourceId,
-                sourceLabel: DATA.Prop(sourceId).name,
-                targetId,
-                targetLabel: DATA.Prop(targetId).name,
-                label,
-                description: description || '',  // Simple validation
-                origSourceId: sourceId,
-                origTargetId: targetId,
-                listenForSourceSelection: false,
-                listenForTargetSelection: false,
-                saveButtonLabel: 'Update'
-              },
-              () => this.DoSelectSourceAndTarget(sourceId, targetId) // show the selected props
-            );
-          } else {
-            alert(`Sorry, someone else (${rdata.lockedBy}) is editing this ${DATAMAP.PMC_MODELTYPES.MECHANISM.label} right now.  Please try again later.`)
-            UR.Publish('MECHDIALOG_CLOSED'); // tell ViewMain to re-enable ToolsPanel
-          }
-        });
+      UR.DBTryLock('pmcData.entities', [pmcDataId, intMechId]).then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success
+          ? `${semaphore} lock acquired by ${uaddr} `
+          : `failed to acquired ${semaphore} lock `;
+        if (rdata.success) {
+          this.setState(
+            {
+              isOpen: true,
+              editExisting: true,
+              id,
+              sourceId,
+              sourceLabel: DATA.Prop(sourceId).name,
+              targetId,
+              targetLabel: DATA.Prop(targetId).name,
+              label,
+              description: description || '', // Simple validation
+              origSourceId: sourceId,
+              origTargetId: targetId,
+              listenForSourceSelection: false,
+              listenForTargetSelection: false,
+              saveButtonLabel: 'Update',
+              bidirectional
+            },
+            () => this.DoSelectSourceAndTarget(sourceId, targetId) // show the selected props
+          );
+        } else {
+          alert(
+            `Sorry, someone else (${rdata.lockedBy}) is editing this ${DATAMAP.PMC_MODELTYPES.MECHANISM.label} right now.  Please try again later.`
+          );
+          UR.Publish('MECHDIALOG_CLOSED'); // tell ViewMain to re-enable ToolsPanel
+        }
+      });
     }
   }
 
   DoClose() {
     this.setState({
-      isOpen: false
+      isOpen: false,
+      sourceId: '', // clear so mech dialog doesn't try to re-render them
+      targetId: '' // clear so mech dialog doesn't try to re-render them
     });
     const pmcDataId = ASET.selectedPMCDataId;
     const intMechId = Number(this.state.id);
-    UR.DBTryRelease('pmcData.entities', [pmcDataId, intMechId])
+    UR.DBTryRelease('pmcData.entities', [pmcDataId, intMechId]);
     DATA.VM_SetSelectionLimit(1); // Go back to allowing only one.
     UR.Publish('MECHDIALOG_CLOSED');
   }
@@ -203,7 +216,11 @@ class MechDialog extends React.Component {
         if (selectedPropIds.length > 0) {
           const sourceId = selectedPropIds[0];
           if (sourceId === this.state.targetId) {
-            alert(`${DATA.Prop(sourceId).name} is already selected!  Please select a different ${DATAMAP.PMC_MODELTYPES.COMPONENT.label} or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label}!`);
+            alert(
+              `${DATA.Prop(sourceId).name} is already selected!  Please select a different ${
+                DATAMAP.PMC_MODELTYPES.COMPONENT.label
+              } or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label}!`
+            );
             DATA.VM_DeselectAll();
           } else {
             this.setState({
@@ -219,7 +236,11 @@ class MechDialog extends React.Component {
           // if two are selected, grab the second one, since source would grabed the first?
           const targetId = selectedPropIds.length > 1 ? selectedPropIds[1] : selectedPropIds[0];
           if (targetId === this.state.sourceId) {
-            alert(`${DATA.Prop(targetId).name} is already selected!  Please select a different ${DATAMAP.PMC_MODELTYPES.COMPONENT.label} or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label}!`);
+            alert(
+              `${DATA.Prop(targetId).name} is already selected!  Please select a different ${
+                DATAMAP.PMC_MODELTYPES.COMPONENT.label
+              } or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label}!`
+            );
             DATA.VM_DeselectAll();
           } else {
             this.setState({
@@ -269,7 +290,8 @@ class MechDialog extends React.Component {
         targetLabel: targetId !== '' ? DATA.Prop(targetId).name : undefined,
         editExisting,
         listenForSourceSelection,
-        listenForTargetSelection
+        listenForTargetSelection,
+        bidirectional: false
       });
     }
   }
@@ -294,7 +316,9 @@ class MechDialog extends React.Component {
           listenForTargetSelection: true
         });
       }
-      alert(`The ${DATAMAP.PMC_MODELTYPES.COMPONENT.label} or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label} you were linking was deleted by someone else.  Please select a different component or property.`);
+      alert(
+        `The ${DATAMAP.PMC_MODELTYPES.COMPONENT.label} or ${DATAMAP.PMC_MODELTYPES.OUTCOME.label} you were linking was deleted by someone else.  Please select a different component or property.`
+      );
     }
   }
 
@@ -326,6 +350,10 @@ class MechDialog extends React.Component {
     this.setState({ description: e.target.value });
   }
 
+  OnToggleBidirection() {
+    this.setState(state => ({ bidirectional: !state.bidirectional }));
+  }
+
   OnReverse() {
     // Swap source and target
     const { sourceId, sourceLabel, targetId, targetLabel } = this.state;
@@ -348,7 +376,7 @@ class MechDialog extends React.Component {
             // hack to prevent scrollbars from appearing during slide
             document.getElementsByTagName('body')[0].style.overflow = origOverflowSetting;
           }, 250);
-        }, 250)
+        }, 250);
       }
     );
     UTILS.RLog('MechanismReverse', `new source "${targetId}" to new target "${sourceId}"`);
@@ -363,14 +391,15 @@ class MechDialog extends React.Component {
       origTargetId,
       label,
       description,
-      editExisting
+      editExisting,
+      bidirectional
     } = this.state;
     if (editExisting) {
       const origMech = { sourceId: origSourceId, targetId: origTargetId, id };
-      const newMech = { sourceId, targetId, label, description };
+      const newMech = { sourceId, targetId, label, description, bidirectional };
       DATA.PMC_MechUpdate(origMech, newMech);
     } else {
-      DATA.PMC_MechAdd(sourceId, targetId, label, description);
+      DATA.PMC_MechAdd(sourceId, targetId, label, description, bidirectional);
     }
   }
 
@@ -396,7 +425,8 @@ class MechDialog extends React.Component {
       listenForTargetSelection,
       saveButtonLabel,
       reversing,
-      slideIn
+      slideIn,
+      bidirectional
     } = this.state;
     const { classes } = this.props;
 
@@ -423,7 +453,8 @@ class MechDialog extends React.Component {
         <Paper className={classes.edgeDialogPaper}>
           <form onSubmit={this.OnCreateClick}>
             <div className={classes.edgeDialogWindowLabel}>
-              ADD {DATAMAP.PMC_MODELTYPES.MECHANISM.label.toUpperCase()}<br />
+              <b>ADD {DATAMAP.PMC_MODELTYPES.MECHANISM.label.toUpperCase()}</b>
+              <br />
               <div>{DATAMAP.PMC_MODELTYPES.MECHANISM.description}</div>
             </div>
             <div className={classes.edgeDialogInput}>
@@ -438,6 +469,8 @@ class MechDialog extends React.Component {
                 />
               </Slide>
               &nbsp;&nbsp;
+              <MechArrow orientation="left" disabled={!bidirectional} />
+              &nbsp;&nbsp;
               <TextField
                 autoFocus
                 placeholder="link label"
@@ -449,6 +482,8 @@ class MechDialog extends React.Component {
                 className={classes.edgeDialogTextField}
               />
               &nbsp;&nbsp;
+              <MechArrow />
+              &nbsp;&nbsp;
               <Slide direction={reversing ? 'right' : 'up'} in={slideIn}>
                 <LinkButton
                   sourceType={targetSourceType}
@@ -459,22 +494,30 @@ class MechDialog extends React.Component {
                   OnLinkButtonClick={this.OnTargetLinkButtonClick}
                 />
               </Slide>
-              <div style={{ flexGrow: '1' }} />
-              <Button onClick={this.OnClose} color="primary" size="small">
-                Cancel
-              </Button>
-              &nbsp;
+              &nbsp;&nbsp; &nbsp;&nbsp;
+              <Grid
+                component="label"
+                container
+                alignItems="center"
+                justify="center"
+                spacing={1}
+                item
+                xs={3}
+              >
+                <Grid item>One-way</Grid>
+                <Grid item>
+                  <Switch
+                    checked={bidirectional}
+                    onChange={this.OnToggleBidirection}
+                    name="toggleArrow"
+                    color="primary"
+                  />
+                </Grid>
+                <Grid item>Two-way</Grid>
+              </Grid>
+              &nbsp;&nbsp; &nbsp;&nbsp;
               <Button onClick={this.OnReverse} color="primary" size="small">
                 Reverse Direction
-              </Button>
-              &nbsp;
-              <Button
-                type="submit"
-                color="primary"
-                variant="contained"
-                disabled={sourceId === '' || targetId === '' || label === ''}
-              >
-                {saveButtonLabel}
               </Button>
             </div>
             <div className={classes.edgeDialogInput}>
@@ -490,6 +533,19 @@ class MechDialog extends React.Component {
                 onChange={this.OnDescriptionChange}
                 className={classes.edgeDialogDescriptionField}
               />
+              <div style={{ flexGrow: '1' }}>&nbsp;</div>
+              <Button onClick={this.OnClose} color="primary" size="small">
+                Cancel
+              </Button>
+              &nbsp;
+              <Button
+                type="submit"
+                color="primary"
+                variant="contained"
+                disabled={sourceId === '' || targetId === '' || label === ''}
+              >
+                {saveButtonLabel}
+              </Button>
             </div>
           </form>
         </Paper>

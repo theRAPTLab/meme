@@ -134,7 +134,7 @@ class ClassroomsSelector extends React.Component {
       };
       ADM.DB_UpdateClassroom(this.state.selectedClassroomId, classroomData);
     } else {
-      ADM.DB_AddClassroom(name);      
+      ADM.DB_AddClassroom(name);
     }
     this.OnAddClassroomDialogClose();
   }
@@ -187,12 +187,14 @@ class ClassroomsSelector extends React.Component {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={6}>
+          <Grid item xs={2}>
             <Button onClick={this.OnClassroomEdit} disabled={selectedClassroomId === ''}>
               Edit
             </Button>
+          </Grid>
+          <Grid item xs={4}>
             <Typography variant="caption" component="div">
-              <div style={{ marginTop: '1em' }}>Students can view class' models?</div>
+              <div>Students can view class' models?</div>
               <Grid container component="label" alignItems="center" spacing={1}>
                 <Grid item>Hide</Grid>
                 <Grid item>

@@ -120,12 +120,9 @@ class GroupsList extends React.Component {
     e.preventDefault();
     e.stopPropagation();
     if (this.state.editExistingGroup) {
-      ADM.DB_UpdateGroup(
-        this.state.selectedGroupId,
-        { name: this.state.addGroupDialogName }
-      );
+      ADM.DB_UpdateGroup(this.state.selectedGroupId, { name: this.state.addGroupDialogName });
     } else {
-      ADM.DB_AddGroup(this.state.addGroupDialogName);      
+      ADM.DB_AddGroup(this.state.addGroupDialogName);
     }
     this.OnAddGroupDialogClose();
   }

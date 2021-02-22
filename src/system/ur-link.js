@@ -274,6 +274,7 @@ class URLink {
     const result = this.NetCall('NET:SRV_REG_HANDLERS', { messages });
     return result;
   }
+
   /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /**
    * Perform data operation to server. Do not call directly, but use
@@ -294,6 +295,7 @@ class URLink {
     // returns promise that resolve to data object
     return this.NetCall(opmsg, data);
   }
+
   /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /** Cooperative database element lock on server
    */
@@ -305,6 +307,7 @@ class URLink {
     if (!data.uaddr) return Promise.reject(`data must have uaddr defined`);
     return this.NetCall('NET:SRV_DBLOCK', data);
   }
+
   /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /** Cooperative database element release on server
    */

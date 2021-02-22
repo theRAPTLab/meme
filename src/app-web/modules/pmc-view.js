@@ -24,7 +24,7 @@ const PMCView = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 let m_element;
 let m_svgroot;
-let resourceListWidth = 300*2; // account for offset created by resourceList being open
+let resourceListWidth = 300 * 2; // account for offset created by resourceList being open
 //
 const DBG = false;
 
@@ -56,7 +56,7 @@ PMCView.InitializeViewgraph = container => {
     .rect(rect, rect)
     .fill({ color: '#fff' })
     .opacity(0.35)
-    .move(rectoffset,rectoffset);
+    .move(rectoffset, rectoffset);
   // // add center cross on artboard
   // let cross = 10; // length
   // m_svgroot
@@ -85,7 +85,7 @@ PMCView.PanZoomOut = (w, h) => {
   let modelwidth = bbox.w || 2000;
   let modelheight = bbox.h || 2000;
   let pad = 20;
-  let xscale = w / ( modelwidth + resourceListWidth );
+  let xscale = w / (modelwidth + resourceListWidth);
   let yscale = h / (modelheight + pad);
   let scale = 0;
   if (xscale > yscale) {
@@ -98,13 +98,13 @@ PMCView.PanZoomOut = (w, h) => {
       .animate()
       .zoom(scale * 0.8) // reduce the scale a little so we show edges
       .viewbox(bbox.x, bbox.y, modelwidth + resourceListWidth, modelheight + pad);
-  }  
-}
+  }
+};
 /**
  * Zoom into 1:1 with workspace 0,0 in upper left corner
  * viewbox w,h should match the svg element size 'modelSVG' in order to have a 1 to 1 mapping
  */
-PMCView.PanZoomReset = (w,h) => {
+PMCView.PanZoomReset = (w, h) => {
   if (m_svgroot) {
     m_svgroot
       .animate()
@@ -119,10 +119,10 @@ PMCView.PanZoomReset = (w,h) => {
  * e.g. window.ur.PMCVIEW.PanZoomSet({x:-2500,y:0,w:5000,h:1000,z:0.25})
  * @param parm = {x,y,w,h,z} where z is zoom
  */
-PMCView.PanZoomSet = (parm) => {
+PMCView.PanZoomSet = parm => {
   // cx and cy don't seem to do anything
   if (m_svgroot) {
-    console.log('panzoomset',parm);
+    console.log('panzoomset', parm);
     m_svgroot.viewbox(parm.x, parm.y, parm.w, parm.h, parm.cx, parm.cy);
     m_svgroot.zoom(parm.z);
   }
@@ -235,12 +235,44 @@ PMCView.DefineDefs = svg => {
       .attr({ id: 'arrowEndHead', orient: 'auto', refX: 4 })
   );
   SVGDEFS.set(
+    'arrowEndHeadHover',
+    svg
+      .marker(4, 4, add => {
+        add.path('M0,0 L0,4 L4,2 Z').fill(COLOR.MECH_HOV);
+      })
+      .attr({ id: 'arrowEndHeadHover', orient: 'auto', refX: 4 })
+  );
+  SVGDEFS.set(
+    'arrowEndHeadSelected',
+    svg
+      .marker(4, 4, add => {
+        add.path('M0,0 L0,4 L4,2 Z').fill(COLOR.MECH_SEL);
+      })
+      .attr({ id: 'arrowEndHeadSelected', orient: 'auto', refX: 4 })
+  );
+  SVGDEFS.set(
     'arrowStartHead',
     svg
       .marker(4, 4, add => {
         add.path('M4,4 L4,0 L0,2 Z').fill(COLOR.MECH);
       })
       .attr({ id: 'arrowStartHead', orient: 'auto', refX: 0 })
+  );
+  SVGDEFS.set(
+    'arrowStartHeadHover',
+    svg
+      .marker(4, 4, add => {
+        add.path('M4,4 L4,0 L0,2 Z').fill(COLOR.MECH_HOV);
+      })
+      .attr({ id: 'arrowStartHeadHover', orient: 'auto', refX: 0 })
+  );
+  SVGDEFS.set(
+    'arrowStartHeadSelected',
+    svg
+      .marker(4, 4, add => {
+        add.path('M4,4 L4,0 L0,2 Z').fill(COLOR.MECH_SEL);
+      })
+      .attr({ id: 'arrowStartHeadSelected', orient: 'auto', refX: 0 })
   );
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

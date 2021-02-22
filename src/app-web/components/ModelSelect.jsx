@@ -29,6 +29,7 @@ import UR from '../../system/ursys';
 import SESSION from '../../system/common-session';
 import ADM from '../modules/data';
 import ModelsListTable from './ModelsListTable';
+import GroupSelector from '../views/ViewAdmin/components/AdmGroupSelector';
 import UTILS from '../modules/utils';
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
@@ -36,13 +37,19 @@ import UTILS from '../modules/utils';
 
 class ModelSelect extends React.Component {
   constructor(props) {
-    super(props);
+    super();
     this.DoADMDataUpdate = this.DoADMDataUpdate.bind(this);
     this.DoModelDialogOpen = this.DoModelDialogOpen.bind(this);
     this.OnModelDialogClose = this.OnModelDialogClose.bind(this);
     this.OnNewModel = this.OnNewModel.bind(this);
     this.OnModelEdit = this.OnModelEdit.bind(this);
     this.OnModelView = this.OnModelView.bind(this);
+    this.OnModelClone = this.OnModelClone.bind(this);
+    this.OnCloneTargetSelect = this.OnCloneTargetSelect.bind(this);
+    this.OnTargetSelectClose = this.OnTargetSelectClose.bind(this);
+    this.OnModelMove = this.OnModelMove.bind(this);
+    this.OnMoveTargetSelect = this.OnMoveTargetSelect.bind(this);
+    this.OnModelDelete = this.OnModelDelete.bind(this);
     this.OnLogout = this.OnLogout.bind(this);
 
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
@@ -55,7 +62,10 @@ class ModelSelect extends React.Component {
       studentId: '',
       groupName: '',
       classroomName: '',
-      teacherName: ''
+      teacherName: '',
+      targetSelectDialogOpen: false,
+      targetSelectionType: '',
+      targetSelectCallback: undefined
     };
   }
 
@@ -87,7 +97,10 @@ class ModelSelect extends React.Component {
         studentId,
         groupName,
         classroomName,
-        teacherName
+        teacherName,
+        targetSelectDialogOpen: false,
+        targetSelectionType: '',
+        targetSelectCallback: undefined
       });
     }
   }
@@ -113,6 +126,62 @@ class ModelSelect extends React.Component {
     this.OnModelDialogClose();
   }
 
+  OnModelClone(modelId) {
+    // If we're a teacher, we have to select a target group
+    const isTeacher = SESSION.IsTeacher();
+    if (isTeacher) {
+      // set select a different groupID
+      this.setState({
+        modelId,
+        targetSelectDialogOpen: true,
+        targetSelectionType: 'clone',
+        targetSelectCallback: this.OnCloneTargetSelect
+      });
+    } else {
+      const groupId = ADM.GetSelectedGroupId();
+      ADM.CloneModel(modelId, groupId);
+    }
+  }
+
+  /**
+   *
+   * @param {Object} selections { selectedTeacherId, selectedClassroomId, selectedGroupId }
+   */
+  OnCloneTargetSelect(selections) {
+    ADM.CloneModelBulk(this.state.modelId, selections);
+    this.setState({ targetSelectDialogOpen: false });
+  }
+
+  OnTargetSelectClose() {
+    this.setState({ targetSelectDialogOpen: false });
+  }
+
+  OnModelMove(modelId) {
+    console.log('move');
+    // set select a different groupID
+    this.setState({
+      modelId,
+      targetSelectDialogOpen: true,
+      targetSelectionType: 'move',
+      targetSelectCallback: this.OnMoveTargetSelect
+    });
+  }
+
+  /**
+   *
+   * @param {Object} selections { selectedTeacherId, selectedClassroomId, selectedGroupId }
+   */
+  OnMoveTargetSelect(selections) {
+    // only move one selection
+    ADM.MoveModel(this.state.modelId, selections);
+    this.setState({ targetSelectDialogOpen: false });
+  }
+
+  OnModelDelete(modelId) {
+    console.log('delete');
+    ADM.DeleteModel(modelId);
+  }
+
   OnLogout() {
     ADM.Logout();
   }
@@ -121,6 +190,9 @@ class ModelSelect extends React.Component {
     const { classes } = this.props;
     const {
       modelSelectDialogOpen,
+      targetSelectDialogOpen,
+      targetSelectionType,
+      targetSelectCallback,
       canViewOthers,
       studentId,
       groupName,
@@ -128,8 +200,12 @@ class ModelSelect extends React.Component {
       teacherName
     } = this.state;
     const isTeacher = SESSION.IsTeacher();
-    const myModels = isTeacher ? ADM.GetModelsByTeacher() : ADM.GetModelsByStudent();
-    const ourModels = ADM.GetMyClassmatesModels(ADM.GetSelectedClassroomId(), studentId);
+    let myModels = isTeacher ? ADM.GetModelsByTeacher() : ADM.GetModelsByStudent();
+    myModels = myModels.filter(m => !m.deleted);
+    let ourModels = ADM.GetMyClassmatesModels(ADM.GetSelectedClassroomId(), studentId);
+    ourModels = ourModels.filter(m => !m.deleted);
+    let deletedModels = isTeacher ? ADM.GetModelsByTeacher() : ADM.GetModelsByStudent();
+    deletedModels = deletedModels.filter(m => m.deleted);
     const readOnlyStatus = ADM.IsDBReadOnly() ? (
       <Typography variant="caption">READ ONLY MODE</Typography>
     ) : (
@@ -143,41 +219,81 @@ class ModelSelect extends React.Component {
       </Button>
     );
     return (
-      <Dialog
-        disableBackdropClick
-        disableEscapeKeyDown
-        open={modelSelectDialogOpen}
-        onClose={this.OnLoginDialogClose}
-        fullScreen
-      >
-        <DialogActions>
-          {readOnlyStatus}
-          <Typography variant="caption">MY GROUP: {groupName} | </Typography>
-          <Typography variant="caption">MY CLASS: {classroomName} | </Typography>
-          <Typography variant="caption">MY TEACHER: {teacherName}</Typography>
-          <div style={{ flexGrow: 1 }} />
-          <Button onClick={this.OnLogout} color="primary">
-            Logout
-          </Button>
-        </DialogActions>
-        <DialogTitle>Hi {ADM.GetStudentName()}!</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2}>
-            <Grid item>{createNewModelButton}</Grid>
-          </Grid>
-          <Divider style={{ margin: '2em' }} />
-          <Grid container spacing={2}>
-            <Grid item>
-              <Typography variant="h4">{ADM.GetStudentGroupName()} Group&rsquo;s Models</Typography>
-              <ModelsListTable models={myModels} OnModelSelect={this.OnModelEdit} />
+      <>
+        <Dialog
+          disableBackdropClick
+          disableEscapeKeyDown
+          open={modelSelectDialogOpen}
+          onClose={this.OnLoginDialogClose}
+          fullScreen
+        >
+          <DialogActions>
+            {readOnlyStatus}
+            <Typography variant="caption">MY GROUP: {groupName} | </Typography>
+            <Typography variant="caption">MY CLASS: {classroomName} | </Typography>
+            <Typography variant="caption">MY TEACHER: {teacherName}</Typography>
+            <div style={{ flexGrow: 1 }} />
+            <Button onClick={this.OnLogout} color="primary">
+              Logout
+            </Button>
+          </DialogActions>
+          <DialogTitle>Hi {ADM.GetLggedInUserName()}!</DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2}>
+              <Grid item>{createNewModelButton}</Grid>
             </Grid>
-            <Grid item hidden={!canViewOthers}>
-              <Typography variant="h4">My Class&rsquo; Models</Typography>
-              <ModelsListTable models={ourModels} OnModelSelect={this.OnModelView} />
+            <Divider style={{ margin: '2em' }} />
+            <Grid container spacing={2}>
+              <Grid item>
+                <Typography variant="h4">
+                  {ADM.GetStudentGroupName()} Group&rsquo;s Models
+                </Typography>
+                <ModelsListTable
+                  models={myModels}
+                  isAdmin={false}
+                  showGroup={false}
+                  OnModelSelect={this.OnModelEdit}
+                  OnModelClone={this.OnModelClone}
+                  OnModelMove={this.OnModelMove}
+                  OnModelDelete={this.OnModelDelete}
+                />
+              </Grid>
+              <Grid item hidden={!canViewOthers}>
+                <Typography variant="h4">My Class&rsquo; Models</Typography>
+                <ModelsListTable
+                  models={ourModels}
+                  isAdmin={false}
+                  showGroup
+                  OnModelSelect={this.OnModelView}
+                  OnModelClone={this.OnModelClone}
+                  OnModelMove={this.OnModelMove}
+                  OnModelDelete={this.OnModelDelete}
+                />
+              </Grid>
+              {isTeacher && (
+                <Grid item>
+                  <Typography variant="h4">Deleted Models</Typography>
+                  <ModelsListTable
+                    models={deletedModels}
+                    isAdmin
+                    showGroup
+                    OnModelSelect={this.OnModelView}
+                    OnModelClone={this.OnModelClone}
+                    OnModelMove={this.OnModelMove}
+                    OnModelDelete={this.OnModelDelete}
+                  />
+                </Grid>
+              )}
             </Grid>
-          </Grid>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+        <GroupSelector
+          open={targetSelectDialogOpen}
+          type={targetSelectionType}
+          OnClose={this.OnTargetSelectClose}
+          OnSelect={targetSelectCallback}
+        />
+      </>
     );
   }
 }

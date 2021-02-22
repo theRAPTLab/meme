@@ -14,7 +14,7 @@ const UTILS = {};
  */
 UTILS.InitialCaps = str => {
   return str.charAt(0).toUpperCase() + str.slice(1);
-}
+};
 
 /**
  * Researcher Logs
@@ -26,7 +26,8 @@ UTILS.InitialCaps = str => {
  */
 UTILS.RLog = (event, params) => {
   const cleanedParams = params || '';
-  const username = ADATA.GetAuthorId().toUpperCase();
+  const usertoken = ADATA.GetAuthorId();
+  const username = usertoken ? usertoken.toUpperCase() : '';
   const groupId = ASET.selectedGroupId;
   const group = ADATA.GetGroupNameByStudent(username);
   const modelId = ASET.selectedModelId;

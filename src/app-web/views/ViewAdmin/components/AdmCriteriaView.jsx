@@ -194,7 +194,7 @@ class CriteriaView extends React.Component {
 
     return (
       <Paper className={classes.admPaper}>
-        <InputLabel>CRITERIA</InputLabel>
+        <InputLabel>CRITERIA FOR A GOOD MODEL</InputLabel>
         <Dialog open={isInEditMode}>
           <DialogTitle>Edit Criteria</DialogTitle>
           <CriteriaList

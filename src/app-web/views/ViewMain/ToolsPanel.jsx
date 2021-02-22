@@ -192,8 +192,7 @@ class ToolsPanel extends React.Component {
     let relevantProps = propIds.filter(id => {
       const prop = DATA.Prop(id);
       if (filterByPropType === DATAMAP.PMC_MODELTYPES.COMPONENT.id) {
-        return (prop.propType === DATAMAP.PMC_MODELTYPES.COMPONENT.id)
-          || (prop.propType === undefined); // for backward compatibility
+        return prop.propType === DATAMAP.PMC_MODELTYPES.COMPONENT.id || prop.propType === undefined; // for backward compatibility
         // project data that predated propTypes assumed all props were components
       } else {
         return prop.propType === filterByPropType;
@@ -267,8 +266,12 @@ class ToolsPanel extends React.Component {
           className={ClassNames(
             classes.treeItem,
             classes.treeMechItem,
-            selectedMechId.v === mechId.v && selectedMechId.w === mechId.w ? classes.treeItemSelected : '',
-            hoveredMechId.v === mechId.v && hoveredMechId.w === mechId.w ? classes.treeItemHovered : ''
+            selectedMechId.v === mechId.v && selectedMechId.w === mechId.w
+              ? classes.treeItemSelected
+              : '',
+            hoveredMechId.v === mechId.v && hoveredMechId.w === mechId.w
+              ? classes.treeItemHovered
+              : ''
           )}
           onClick={e => this.OnMechClick(e, mechId)}
           onMouseEnter={e => {
@@ -281,13 +284,26 @@ class ToolsPanel extends React.Component {
             UR.Publish('MECH_HOVER_END', { mechId: mechId });
           }}
         >
-          <span className={sourceType === DATAMAP.PMC_MODELTYPES.OUTCOME.id
-            ? classes.treeOutcomeItemColor
-            : classes.treePropItemColor}>{source} </span>
+          <span
+            className={
+              sourceType === DATAMAP.PMC_MODELTYPES.OUTCOME.id
+                ? classes.treeOutcomeItemColor
+                : classes.treePropItemColor
+            }
+          >
+            {source}{' '}
+          </span>
           {mech.name}
-          <span className={targetType === DATAMAP.PMC_MODELTYPES.OUTCOME.id
-            ? classes.treeOutcomeItemColor
-            : classes.treePropItemColor}> {target}</span>
+          <span
+            className={
+              targetType === DATAMAP.PMC_MODELTYPES.OUTCOME.id
+                ? classes.treeOutcomeItemColor
+                : classes.treePropItemColor
+            }
+          >
+            {' '}
+            {target}
+          </span>
         </div>
       );
     });
@@ -296,8 +312,14 @@ class ToolsPanel extends React.Component {
   render() {
     const { classes, isDisabled, isOpen, toggleOpen } = this.props;
 
-    const outcomesList = this.RenderComponentsList(DATA.Components(), DATAMAP.PMC_MODELTYPES.OUTCOME.id);
-    const componentsList = this.RenderComponentsList(DATA.Components(), DATAMAP.PMC_MODELTYPES.COMPONENT.id);
+    const outcomesList = this.RenderComponentsList(
+      DATA.Components(),
+      DATAMAP.PMC_MODELTYPES.OUTCOME.id
+    );
+    const componentsList = this.RenderComponentsList(
+      DATA.Components(),
+      DATAMAP.PMC_MODELTYPES.COMPONENT.id
+    );
     const mechanismsList = this.RenderMechanismsList(DATA.AllMechs());
 
     const isViewOnly = ADM.IsViewOnly();
@@ -319,7 +341,6 @@ class ToolsPanel extends React.Component {
           </Button>
         </div>
         <div className={classes.toolsPanelList}>
-
           <div
             className={classes.toolsPanelGroup}
             style={{ backgroundColor: COLOR.OUTCOME_TOOLSPANEL_BG }}
@@ -411,7 +432,6 @@ class ToolsPanel extends React.Component {
               Add {DATAMAP.PMC_MODELTYPES.COMPONENT.label}
             </SmallFab>
           </div>
-
         </div>
       </Drawer>
     );

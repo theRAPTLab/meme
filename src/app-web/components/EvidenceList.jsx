@@ -26,7 +26,7 @@ class EvidenceList extends React.Component {
     UR.Subscribe('DATA_UPDATED', this.HandleDataUpdate);
   }
 
-  componentDidMount() { }
+  componentDidMount() {}
 
   componentWillUnmount() {
     UR.Unsubscribe('DATA_UPDATED', this.HandleDataUpdate);

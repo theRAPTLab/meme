@@ -145,7 +145,7 @@ Moreland, Vickery, Murphy, Stiso.
           <Typography variant="h6">HELP</Typography>
           <Divider style={{ marginBottom: '0.5em' }} />
           <div style={{ overflowY: 'scroll', paddingRight: '5px' }}>
-            <h6>Criteria</h6>
+            <h6>Criteria for a Good Model</h6>
             <CriteriaList Criteria={criteria} IsInEditMode={false} />
             <MDReactComponent className={classes.helpViewText} text={helptext} />
             <MDReactComponent className={classes.helpViewText} text={credittext} />

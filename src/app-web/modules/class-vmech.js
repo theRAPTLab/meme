@@ -83,7 +83,7 @@ class VMech {
       .attr({ cursor: 'pointer' });
 
     // The pathLabel is used purely for positioning the pathLabelGroup.
-    // We rely on SVGjs's ability to position a text label on a path to 
+    // We rely on SVGjs's ability to position a text label on a path to
     // get the position we will use for our own label.
     this.pathLabel = svgRoot.text(add => {
       // add.tspan(this.data.name); // Original text that flowed along the path
@@ -113,7 +113,7 @@ class VMech {
     this.pathLabel
       // For pathGroupLabel, don't offset, keep it centered on the line
       .attr('dx', 0);
-      // .attr('dy', -6) // Original offset to move text off the pathline
+    // .attr('dy', -6) // Original offset to move text off the pathline
     // These initial 'pathLabel' and 'textpath' settings are overriden by Update, below.
     this.pathLabel.attr('text-anchor', 'end');
     this.textpath = this.pathLabel.path(this.path).attr('startOffset', this.path.length() - m_blen);
@@ -163,7 +163,7 @@ class VMech {
   }
 
   /**
-   * @returns {SVG.Container} - The SVG Container object that the badge should attach to 
+   * @returns {SVG.Container} - The SVG Container object that the badge should attach to
    */
   GetVBadgeParent() {
     return this.pathLabelGroup;
@@ -250,8 +250,14 @@ class VMech {
         // so text label doesn't draw upside down
         if (srcPt.x < tgtPt.x) {
           // left to right
+          // Arrows
+          if (data.bidirectional) {
+            this.path.marker('start', SVGDEFS.get('arrowStartHead'));
+            this.path.marker('end', SVGDEFS.get('arrowEndHead'));
+          } else {
+            this.path.marker('end', SVGDEFS.get('arrowEndHead')).attr('marker-start', '');
+          }
           this.path.plot(m_MakeQuadraticDrawingString(srcPt, tgtPt));
-          this.path.marker('end', SVGDEFS.get('arrowEndHead')).attr('marker-start', '');
           // text-anchor is like justification setting the alignment
           this.pathLabel.attr('text-anchor', 'middle'); // originally was 'end'
           this.textpath.attr('startOffset', '50%');
@@ -259,13 +265,23 @@ class VMech {
           // this.textpath.attr('startOffset', this.path.length() - m_blen);
         } else {
           // right to left
+          // Arrows
+          if (data.bidirectional) {
+            this.path.marker('start', SVGDEFS.get('arrowStartHead'));
+            this.path.marker('end', SVGDEFS.get('arrowEndHead'));
+          } else {
+            this.path.marker('start', SVGDEFS.get('arrowStartHead')).attr('marker-end', '');
+          }
           this.path.plot(m_MakeQuadraticDrawingString(tgtPt, srcPt));
-          this.path.marker('start', SVGDEFS.get('arrowStartHead')).attr('marker-end', '');
           this.pathLabel.attr('text-anchor', 'middle'); // originally was 'start'
           this.textpath.attr('startOffset', '50%');
           // original setting placing label near start arrow
           // this.textpath.attr('startOffset', m_blen);
         }
+
+        // Need to redraw arrow colors based on selection status during Update
+        // since Draw() is not called during a drag.
+        this.UpdateArrowStates();
 
         // VBadge hack position of horizText
         this.pathLabelGroup.show();
@@ -288,21 +304,45 @@ class VMech {
   }
 
   /**
+   * Swap out markers.  Since markers are shared symbols, we can't just
+   * modify the fill, we actually have to switch to using a different marker
+   * Update() sets the direction.  This function just colors any
+   * existing markers according to the selection.  It is used by both
+   * Upate() and Draw().
+   */
+  UpdateArrowStates() {
+    if (this.visualState.IsSelected()) {
+      if (this.path.reference('marker-start'))
+        this.path.marker('start', SVGDEFS.get('arrowStartHeadSelected'));
+      if (this.path.reference('marker-end'))
+        this.path.marker('end', SVGDEFS.get('arrowEndHeadSelected'));
+    } else if (this.visualState.IsSelected('hover')) {
+      if (this.path.reference('marker-start'))
+        this.path.marker('start', SVGDEFS.get('arrowStartHeadHover'));
+      if (this.path.reference('marker-end'))
+        this.path.marker('end', SVGDEFS.get('arrowEndHeadHover'));
+    } else {
+      if (this.path.reference('marker-start'))
+        this.path.marker('start', SVGDEFS.get('arrowStartHead'));
+      if (this.path.reference('marker-end')) this.path.marker('end', SVGDEFS.get('arrowEndHead'));
+    }
+  }
+
+  /**
    * Handle any post-Update() drawing, such as selection state
    */
   Draw() {
-
-    if (this.visualState.IsSelected('hover')) {
-      // Hover
-      this.path.stroke({ width: PATHWIDTH, color: COL_HOV, dasharray: '6 3' });
-      this.pathLabel.fill(COL_HOV);
-      this.horizText.fill(COL_HOV);
-    } else if (this.visualState.IsSelected()) {
+    if (this.visualState.IsSelected()) {
       // Selected
       this.path.stroke({ width: PATHWIDTH, color: COL_MECH_SEL, dasharray: '6 3' });
       // markers.forEach(marker => marker.fill(COL_MECH_SEL));
       this.pathLabel.fill(COL_MECH_SEL);
       this.horizText.fill(COL_MECH_SEL);
+    } else if (this.visualState.IsSelected('hover')) {
+      // Hover
+      this.path.stroke({ width: PATHWIDTH, color: COL_HOV, dasharray: '6 3' });
+      this.pathLabel.fill(COL_HOV);
+      this.horizText.fill(COL_HOV);
     } else {
       // Normal
       this.path.stroke({ width: PATHWIDTH, color: COL_MECH, dasharray: '6 3' });
@@ -310,6 +350,7 @@ class VMech {
       this.pathLabel.fill(COL_MECH);
       this.horizText.fill(COL_MECH_LABEL);
     }
+    this.UpdateArrowStates();
     this.vBadge.Draw(this);
   }
 

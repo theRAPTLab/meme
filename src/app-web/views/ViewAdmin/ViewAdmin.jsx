@@ -22,6 +22,7 @@ import GroupsList from './components/AdmGroupsList';
 import ModelsList from './components/AdmModelsList';
 import ResourcesList from './components/AdmResourcesList';
 import RatingsView from './components/AdmRatingsView';
+import InfoDialog from '../../components/InfoDialog';
 /// MODULES ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import ADM from '../../modules/data';
@@ -67,15 +68,16 @@ class ViewAdmin extends React.Component {
   render() {
     const { classes } = this.props;
 
-    if (!UR.IsAdminLoggedIn()) return (
-      <div className={classes.root}>
-        <Paper className={classes.paper}>
-          <p>The admin panel is accessible on the server machine at</p>
-          <pre>http://localhost:3000/#/admin</pre>
-          <p>If you are unable to use localhost, use ADMIN_QSTRING override</p>
-        </Paper>
-      </div>
-    );
+    if (!UR.IsAdminLoggedIn())
+      return (
+        <div className={classes.root}>
+          <Paper className={classes.paper}>
+            <p>The admin panel is accessible on the server machine at</p>
+            <pre>http://localhost:3000/#/admin</pre>
+            <p>If you are unable to use localhost, use ADMIN_QSTRING override</p>
+          </Paper>
+        </div>
+      );
 
     return (
       <div className={classes.root}>
@@ -110,10 +112,11 @@ class ViewAdmin extends React.Component {
           <Grid item xs={12}>
             <ResourcesList />
           </Grid>
-          <Grid item xs={3}>
-            <Paper className={classes.paper}>xs=3</Paper>
-          </Grid>
+          <Grid item xs={3} />
         </Grid>
+
+        {/* General Information Dialog */}
+        <InfoDialog />
       </div>
     );
   }

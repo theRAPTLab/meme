@@ -3,9 +3,11 @@ import UR from '../../system/ursys';
 import SESSION from '../../system/common-session';
 import UTILS from './utils';
 import DATAMAP from '../../system/common-datamap';
-import PMCData from './data'; // this is a bit problematicn (circular ref)
+import PMCData from './pmc-data'; // this is a bit problematicn (circular ref)
 import ADMObj from './adm-objects';
 import ASET from './adm-settings';
+
+const rfdc = require('rfdc')();
 
 /// DECLARATIONS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -36,7 +38,7 @@ UR.Hook(__dirname, 'LOAD_ASSETS', () => {
     console.log(PKG, 'LOAD_ASSETS');
     UR.NetCall('NET:SRV_DBGET', {}).then(data => {
       if (data.error) {
-        reject(`server says '${data.error}'`);
+        reject(new Error(`server says '${data.error}'`));
         return;
       }
       ADMData.InitializeData(data);
@@ -93,21 +95,24 @@ ADMData.SyncAddedData = data => {
     if (DBG) console.log('SyncAddedData: added', colkey, subkey || '', value);
 
     switch (colkey) {
-      case 'teachers':
+      case 'teachers': {
         const teacher = ADMObj.Teacher(value);
         adm_db.teachers.push(teacher);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'classrooms':
+      }
+      case 'classrooms': {
         const classroom = ADMObj.Classroom(value);
         adm_db.classrooms.push(classroom);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'groups':
+      }
+      case 'groups': {
         const group = ADMObj.Group(value);
         adm_db.groups.push(group);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
+      }
       case 'models':
         // Only add it if it doesn't already exist
         // This is necessary because a local call to
@@ -121,34 +126,40 @@ ADMData.SyncAddedData = data => {
           if (DBG) console.error(`SyncAddedData: Model ${value.id} already added, skipping`);
         }
         break;
-      case 'criteria':
+      case 'criteria': {
         const crit = ADMObj.Criterion(value);
         adm_db.criteria.push(crit);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'sentenceStarters':
+      }
+      case 'sentenceStarters': {
         const ss = ADMObj.SentenceStarter(value);
         adm_db.sentenceStarters.push(ss);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'resources':
+      }
+      case 'resources': {
         const resource = ADMObj.Resource(value);
         adm_db.resources.push(resource);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'classroomResources':
+      }
+      case 'classroomResources': {
         const res = ADMObj.ClassroomResource(value);
         adm_db.classroomResources.push(res);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'ratingsDefinitions':
+      }
+      case 'ratingsDefinitions': {
         const ratingsDefinition = ADMObj.RatingsDefinition(value);
         adm_db.ratingsDefinitions.push(ratingsDefinition);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
+      }
       case 'pmcData':
-      // ignore pmcData updates
-      // console.log('SyncAddedData got pmcData', value);
+        // ignore pmcData updates
+        // console.log('SyncAddedData got pmcData', value);
+        break;
       default:
       // ignore any other updates
       // throw Error('unexpected colkey', colkey);
@@ -172,47 +183,55 @@ ADMData.SyncUpdatedData = data => {
     const { colkey, subkey, value } = item;
     if (DBG) console.log('updated', colkey, subkey || '', value);
     switch (colkey) {
-      case 'teachers':
+      case 'teachers': {
         const teacher = ADMData.GetTeacher(value.id);
         teacher.name = value.name;
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'classrooms':
+      }
+      case 'classrooms': {
         const classroom = ADMData.GetClassroom(value.id);
         classroom.name = value.name;
         classroom.canViewOthers = value.canViewOthers;
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'groups':
+      }
+      case 'groups': {
         const group = ADMData.GetGroup(value.id);
         group.name = value.name;
         group.students = value.students;
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'models':
+      }
+      case 'models': {
         const model = ADMData.GetModelById(value.id);
         model.dateModified = value.dateModified;
+        model.groupId = value.groupId;
+        model.deleted = value.deleted;
         UR.Publish('ADM_DATA_UPDATED', data);
         if (model.title !== value.title) {
           model.title = value.title;
           UR.Publish('MODEL_TITLE_UPDATED', { id: value.id, title: value.title });
         }
         break;
-      case 'criteria':
+      }
+      case 'criteria': {
         // criteria always updates the whole object, so we can just replace it
         const crit = ADMObj.Criterion(value);
         const criti = adm_db.criteria.findIndex(c => c.id === crit.id);
         adm_db.criteria.splice(criti, 1, crit);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'sentenceStarters':
+      }
+      case 'sentenceStarters': {
         // sentenceStarters always updates the whole object, so we can just replace it
         const ss = ADMObj.SentenceStarter(value);
         const ssi = adm_db.sentenceStarters.findIndex(c => c.id === ss.id);
         adm_db.sentenceStarters.splice(ssi, 1, ss);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'resources':
+      }
+      case 'resources': {
         const updatedData = ADMObj.Resource(value);
         const origres = ADMData.Resource(updatedData.id);
         const newres = Object.assign({}, origres, updatedData);
@@ -220,22 +239,26 @@ ADMData.SyncUpdatedData = data => {
         adm_db.resources.splice(resourcei, 1, newres);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'classroomResources':
+      }
+      case 'classroomResources': {
         // classroomResources always updates the whole object, so we can just replace it
         const res = ADMObj.ClassroomResource(value);
         const resi = adm_db.classroomResources.findIndex(c => c.id === res.id);
         adm_db.classroomResources.splice(resi, 1, res);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
-      case 'ratingsDefinitions':
+      }
+      case 'ratingsDefinitions': {
         const index = adm_db.ratingsDefinitions.findIndex(r => r.classroomId === value.id);
         const ratingsDefinition = ADMObj.RatingsDefinition(value);
         adm_db.ratingsDefinitions.splice(index, 1, ratingsDefinition);
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
+      }
       case 'pmcData':
-      // ignore pmcData updates
-      // console.log('SyncUpdatedData got pmcData', value);
+        // ignore pmcData updates
+        // console.log('SyncUpdatedData got pmcData', value);
+        break;
       default:
       // ignore any other updates
       // throw Error('unexpected colkey', colkey);
@@ -259,6 +282,23 @@ ADMData.SyncRemovedData = data => {
         });
         UR.Publish('ADM_DATA_UPDATED', data);
         break;
+      case 'resources': {
+        value.forEach(val => {
+          const i = adm_db.resources.findIndex(r => r.id === val.id);
+          adm_db.resources.splice(i, 1);
+        });
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      }
+      case 'classroomResources': {
+        value.forEach(val => {
+          const i = adm_db.classroomResources.findIndex(r => r.id === val.id);
+          adm_db.classroomResources.splice(i, 1);
+        });
+        UR.Publish('ADM_DATA_UPDATED', data);
+        break;
+      }
+      default:
     }
   });
   // can add better logic to avoid updating too much
@@ -327,7 +367,7 @@ ADMData.GetTeacherName = (teacherId = ASET.selectedTeacherId) => {
  * @return {string} Teacher name, '' if not found
  */
 ADMData.GetTeacherNameByStudent = (studentId = ASET.selectedStudentId) => {
-  if (studentId === undefined || studentId === '') return;
+  if (studentId === undefined || studentId === '') return '';
   const classroomId = ADMData.GetClassroomIdByStudent(studentId);
   const teacher = ADMData.GetTeacherByClassroomId(classroomId);
   return teacher ? teacher.name : '';
@@ -393,6 +433,16 @@ ADMData.GetClassroomsByTeacher = (teacherId = ASET.selectedTeacherId) => {
 ADMData.GetClassroomIdByGroup = groupId => {
   let group = ADMData.GetGroup(groupId);
   return group ? group.classroomId : undefined;
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * @param {string} groupId
+ * @return {string} classroom name, "" if not found
+ */
+ADMData.GetClassroomNameByGroup = groupId => {
+  const classroomId = ADMData.GetClassroomIdByGroup(groupId);
+  const classroom = ADMData.GetClassroom(classroomId);
+  return classroom ? classroom.name : '';
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
@@ -658,7 +708,8 @@ ADMData.Logout = () => {
       ADMData.SelectClassroom('');
       UR.Publish('ADM_DATA_UPDATED');
       return rdata;
-    } else throw Error('URSESSION key or token was not set');
+    }
+    throw Error('URSESSION key or token was not set');
   });
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -747,7 +798,7 @@ ADMData.IsTeacher = () => {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
- *  Creates a new db model
+ *  Creates a new empty db model
  *  @param {Object} data - ADMObj.Model object.  groupID MUST be defined
  *  @param {Function} cb - A callback function
  */
@@ -798,9 +849,10 @@ ADMData.DB_NewModel = (data, cb) => {
  * @param {string} date
  */
 ADMData.OnModelModificationUpdate = data => {
-  if (data === undefined || data.modelId === undefined) throw Error('ADM_MODEL_MODIFIED called with no modelId');
+  if (data === undefined || data.modelId === undefined)
+    throw Error('ADM_MODEL_MODIFIED called with no modelId');
   ADMData.DB_ModelModificationUpdate(data.modelId);
-}
+};
 ADMData.DB_ModelModificationUpdate = (modelId, date = new Date()) => {
   return UR.DBQuery('update', {
     models: {
@@ -822,7 +874,7 @@ ADMData.DB_ModelTitleUpdate = (modelId, title) => {
   return UR.DBQuery('update', {
     models: {
       id: modelId,
-      title: title,
+      title,
       dateModified: new Date()
     }
   }).then(() => {
@@ -842,6 +894,7 @@ ADMData.DB_ModelTitleUpdate = (modelId, title) => {
  *  Called by ModelSelect when user requests a new model
  *  This will add a new model to the db and then open the new model
  *  It uses the currently selected GroupID.
+ *  See Whimsical diagram for call chain: https://whimsical.com/QrZ56UaiRq1nyxbJDawywy
  *  @param {Function} cb - Callback function
  */
 ADMData.NewModel = cb => {
@@ -863,6 +916,158 @@ ADMData.NewModel = cb => {
   // ADMData.LoadModel(model.id, groupId);
   // UTILS.RLog('ModelCreate');
 };
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * This is a series of asynchronous calls:
+ * 1. DB_RefreshPMCData, then
+ * 2. DBQuery add pmcData, then
+ * 3. DBQuery add model, then
+ * 4. Update adm_db
+ * @param {String} sourceModelId modelId of the source model to clone from
+ * @param {String} clonedGroupId owner of the cloned model
+ * @param {function} cb Callback function
+ */
+ADMData.CloneModel = (sourceModelId, clonedGroupId, cb) => {
+  // 1. Set PMC Data
+  // -- Get the original
+  //    adm_db's pmcData might be out of date, so we need to refresh it first.
+  if (DBG) console.log(PKG, '...trying to clone sourceModelId', sourceModelId);
+  ADMData.DB_RefreshPMCData(data => {
+    if (DBG) console.log(PKG, '...refreshedPMCData is', data);
+
+    const sourceModel = data.models.find(m => m.id === sourceModelId);
+    if (sourceModel === undefined)
+      throw new Error(`ADMData.CloneModel could not find the source model ${sourceModelId}`);
+
+    const sourcePMCDataId = sourceModel.pmcDataId;
+    const sourcePMCData = data.pmcData.find(d => d.id === sourcePMCDataId);
+    if (sourcePMCData === undefined)
+      throw new Error(`ADMData.CloneModel could not find the sourcePMCData ${sourcePMCDataId}`);
+    if (DBG) console.log(PKG, '...sourcePMCData is', sourcePMCData);
+
+    // -- Create the new pmcData
+    const clonedPMCData = ADMObj.ModelPMCData();
+    // -- Copy data over
+    clonedPMCData.entities = rfdc(sourcePMCData.entities);
+    clonedPMCData.visuals = rfdc(sourcePMCData.visuals);
+    clonedPMCData.comments = rfdc(sourcePMCData.comments);
+    clonedPMCData.markedread = rfdc(sourcePMCData.markedread);
+    // -- Check for missing resources
+    ADMData.AnnounceMissingResources(sourceModelId, clonedGroupId);
+
+    if (DBG) console.log(PKG, '...cloned pmcData is', clonedPMCData);
+    // 2. Create a new model with the cloned pmcData
+    // -- This emulates ADMData.DB_NewModel
+    UR.DBQuery('add', {
+      // First update `pmcData`
+      pmcData: clonedPMCData // db will set id
+    }).then(rdata => {
+      if (rdata.error) throw Error(rdata.error);
+
+      // Then update `model` data
+      // -- Get the original model
+      const origModel = ADMData.GetModelById(sourceModelId);
+      // -- Create a new model and copy over the values
+      const model = ADMObj.Model({
+        groupId: clonedGroupId,
+        pmcDataId: rdata.pmcData[0].id,
+        title: ADMData.GenerateModelTitle(origModel.title, clonedGroupId)
+      }); // set creation date
+      if (DBG) console.log(PKG, '...cloned pmcDataId is', rdata.pmcData[0].id);
+      UR.DBQuery('add', {
+        models: model // db will set id
+      }).then(rdata2 => {
+        if (rdata2.error) throw Error(rdata2.error);
+        const rdataModel = rdata2.models[0];
+        if (DBG) console.log(PKG, '...cloned model is', rdataModel);
+        if (!ADMData.GetModelById(rdataModel.id)) {
+          adm_db.models.push(rdataModel);
+        } else if (DBG) {
+          // Usually SyncAddedData fires before this so the model is already added
+          console.error(`CloneModel model id ${rdataModel.id} already exits. Skipping add.`);
+        }
+        UTILS.RLog('ModelClone');
+        if (DBG) console.log(PKG, '... => cloned to', clonedGroupId);
+        if (cb) cb(rdata2);
+      });
+    });
+  });
+};
+ADMData.PromiseCloneModel = (modelId, groupId) => {
+  return new Promise(resolve => ADMData.CloneModel(modelId, groupId, resolve));
+};
+ADMData.CloneModelBulk = async (modelId, selections) => {
+  if (selections.selectedGroupId !== '') {
+    // A group was selected, so just do a regular clone
+    ADMData.CloneModel(modelId, selections.selectedGroupId);
+  } else {
+    // Bulk clone!
+    const groups = ADMData.GetGroupIdsByClassroom(selections.selectedClassroomId);
+    if (DBG) console.log(PKG, 'cloning to', groups);
+    groups.forEach(async gId => {
+      if (DBG) console.log(PKG, 'cloning to', gId);
+      await ADMData.PromiseCloneModel(modelId, gId);
+      if (DBG) console.log(PKG, '...cloning to', gId, 'done');
+    });
+  }
+};
+/**
+ * This will display a dialog listing any resources used in the sourceModel's classroom
+ * that are missing from the targetGroup's classroom.
+ * @param {String} sourceModelId
+ * @param {String} targetGroupId
+ */
+ADMData.AnnounceMissingResources = (sourceModelId, targetGroupId) => {
+  const sourceModel = ADMData.GetModelById(sourceModelId);
+  const missingResources = ADMData.GetMissingResources(sourceModel.groupId, targetGroupId);
+  if (missingResources.length > 0) {
+    const targetClassroomName = ADMData.GetClassroomNameByGroup(targetGroupId);
+    let missingResourceTitles = '';
+    missingResources.forEach(r => {
+      missingResourceTitles += `* id: "${r.id}" label: "${r.label}"\n`;
+    });
+    UR.Publish('DIALOG_OPEN', {
+      text: `Model is cloned/moved, but note that the following resources need to be activated for classroom "${targetClassroomName}":\n\n ${missingResourceTitles}`
+    });
+  }
+};
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ *
+ * @param {String} modelId The model to move
+ * @param {Object} selections The target { selectedTeacherId, selectedClassroomId, selectedGroupId }
+ */
+ADMData.MoveModel = (modelId, selections) => {
+  if (selections.selectedGroupId === undefined)
+    console.error('ADM.MoveModel: No target group selected.');
+  ADMData.AnnounceMissingResources(modelId, selections.selectedGroupId);
+  // -- Update the DB
+  ADMData.DB_RefreshPMCData(data => {
+    UR.DBQuery('update', {
+      models: {
+        id: modelId,
+        groupId: selections.selectedGroupId,
+        deleted: false
+      }
+    });
+  });
+};
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ADMData.DeleteModel = modelId => {
+  ADMData.DB_RefreshPMCData(data => {
+    UR.DBQuery('update', {
+      models: {
+        id: modelId,
+        deleted: true
+      }
+    });
+  });
+};
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  * return the model meta data
  *  @param {Integer} modelId
@@ -896,7 +1101,7 @@ ADMData.GetModelsByTeacher = (token = ASET.selectedTeacherId) => {
     console.error(`${token} is not a teacher token`);
     return [];
   }
-  // the teacherId is a repurposed classroomId field
+  // the teacherId embedded in the token via the classroomId
   const teacherId = classroomId;
   return adm_db.models.filter(mdl => {
     const cid = ADMData.GetClassroomIdByGroup(mdl.groupId);
@@ -914,9 +1119,33 @@ ADMData.GetModelsByTeacher = (token = ASET.selectedTeacherId) => {
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Gets the gropuId of the currently selected Student ID
+// Gets the groupId of the currently selected Student ID
 ADMData.GetModelsByGroup = (group = ADMData.GetGroupByStudent()) => {
   return adm_db.models.filter(mdl => mdl.groupId === group.id);
+};
+
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * Used by ADMData.CloneModel to determine if there are duplicate model names
+ * @param {String} groupId
+ */
+ADMData.GetModelTitlesByGroup = groupId => {
+  const groupModels = adm_db.models.filter(m => m.groupId === groupId);
+  return groupModels.map(m => m.title);
+};
+
+/**
+ * Returns `title` if there isn't already a model by with the same name
+ * else, returns `title COPY`
+ * @param {String} title
+ * @param {String} groupId
+ */
+ADMData.GenerateModelTitle = (title, groupId) => {
+  const existingTitles = ADMData.GetModelTitlesByGroup(groupId);
+  // make sure 'COPY' doesn't already exist as well.  recurse if necessary.
+  let newtitle = existingTitles.includes(title) ? `${title} COPY` : title;
+  if (existingTitles.includes(newtitle)) newtitle = ADMData.GenerateModelTitle(newtitle, groupId);
+  return newtitle;
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -960,7 +1189,7 @@ ADMData.DB_RefreshPMCData = cb => {
       return;
     }
     adm_db.pmcData = data.pmcData;
-    cb();
+    cb(data);
   });
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -971,7 +1200,7 @@ ADMData.LoadModel = modelId => {
   PMCData.ClearModel();
   UR.Publish('SVG_PANZOOM_RESET');
   ADMData.SetSelectedModelId(modelId, model.pmcDataId); // Remember the selected modelId locally
-  ADMData.DB_RefreshPMCData(() => PMCData.InitializeModel(model, adm_db));
+  ADMData.DB_RefreshPMCData(data => PMCData.InitializeModel(model, data));
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1152,9 +1381,8 @@ ADMData.GetSentenceStarter = () => {
   const sentenceStarter = ADMData.GetSentenceStartersByClassroom();
   if (sentenceStarter === undefined || sentenceStarter.sentences === undefined) {
     return '';
-  } else {
-    return sentenceStarter.sentences;
   }
+  return sentenceStarter.sentences;
 };
 
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1246,6 +1474,17 @@ ADMData.DB_ResourceUpdate = resource => {
     resources: resource
   });
 };
+/**
+ *  @param {Integer} resourceId
+ */
+ADMData.DB_ResourceDelete = resourceId => {
+  // First remove the resource from all classrooms
+  adm_db.classrooms.forEach(c => {
+    ADMData.DB_ClassroomResourceSet(resourceId, false, c.id);
+  });
+  // Then remove the resource completely
+  return UR.DBQuery('remove', { resources: { id: resourceId } });
+};
 
 // Returns all of the resource objects.
 ADMData.AllResources = () => {
@@ -1259,9 +1498,9 @@ ADMData.Resource = rsrcId => {
   });
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// returns `resources` not `classroomResources`
 /**
  * Returns an array of the subset of all resources that have been made available to the classroom
+ * returns `resources` not `classroomResources`
  * @param {string} classroomId
  * @return {Array} Array of classroom resource ids, e.g. `['rs1', 'rs2']`, [] if not found
  */
@@ -1273,7 +1512,27 @@ ADMData.GetResourcesForClassroom = classroomId => {
   const classroomResources = classroomResourceIds.map(rsrcId => {
     return ADMData.Resource(rsrcId);
   });
-  return classroomResources ? classroomResources : [];
+  return classroomResources || [];
+};
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * Returns an array of resource titles present in origGroupId's classroom that are
+ * missing from the newGroupId's classroom.
+ * This is generally used by ADMData.CloneModel to note when a model is
+ * being moved to a classroom that does not have the same set of resources
+ * activated.
+ * @param {String} origGroupId if of the clone source model's group
+ * @param {String} newGroupId group id of the cloned model destination
+ * @return {Array} Array of classroom resource objects
+ */
+ADMData.GetMissingResources = (origGroupId, newGroupId) => {
+  const origClassroomId = ADMData.GetClassroomIdByGroup(origGroupId);
+  const newClassroomId = ADMData.GetClassroomIdByGroup(newGroupId);
+  const originalResources = ADMData.GetResourcesForClassroom(origClassroomId);
+  const clonedResources = ADMData.GetResourcesForClassroom(newClassroomId);
+  const clonedResourceIds = clonedResources.map(r => r.id);
+  let missingResources = originalResources.filter(r => !clonedResourceIds.includes(r.id));
+  return missingResources;
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**

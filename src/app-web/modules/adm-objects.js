@@ -62,7 +62,8 @@ ADMObj.Model = data => {
     groupId: data.groupId,
     dateCreated: data.dateCreated || new Date(),
     dateModified: data.dateModified || new Date(),
-    pmcDataId: data.pmcDataId || undefined
+    pmcDataId: data.pmcDataId || undefined,
+    deleted: false
   };
   return model;
 };
