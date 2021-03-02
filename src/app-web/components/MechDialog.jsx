@@ -174,7 +174,10 @@ class MechDialog extends React.Component {
     });
     const pmcDataId = ASET.selectedPMCDataId;
     const intMechId = Number(this.state.id);
-    UR.DBTryRelease('pmcData.entities', [pmcDataId, intMechId]);
+    // Only release if intMechId has been defined.  Otherwise DBTryRelease will throw invalid id error.
+    if (intMechId) {
+      UR.DBTryRelease('pmcData.entities', [pmcDataId, intMechId]);
+    }
     DATA.VM_SetSelectionLimit(1); // Go back to allowing only one.
     UR.Publish('MECHDIALOG_CLOSED');
   }
