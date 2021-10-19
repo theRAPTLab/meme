@@ -33,6 +33,9 @@ const VM = {};
  */
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 VM.SyncUpdatedData = data => {
+  // Only update if data is for this model
+  if (data.pmcDataId !== ASET.selectedPMCDataId) return;
+
   const syncitems = DATAMAP.ExtractSyncData(data);
   syncitems.forEach(item => {
     const { colkey, subkey, value } = item;
