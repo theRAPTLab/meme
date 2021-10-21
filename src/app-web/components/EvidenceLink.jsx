@@ -107,7 +107,7 @@ import Typography from '@material-ui/core/Typography';
 // Material UI Icons
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 // Material UI Theming
-import { withStyles, MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
+import { withStyles, MuiThemeProvider, createTheme } from '@material-ui/core/styles';
 
 /// COMPONENTS ////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -542,7 +542,7 @@ class EvidenceLink extends React.Component {
   render() {
     // theme overrides
     // See https://github.com/mui-org/material-ui/issues/14905 for details
-    const theme = createMuiTheme();
+    const theme = createTheme();
     theme.overrides = {
       MuiFilledInput: {
         root: {
@@ -605,7 +605,7 @@ class EvidenceLink extends React.Component {
 
     return (
       <ClickAwayListener onClickAway={this.OnClickAway}>
-        <Collapse in={isExpanded} collapsedHeight="70px">
+        <Collapse in={isExpanded} collapsedSize="70px">
           <Paper
             className={ClassNames(
               classes.evidenceLinkPaper,

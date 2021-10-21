@@ -40,7 +40,7 @@ const styles = theme => ({
 
 /// MODULE HOOKS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-UR.Hook(__dirname, 'INITIALIZE', function () {
+UR.Hook(__dirname, 'INITIALIZE', function() {
   console.log('Initialized');
 });
 
@@ -58,7 +58,7 @@ class TestUR extends React.Component {
     this.RegisterTest = this.RegisterTest.bind(this);
     this.state = {
       tests: []
-    }
+    };
     this._mounted = false;
     // test data structures
     this.tests = [];
@@ -104,7 +104,7 @@ class TestUR extends React.Component {
     let difference = this.tests.filter(x => !union.includes(x));
     if (difference.length) console.log(`tests incomplete %c${difference.join(', ')}`, cssalert);
     if (this.failed.length) console.log(`tests failed %c${this.failed.join(', ')}`, cssalert);
-    return (this.tests.length - union.length) + (numtests - this.tests.length) === 0;
+    return this.tests.length - union.length + (numtests - this.tests.length) === 0;
   }
 
   RegisterTest(testname) {
@@ -112,17 +112,17 @@ class TestUR extends React.Component {
     if (dbg) console.log('registering test:', testname);
     let test = {
       name: testname,
-      fail: function (status) {
+      fail: function(status) {
         if (dbg) console.log(`%cfailed test: ${testname}`, cssinfo);
         this.AddTestResult(test.name, status);
         this.failed.push(test.name);
       },
-      pass: function () {
+      pass: function() {
         if (dbg) console.log(`%cpassed test: ${testname}`, cssinfo);
         this.AddTestResult(test.name);
         this.passed.push(test.name);
       }
-    }
+    };
     test.pass = test.pass.bind(this);
     test.fail = test.fail.bind(this);
     //
@@ -141,13 +141,15 @@ class TestUR extends React.Component {
           </Grid>
 
           {this.state.tests.map((test, i) => {
-            let bgcolor = (test.status === 'OK') ? 'white' : 'red';
+            let bgcolor = test.status === 'OK' ? 'white' : 'red';
             if (test.status === 'PASS') bgcolor = 'limegreen';
             return (
               <Grid item xs={4} key={i}>
-                <Paper className={classes.paper} style={{ backgroundColor: bgcolor }}>{test.name} = {test.status}</Paper>
+                <Paper className={classes.paper} style={{ backgroundColor: bgcolor }}>
+                  {test.name} = {test.status}
+                </Paper>
               </Grid>
-            )
+            );
           })}
         </Grid>
       </div>

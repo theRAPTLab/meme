@@ -41,7 +41,7 @@ const styles = theme => ({
 
 /// MODULE HOOKS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-UR.Hook(__dirname, 'INITIALIZE', function () {
+UR.Hook(__dirname, 'INITIALIZE', function() {
   console.log('Initialized');
 });
 
@@ -89,16 +89,12 @@ class TestScreencap extends React.Component {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// default props are expect properties that we expect
 /// and are declared for validation
-TestScreencap.defaultProps = {
-  classes: { isDefaultProps: true }
-};
+TestScreencap.defaultProps = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// propTypes are declared. Note "vague" propstypes are
 /// disallowed by eslint, so use shape({prop: ProtType })
 /// to describe them in more detail
-TestScreencap.propTypes = {
-  classes: PropTypes.shape({})
-};
+TestScreencap.propTypes = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path
 TestScreencap.MOD_ID = __dirname;

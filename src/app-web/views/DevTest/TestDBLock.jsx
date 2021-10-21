@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
-import Fade from '@material-ui/core/Fade'
+import Fade from '@material-ui/core/Fade';
 
 /// MODULES ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -43,7 +43,7 @@ const styles = theme => ({
 
 /// MODULE HOOKS //////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-UR.Hook(__dirname, 'INITIALIZE', function () {
+UR.Hook(__dirname, 'INITIALIZE', function() {
   console.log('Initialized');
 });
 
@@ -72,17 +72,18 @@ class TestDBLock extends React.Component {
     // immediately-executed asynchronous function
     ADM.Login('bob-z4in').then(rdata => {
       if (rdata.success) status += `'${rdata.token.split('-')[0]}' ${rdata.status}! `;
-      UR.DBTryLock('pmcData.entities', [1, 1])
-        .then(rdata => {
-          const { success, semaphore, uaddr, lockedBy } = rdata;
-          status += success ? `${semaphore} lock acquired by ${uaddr} ` : `failed to acquired ${semaphore} lock `;
-          this.setState({ status });
-          if (rdata.success) {
-            console.log('do something here because u-locked!');
-          } else {
-            console.log('aw, locked by', rdata.lockedBy);
-          }
-        });
+      UR.DBTryLock('pmcData.entities', [1, 1]).then(rdata => {
+        const { success, semaphore, uaddr, lockedBy } = rdata;
+        status += success
+          ? `${semaphore} lock acquired by ${uaddr} `
+          : `failed to acquired ${semaphore} lock `;
+        this.setState({ status });
+        if (rdata.success) {
+          console.log('do something here because u-locked!');
+        } else {
+          console.log('aw, locked by', rdata.lockedBy);
+        }
+      });
     });
   }
 
@@ -101,8 +102,8 @@ class TestDBLock extends React.Component {
           <Grid item xs={12}>
             <Paper className={classes.paper}>
               <p>
-                OPEN TWO or MORE instance of /#/test-dblock and observe console
-                Try refreshing different instances
+                OPEN TWO or MORE instance of /#/test-dblock and observe console Try refreshing
+                different instances
               </p>
             </Paper>
             <Fade in={true} timeout={1000}>
@@ -112,7 +113,7 @@ class TestDBLock extends React.Component {
             </Fade>
           </Grid>
         </Grid>
-      </div >
+      </div>
     );
   }
 } // TestDBLock component

@@ -124,16 +124,12 @@ class ViewAdmin extends React.Component {
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// default props are expect properties that we expect
 /// and are declared for validation
-ViewAdmin.defaultProps = {
-  classes: { isDefaultProps: true }
-};
+ViewAdmin.defaultProps = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// propTypes are declared. Note "vague" propstypes are
 /// disallowed by eslint, so use shape({prop:ProtType })
 /// to describe them in more detail
-ViewAdmin.propTypes = {
-  classes: PropTypes.shape({})
-};
+ViewAdmin.propTypes = {};
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path
 ViewAdmin.MOD_ID = __dirname;

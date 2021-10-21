@@ -51,6 +51,7 @@ class ModelSelect extends React.Component {
     this.OnMoveTargetSelect = this.OnMoveTargetSelect.bind(this);
     this.OnModelDelete = this.OnModelDelete.bind(this);
     this.OnLogout = this.OnLogout.bind(this);
+    this.OnLogoutDialogClose = this.OnLogoutDialogClose.bind(this);
 
     UR.Subscribe('ADM_DATA_UPDATED', this.DoADMDataUpdate);
     UR.Subscribe('MODEL_SELECT_OPEN', this.DoModelDialogOpen);
@@ -186,6 +187,12 @@ class ModelSelect extends React.Component {
     ADM.Logout();
   }
 
+  OnLogoutDialogClose(event, reason) {
+    if (reason !== 'backdropClick') {
+      this.onClose(event, reason);
+    }
+  }
+
   render() {
     const { classes } = this.props;
     const {
@@ -220,13 +227,7 @@ class ModelSelect extends React.Component {
     );
     return (
       <>
-        <Dialog
-          disableBackdropClick
-          disableEscapeKeyDown
-          open={modelSelectDialogOpen}
-          onClose={this.OnLoginDialogClose}
-          fullScreen
-        >
+        <Dialog disableEscapeKeyDown open={modelSelectDialogOpen} onClose={this.onClose} fullScreen>
           <DialogActions>
             {readOnlyStatus}
             <Typography variant="caption">MY GROUP: {groupName} | </Typography>

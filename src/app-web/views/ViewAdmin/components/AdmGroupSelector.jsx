@@ -195,8 +195,7 @@ GroupSelector.defaultProps = {
   },
   OnSelect: () => {
     console.log('OnSelect function not defined!');
-  },
-  classes: { isDefaultProps: true }
+  }
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// propTypes are declared. Note "vague" propstypes are
@@ -206,8 +205,7 @@ GroupSelector.propTypes = {
   open: PropTypes.bool,
   type: PropTypes.string, // 'clone' || 'move'
   OnClose: PropTypes.func,
-  OnSelect: PropTypes.func,
-  classes: PropTypes.shape({ formControl: PropTypes.string })
+  OnSelect: PropTypes.func
 };
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// required for UR EXEC phase filtering by view path

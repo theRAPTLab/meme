@@ -25,7 +25,7 @@ import UR from '../../system/ursys';
 import ADM from '../modules/data';
 
 /// DEBUG /////////////////////////////////////////////////////////////////////
-/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -z
 const AUTOBOB = false;
 
 /// CLASS DECLARATION /////////////////////////////////////////////////////////
@@ -57,7 +57,7 @@ class Login extends React.Component {
     this.DoADMDataUpdate();
     if (AUTOBOB) {
       this.setState({ loginId: 'bob-z4in' }, () => {
-        this.OnLogin({ preventDefault: function() {} });
+        this.OnLogin({ preventDefault() {} });
       });
     }
   }
@@ -96,8 +96,10 @@ class Login extends React.Component {
     }
   }
 
-  OnLoginDialogClose() {
-    this.setState({ loginDialogOpen: false });
+  OnLoginDialogClose(event, reason) {
+    if (reason !== 'backdropClick') {
+      this.setState({ loginDialogOpen: false });
+    }
   }
 
   render() {
@@ -107,7 +109,6 @@ class Login extends React.Component {
 
     return (
       <Dialog
-        disableBackdropClick
         disableEscapeKeyDown
         open={loginDialogOpen}
         onClose={this.OnLoginDialogClose}
