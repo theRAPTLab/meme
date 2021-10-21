@@ -8,6 +8,8 @@
 
 import { Svg, on, off, extend, Matrix, Box } from '@svgdotjs/svg.js';
 
+console.log('**** panzoom ****');
+
 const normalizeEvent = ev => ev.touches || [{ clientX: ev.clientX, clientY: ev.clientY }];
 
 extend(Svg, {

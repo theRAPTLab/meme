@@ -8,6 +8,8 @@
 
 import { Box, Element, G, extend, off, on } from '@svgdotjs/svg.js';
 
+console.log('**** draggable ****');
+
 const getCoordsFromEvent = ev => {
   if (ev.changedTouches) {
     ev = ev.changedTouches[0];

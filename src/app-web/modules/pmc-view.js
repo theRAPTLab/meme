@@ -3,6 +3,8 @@ import SVGJS from '@svgdotjs/svg.js/src/svg';
 import DATA from './data';
 import VProp from './class-vprop';
 import VMech from './class-vmech';
+import '../modules/svgjs-plugin-draggable';
+import '../modules/svgjs-plugin-panzoom';
 import { cssinfo, cssalert, csstab, cssdraw } from './console-styles';
 import UR from '../../system/ursys';
 import DEFAULTS from './defaults';
@@ -43,11 +45,15 @@ UR.Subscribe('PROP_MOVED', data => {
 PMCView.InitializeViewgraph = container => {
   m_element = container;
   m_svgroot = SVGJS(m_element);
-  m_svgroot
-    .size(1000, 1000)
-    .panZoom({ zoomMin: 0.25, zoomMax: 2 })
-    .zoom(1)
-    .viewbox(resourceListWidth, 0, 1000, 1000);
+
+  if (m_svgroot.panZoom) {
+    m_svgroot
+      .size(1000, 1000)
+      .panZoom({ zoomMin: 0.25, zoomMax: 2 })
+      .zoom(1)
+      .viewbox(resourceListWidth, 0, 1000, 1000);
+  } else console.log('missing svg panZoom()');
+  if (!m_svgroot.draggable) console.log('missing svg draggable()');
   // add artboard to show standard model area
   let rect = 2000;
   let rectmid = rect / 2;
@@ -110,7 +116,6 @@ PMCView.PanZoomReset = (w, h) => {
       .animate()
       .zoom(1)
       .viewbox(0, 0, w, h);
-    return;
   }
 };
 /**
