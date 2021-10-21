@@ -19,9 +19,6 @@ and accessed through the 'window' object.
 NOTE: all code from this point on are using WEBPACK's require, not NodeJS. Remember this
 is client-side javascript code, with Electron/Node enhancements!
 
-NOTE: This is written for Electron V3, so ipcRenderer is different
-https://github.com/electron/electron/blob/v3.1.13/docs/api/ipc-renderer.md
-
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * ///////////////////////////////////////////*/
 
 import React, { useEffect, useState } from 'react';
@@ -32,12 +29,6 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 import { withStyles } from '@material-ui/core/styles';
-import { ipcRenderer } from 'electron';
-import path from 'path';
-
-const remote = require('electron').remote;
-
-const AssetPath = asset => path.join(__static, asset);
 
 const styles = theme => ({
   // theme will have properties for dynamic style definition
@@ -71,21 +62,22 @@ const styles = theme => ({
   }
 });
 
+console.log(PACKAGE_TITLE, __static);
+
 const App = withStyles(styles)(props => {
   const { classes } = props;
-  const { main, client } = remote.getGlobal('serverinfo');
+  const { main, client } = window.SERVERINFO;
   const [dragExport, setDragExport] = useState(false);
   const [imported, setImported] = useState(false);
   const [loadStatus, setLoadStatus] = useState('initializing server');
 
   /** avoid creating listeners on every render **/
   useEffect(() => {
-    ipcRenderer.on('mainalert', (event, msg) => {
+    window.ui.receive('mainalert', msg => {
       console.log('alert:', msg);
       alert(msg);
     });
-
-    ipcRenderer.on('mainstatus', (event, msg) => {
+    window.ui.receive('mainstatus', msg => {
       setLoadStatus(msg);
     });
   }, []);
@@ -93,13 +85,13 @@ const App = withStyles(styles)(props => {
   const doDragToDesktop = event => {
     event.preventDefault();
     setDragExport(true);
-    ipcRenderer.sendSync('dragtodesktop');
+    window.ui.dragToDesktop();
     setDragExport(false);
   };
   //
   const doExportFile = event => {
     event.preventDefault();
-    ipcRenderer.send('onexport');
+    window.ui.exportFile();
   };
   //
   const doDragFromDesktop = event => {
@@ -116,19 +108,20 @@ const App = withStyles(styles)(props => {
         lastModified: file.lastModified
       });
     }
-    const retval = ipcRenderer.sendSync('dragfromdesktop', files);
+    const retval = window.ui.dragfromdesktop(files);
     const { error, zippath } = retval;
     if (error) console.log('ERROR', error);
-    if (zippath) setLoadStatus(`REVIEWING ARCHIVE: ${path.basename(zippath)}`);
+    if (zippath) setLoadStatus(`REVIEWING ARCHIVE: ${window.UR.Basename(zippath)}`);
     setImported(true);
   };
   //
+
   const doImportFile = event => {
     event.preventDefault();
-    const retval = ipcRenderer.sendSync('onimport');
+    const retval = window.ui.importFile();
     const { error, zippath } = retval;
     if (error) console.log('ERROR', error);
-    if (zippath) setLoadStatus(`REVIEWING ARCHIVE: ${path.basename(zippath)}`);
+    if (zippath) setLoadStatus(`REVIEWING ARCHIVE: ${window.UR.Basename(zippath)}`);
     setImported(true);
   };
 
@@ -163,7 +156,7 @@ const App = withStyles(styles)(props => {
       <div>
         <div className={classes.importZone}>
           <img
-            src={AssetPath('mzip-import.png')}
+            src={`${__static}/mzip-import.png`}
             width="128px"
             onClick={doImportFile}
             onDrop={event => {
@@ -191,7 +184,7 @@ const App = withStyles(styles)(props => {
         </div>
         <div className={classes.exportZone} hidden={imported}>
           <img
-            src={AssetPath('mzip-export.png')}
+            src={`${__static}/mzip-export.png`}
             width="128px"
             onClick={doExportFile}
             onDragStart={doDragToDesktop}

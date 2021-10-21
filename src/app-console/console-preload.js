@@ -7,19 +7,24 @@
 \*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ * ////////////////////////////////////////*/
 
 const path = require('path');
+const ip = require('ip');
+const { contextBridge, ipcRenderer } = require('electron');
 
-function GetWorkingDirectory(subpath) {
-  return path.resolve(__dirname, subpath);
-}
-function GetAppName() {
-  return '[UR]';
-}
-process.once('loaded', () => {
-  const UR = {
-    GetWorkingDirectory
-  };
-
-  // make available to all other electron BrowserWindow instances
-  global.UR = UR;
-  global.require = require;
+// context bridge is for exposing elements to the renderer processes
+contextBridge.exposeInMainWorld('UR', {
+  GetWorkingDirectory: subpath => path.resolve(__dirname, subpath),
+  GetAppName: () => '[UR]',
+  Basename: bn => path.basename(bn)
+});
+contextBridge.exposeInMainWorld('SERVERINFO', {
+  main: `http://localhost:3000`,
+  client: `http://${ip.address()}:3000`
+});
+contextBridge.exposeInMainWorld('ui', {
+  dragToDesktop: () => ipcRenderer.sendSync('dragtodesktop'),
+  exportFile: () => ipcRenderer.send('onexport'),
+  dragFromDesktop: files => ipcRenderer.sendSync('dragfromdesktop', files),
+  importFile: () => ipcRenderer.sendSync('onimport'),
+  send: (channel, data) => ipcRenderer.send(channel, data),
+  receive: (channel, func) => ipcRenderer.on(channel, (event, ...args) => func(...args))
 });

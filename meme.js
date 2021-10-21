@@ -127,50 +127,12 @@ function f_RunElectron() {
 
 function f_PackageApp() {
   console.log(`\n`);
-  console.log(PR, `packaging ${CY}mac electron app${TR} 'meme.app'`);
-  console.log(PR, `erasing ./built and ./dist directories`);
-  shell.rm('-rf', './dist', './built');
-  console.log(PR, `compiling console, web, system files into ./built`);
-
-  let res = shell.exec(
-    // note: to pass an enviroment setting to the webpack config script, add --env.MYSETTING='value'
-    `${PATH_WEBPACK}/webpack.js --mode development --config ./src/config/webpack.dist.config.js`,
-    { silent: true }
-  );
-  u_checkError(res);
-  console.log(PR, `installing node dependencies into ./built`);
-  shell.cd('built');
-  shell.exec('npm install', { silent: true });
-  console.log(PR, `using electron-packager to write 'meme.app' to ./dist`);
-  res = shell.exec(
-    'npx electron-packager . meme --out ../dist --overwrite --app-bundle-id com.davidseah.inquirium.meme',
-    { silent: true }
-  );
-  // u_checkError(res); // electron-packager stupidly emits status to stderr
-  console.log(PR, `electron app written to ${CY}dist/meme-darwin-x64$/meme.app${TR}`);
-  console.log(PR, `NOTE: default macos security requires ${CR}code signing${TR} to run app.`);
-  console.log(PR, `use ${CY}npm run appsign${TR} to use default developer id (if installed)\n`);
+  console.log(PR, 'replace with electron-forge');
 }
 
 function f_SignApp() {
   console.log(`\n`);
-  console.log(PR, `using electron-osx-sign to ${CY}securely sign${TR} 'meme.app'`);
-  const { stderr, stdout } = shell.exec(
-    `npx electron-osx-sign ./dist/meme-darwin-x64/meme.app --platform=darwin --type=distribution`,
-    { silent: true }
-  );
-  if (stderr) {
-    console.log(`\n${stderr.trim()}\n`);
-    console.log(PR, `${CR}ERROR${TR} signing app with electron-osx-sign`);
-    console.log(
-      PR,
-      `this command requires valid Apple DeveloperId certificates installed in your keychain`
-    );
-  }
-  if (stdout) {
-    console.log(PR, `${stdout.trim()}`);
-    console.log(PR, `use script ${CY}npm run app${TR} to run with console debug output\n`);
-  }
+  console.log(PR, 'replace with electron-forge');
 }
 
 function f_DebugApp() {

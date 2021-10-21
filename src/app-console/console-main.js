@@ -11,23 +11,24 @@
 // import appserver
 // Import parts of electron to use
 const { app, BrowserWindow, dialog, Menu, ipcMain } = require('electron');
-const ip = require('ip');
 const fs = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const url = require('url');
+const esq = require('electron-squirrel-startup');
 const URSERVER = require('../system/server.js');
 const PROMPTS = require('../system/util/prompts');
 
 const AssetPath = asset => path.join(__dirname, 'static', asset);
 const RuntimePath = file => path.join(__dirname, '../../runtime');
 
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (esq) {
+  // eslint-disable-line global-require
+  app.quit();
+}
+
 const PR = PROMPTS.Pad('ElectronHost');
-// this is available through electron remote in console.js
-global.serverinfo = {
-  main: `http://localhost:3000`,
-  client: `http://${ip.address()}:3000`
-};
 
 // our modules
 // const UR = require('../ur');
@@ -53,10 +54,14 @@ function createWindow() {
     height: 768,
     show: false,
     webPreferences: {
-      nodeIntegration: false, // 'true' enables nodejs features
+      // nodeIntegration: true,
+      contextIsolation: true,
+      // sandbox: true,
       preload: path.join(__dirname, 'console-preload.js') // path.join is required
     }
   });
+
+  console.log('created mainwindow');
 
   // and load the index.html of the app.
   const pathname = path.resolve(__dirname, './console.html');
@@ -68,6 +73,7 @@ function createWindow() {
 
   console.log(`${PR} loading ${path.basename(pathname)} into mainwindow`);
   mainWindow.loadURL(indexPath);
+  console.log('loaded indexPath', indexPath);
 
   // Don't show until we are ready and loaded
   mainWindow.once('ready-to-show', () => {

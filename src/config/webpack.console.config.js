@@ -50,6 +50,7 @@ const electronRendererConfig = env => {
       filename: ENTRY_HTML // uses output.path
     }),
     new webpack.DefinePlugin({
+      // these are available in console.js, but not preload or console-main
       'process.env.NODE_ENV': JSON.stringify('development'),
       COMPILED_BY: JSON.stringify('console.config.js'),
       PACKAGE_TITLE: JSON.stringify(PACKAGE.title),
@@ -88,7 +89,7 @@ const electronRendererConfig = env => {
     {
       mode: 'development',
       target: 'electron-renderer',
-      devtool: 'source-map',
+      devtool: 'inline-source-map',
       context: DIR_SOURCE,
       entry: [`./${ENTRY_MODULE}`], // leading ./ is required
       output: {

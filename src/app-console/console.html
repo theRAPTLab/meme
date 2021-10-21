@@ -3,18 +3,13 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src https:; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; style-src https: 'unsafe-inline';base-uri 'self';form-action 'self'"/>
     <title>Electron Console w/ MaterialUI</title>
     <!-- MaterialUI is mobile-first, and requires the following viewport meta -->
     <meta
       name="viewport"
       content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no"
     />
-    <script type="text/javascript">
-      // this is a workaround for some modules (jss notably) assuming global exists
-      // otherwise you get a 'global not defined' reference error during run
-      var global = global || window;
-      // can access node globals defined in console-preload.js here
-    </script>
     <!-- required for MaterialUI -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" />
     <!-- required for font Icon component -->
