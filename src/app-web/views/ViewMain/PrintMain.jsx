@@ -220,20 +220,24 @@ class PrintMain extends React.Component {
       const source = sourceObj ? sourceObj.name : 'missing prop';
       const sourceType = sourceObj
         ? sourceObj.propType !== undefined
-          ? DATAMAP.ModelTypeLabel( sourceObj.propType )
+          ? DATAMAP.ModelTypeLabel(sourceObj.propType)
           : DATAMAP.PMC_MODELTYPES.COMPONENT.label
         : 'missing prop';
       const target = targetObj ? targetObj.name : 'missing prop';
       const targetType = targetObj
         ? targetObj.propType !== undefined
-          ? DATAMAP.ModelTypeLabel( targetObj.propType )
+          ? DATAMAP.ModelTypeLabel(targetObj.propType)
           : DATAMAP.PMC_MODELTYPES.COMPONENT.label
         : 'missing prop';
       i++;
       return (
         <div key={`mech${i}`} style={{ marginLeft: '10px' }}>
-          <div>SOURCE: {sourceType}/{source}</div>
-          <div>TARGET: {targetType}/{target}</div>
+          <div>
+            SOURCE: {sourceType}/{source}
+          </div>
+          <div>
+            TARGET: {targetType}/{target}
+          </div>
           <div>LABEL: {mech.name}</div>
           <div>DESCRIPTION: {mech.description}</div>
           {this.RenderComments(mech.id)}
@@ -255,13 +259,18 @@ class PrintMain extends React.Component {
     });
     const selectedCriteria = this.state.criteria.find(crit => crit.id === comment.criteriaId);
     const criteriaLabel = selectedCriteria !== undefined ? selectedCriteria.label + ': ' : '';
-    const criteriaDescription = selectedCriteria !== undefined ? selectedCriteria.description: '';
+    const criteriaDescription = selectedCriteria !== undefined ? selectedCriteria.description : '';
     return (
       <div key={index}>
         <br />
         <div>AUTHOR: {comment.author}</div>
-        <div>DATE: {timestring} {datestring}</div>
-        <div>COMMENT CRITERIA: {criteriaLabel}{criteriaDescription}</div>
+        <div>
+          DATE: {timestring} {datestring}
+        </div>
+        <div>
+          COMMENT CRITERIA: {criteriaLabel}
+          {criteriaDescription}
+        </div>
         <div>COMMENT: {comment.text}</div>
       </div>
     );
@@ -269,7 +278,11 @@ class PrintMain extends React.Component {
 
   RenderComments(refId) {
     const comments = DATA.GetComments(refId);
-    return <div style={{ marginLeft: '25px' }}>COMMENTS: {comments.map((comment, i) => this.RenderComment(comment, i))}</div>;
+    return (
+      <div style={{ marginLeft: '25px' }}>
+        COMMENTS: {comments.map((comment, i) => this.RenderComment(comment, i))}
+      </div>
+    );
   }
 
   RenderEvidence(evlink, index) {
@@ -278,7 +291,9 @@ class PrintMain extends React.Component {
     let sourceLabel;
     if (propId !== undefined && propId !== null && DATA.HasProp(propId) && DATA.Prop(propId)) {
       console.log('evidence source is prop', DATA.Prop(propId));
-      sourceType = DATAMAP.ModelTypeLabel( DATA.Prop(propId).propType ) || DATAMAP.PMC_MODELTYPES.COMPONENT.label; // default to component for backward compatibility
+      sourceType =
+        DATAMAP.ModelTypeLabel(DATA.Prop(propId).propType) ||
+        DATAMAP.PMC_MODELTYPES.COMPONENT.label; // default to component for backward compatibility
       sourceLabel = DATA.Prop(propId).name;
     } else if (mechId !== undefined && mechId !== null && DATA.Mech(mechId)) {
       console.log('evidence source is mech', DATA.Mech(mechId));
@@ -293,7 +308,9 @@ class PrintMain extends React.Component {
       <div key={index}>
         <div style={{ fontWeight: 'bold' }}>Evidence {numberLabel}</div>
         <div>DESCRIPTION: {note}</div>
-        <div>TARGET: {sourceType}/{sourceLabel}</div>
+        <div>
+          TARGET: {sourceType}/{sourceLabel}
+        </div>
         <div>RATING: {rating}</div>
         <div>WHY: {why}</div>
         <div>SCREENSHOT: {imageURL}</div>
@@ -368,8 +385,14 @@ class PrintMain extends React.Component {
     const isViewOnly = ADM.IsViewOnly();
 
     // print
-    const componentsList = this.RenderComponentsList(DATA.Components(), DATAMAP.PMC_MODELTYPES.COMPONENT.id);
-    const outcomesList = this.RenderComponentsList(DATA.Components(), DATAMAP.PMC_MODELTYPES.OUTCOME.id);
+    const componentsList = this.RenderComponentsList(
+      DATA.Components(),
+      DATAMAP.PMC_MODELTYPES.COMPONENT.id
+    );
+    const outcomesList = this.RenderComponentsList(
+      DATA.Components(),
+      DATAMAP.PMC_MODELTYPES.OUTCOME.id
+    );
     const mechanismsList = this.RenderMechanismsList(DATA.AllMechs());
     const resourcesList = this.RenderResourceList(resources);
 
@@ -478,7 +501,7 @@ class PrintMain extends React.Component {
             <h3>{DATAMAP.PMC_MODELTYPES.MECHANISM.plural.toUpperCase()}</h3>
             {mechanismsList}
 
-            <h3>RESOURCE LIBRARY</h3>
+            <h3>EVIDENCE LIBRARY</h3>
             {resourcesList}
           </div>
         </main>

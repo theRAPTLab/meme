@@ -152,6 +152,10 @@ const App = withStyles(styles)(props => {
         Connection Instructions:
       </Typography>
       <Typography style={{ padding: '1em 0 2em 24px' }}>
+        <br />
+        Reminder: please open MEME only using Chrome or it may not work properly.
+        <br />
+        <br />
         Admin: open <b>{main}/#/admin</b>
         <br />
         Students: open <b>{client}</b>

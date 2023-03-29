@@ -188,7 +188,7 @@ class ResourcesList extends React.Component {
     const resources = ADM.AllResources();
     return (
       <Paper className={classes.admResourceListPaper}>
-        <InputLabel>RESOURCES</InputLabel>
+        <InputLabel>RESOURCES (EVIDENCE)</InputLabel>
         <Table>
           <TableHead>
             <TableRow>

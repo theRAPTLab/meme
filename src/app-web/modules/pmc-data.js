@@ -1061,7 +1061,16 @@ function NumberLabelExists(numberLabel, evlinks) {
  */
 function GenerateNumberLabel(rsrcId) {
   // 1. Ordinal value of resource in resource library, e.g. "2"
-  const prefix = PMCData.PMC_GetResourceIndex(rsrcId);
+  // const prefix = PMCData.PMC_GetResourceIndex(rsrcId);
+
+  // NEW APPROACH
+  // The Ordinal value approach was the original approach we took before
+  // we started using a designated ID.  Using the resource id enables us to
+  // hide/show and add/remove evidence in a project without messing up the
+  // resource designations.
+  // 1. Use resource id
+  const prefix = rsrcId;
+
   // 2. Ordinal value of evlink in evlink list, e.g. "c"
   const evlinks = PMCData.GetEvLinksByResourceId(rsrcId);
   let numberOfEvLinks = evlinks ? evlinks.length : 0;

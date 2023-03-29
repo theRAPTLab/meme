@@ -276,7 +276,7 @@ class ResourceView extends React.Component {
               onChange={this.OnNoteChange}
               onBlur={this.OnNoteSave}
             />
-            <Typography variant="caption">OUR EVIDENCE LIST</Typography>
+            <Typography variant="caption">OUR EVIDENCE LINKS</Typography>
             <div className={classes.resourceViewSidebarEvidenceList}>
               <EvidenceList rsrcId={resource.id} />
             </div>

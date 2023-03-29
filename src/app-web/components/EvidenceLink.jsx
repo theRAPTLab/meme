@@ -676,7 +676,7 @@ class EvidenceLink extends React.Component {
                             classes.evidenceLabelFieldExpanded
                           )}
                           value={note}
-                          placeholder="One conclusion from this resource..."
+                          placeholder="One conclusion from this evidence..."
                           autoFocus
                           multiline
                           variant="filled"
@@ -780,7 +780,7 @@ class EvidenceLink extends React.Component {
                       variant="caption"
                       align="right"
                     >
-                      WHY?
+                      REASON
                     </Typography>
                   </Grid>
                   <Grid item xs style={{ paddingTop: '4px' }}>
@@ -848,7 +848,7 @@ class EvidenceLink extends React.Component {
                     </Button>
                   ) : extensionIsConnected ? (
                     <Typography className={classes.evidenceScreenshotStatus}>
-                      Open Resource to Capture Screen
+                      Open Evidence to Capture Screen
                     </Typography>
                   ) : (
                     ''

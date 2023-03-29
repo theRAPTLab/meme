@@ -706,7 +706,7 @@ class ViewMain extends React.Component {
                 size="small"
                 style={{ width: '100%' }}
               >
-                <div style={{ textAlign: 'left', flexGrow: 1 }}>RESOURCE LIBRARY</div>
+                <div style={{ textAlign: 'left', flexGrow: 1 }}>EVIDENCE LIBRARY</div>
                 <DoubleArrowIcon />
               </Button>
             </div>

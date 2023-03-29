@@ -103,7 +103,7 @@ Murphy and Christina Stiso. Software development was provided by [Inquirium](htt
 
 **Citation** -- Please cite the MEME software as The Modeling and Evidence Mapping Environment
 (MEME) Software (2019) Danish, Duncan, Hmelo-Silver, Chinn, Ryan, Av-Shalom,
-Moreland, Vickery, Murphy, Stiso.
+Moreland, Vickery, Murphy & Stiso.
 
 **Contact** -- For more information, contact Joshua Danish at [jdanish@iu.edu](mailto:jdanish@iu.edu?subject=MEME) or [http://www.joshuadanish.com](http://www.joshuadanish.com).
 
