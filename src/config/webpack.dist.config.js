@@ -121,7 +121,7 @@ const electronConfiguration = env => {
       PACKAGE_TITLE: JSON.stringify(PACKAGE.title),
       PACKAGE_VERSION: JSON.stringify(PACKAGE.version),
       PACKAGE_DESCRIPTION: JSON.stringify(PACKAGE.description),
-      __static: JSON.stringify(path.resolve(DIR_OUTPUT, 'console/static/'))
+      __static: JSON.stringify('static/')
     }),
     new CopyWebpackPlugin([
       {

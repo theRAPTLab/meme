@@ -22,6 +22,9 @@ const ip = require('ip');
 const process = require('process');
 const shell = require('shelljs');
 const argv = require('minimist')(process.argv.slice(1));
+const { signAsync } = require('@electron/osx-sign');
+const electronNotarize = require('@electron/notarize');
+require('dotenv').config();
 const PROMPTS = require('./src/system/util/prompts');
 const URSERVER = require('./src/system/server.js');
 const MTERM = require('./src/cli/meme-term');
@@ -45,6 +48,7 @@ const PR = PROMPTS.Pad('MEME EXEC');
 const P_ERR = `${TB}${CR}!ERROR!${TR}`;
 
 const PATH_WEBPACK = `./node_modules/webpack/bin`;
+const APP_BUNDLE_ID = 'net.inquirium.seeds-meme';
 
 switch (param1) {
   case 'dev':
@@ -143,8 +147,8 @@ function f_PackageApp() {
   shell.exec('npm install', { silent: true });
   console.log(PR, `using electron-packager to write 'meme.app' to ./dist`);
   res = shell.exec(
-    'npx electron-packager . meme --out ../dist --overwrite --app-bundle-id com.davidseah.inquirium.meme',
-    { silent: true }
+    `npx electron-packager . meme --out ../dist --overwrite --app-bundle-id ${APP_BUNDLE_ID}`,
+    { silent: false }
   );
   // u_checkError(res); // electron-packager stupidly emits status to stderr
   console.log(PR, `electron app written to ${CY}dist/meme-darwin-x64$/meme.app${TR}`);
@@ -152,25 +156,68 @@ function f_PackageApp() {
   console.log(PR, `use ${CY}npm run appsign${TR} to use default developer id (if installed)\n`);
 }
 
-function f_SignApp() {
+async function f_SignApp() {
   console.log(`\n`);
-  console.log(PR, `using electron-osx-sign to ${CY}securely sign${TR} 'meme.app'`);
-  const { stderr, stdout } = shell.exec(
-    `npx electron-osx-sign ./dist/meme-darwin-x64/meme.app --platform=darwin --type=distribution`,
-    { silent: true }
-  );
-  if (stderr) {
-    console.log(`\n${stderr.trim()}\n`);
-    console.log(PR, `${CR}ERROR${TR} signing app with electron-osx-sign`);
+  console.log(PR, `using electron/osx-sign to ${CY}securely sign${TR} 'meme.app'`);
+  console.log(PR, `please be patient, this may take a moment...`);
+
+  const appleId = process.env.APPLE_ID;
+  const appleIdPassword = process.env.APPLE_PASSWORD;
+  const teamId = process.env.APPLE_TEAM_ID;
+
+  if (!appleId || !appleIdPassword || !teamId) {
     console.log(
       PR,
-      `this command requires valid Apple DeveloperId certificates installed in your keychain`
+      `signing/notarizing the app requires credentials from your Apple account to be stored your shell environment:`
     );
+    console.log(PR, `\tAPPLE_ID: Your Apple ID`);
+    console.log(PR, `\tAPPLE_PASSWORD: An Apple app-specific password`);
+    console.log(PR, `\tAPPLE_TEAM_ID: Your Apple Team ID`);
+    console.log(PR, `instructions on obtaining these values can be found in README-signing.md`);
+
+    return;
   }
-  if (stdout) {
-    console.log(PR, `${stdout.trim()}`);
-    console.log(PR, `use script ${CY}npm run app${TR} to run with console debug output\n`);
+
+  try {
+    await signAsync({
+      app: './dist/meme-darwin-x64/meme.app',
+      preAutoEntitlements: false,
+      platform: 'darwin',
+      optionsForFile: file => {
+        return {
+          hardenedRuntime: true,
+          entitlements: './src/config/darwin.entitlements.plist'
+        };
+      }
+    });
+  } catch (err) {
+    console.log(PR, `unable to sign application, error: ${err}.`);
+    return;
   }
+
+  console.log(PR, `using electron/notarize to submit the package to Apple for Notarization`);
+  console.log(PR, `please be patient, this ${CY}may take several minutes${TR}...`);
+
+  try {
+    await electronNotarize.notarize({
+      appBundleId: APP_BUNDLE_ID,
+      appPath: './dist/meme-darwin-x64/meme.app',
+      appleId,
+      appleIdPassword,
+      teamId,
+      tool: 'notarytool'
+    });
+  } catch (err) {
+    console.log(PR, `unable to notarize the application, error: ${err}`);
+    return;
+  }
+
+  console.log(
+    PR,
+    `the app has been successfully signed and notarized. You may receive an email from Apple indicating that the notarization was successful`
+  );
+
+  console.log(PR, `use script ${CY}npm run app${TR} to run with console debug output\n`);
 }
 
 function f_DebugApp() {

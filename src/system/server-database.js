@@ -17,6 +17,7 @@ const DBG = true;
 const Loki = require('lokijs');
 const PATH = require('path');
 const FS = require('fs-extra');
+const OS = require('os');
 
 const DATAMAP = require('./common-datamap');
 const LOGGER = require('./server-logger');
@@ -30,7 +31,7 @@ const SESSION = require('../system/common-session');
 const { TERM_DB: CLR, TR, CCRIT: CC } = PROMPTS;
 const LPR = 'UR_DB';
 const PR = `${CLR}${PROMPTS.Pad(LPR)}${TR}`;
-const RUNTIMEPATH = PATH.join(__dirname, '../../runtime');
+const RUNTIMEPATH = PATH.join(OS.homedir(), '/Documents/MEME/db');
 
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

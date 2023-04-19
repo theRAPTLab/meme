@@ -10,6 +10,7 @@ const express = require('express'); //your original BE server
 const path = require('path');
 const fs = require('fs-extra');
 const IP = require('ip');
+const OS = require('os');
 const cookiep = require('cookie-parser');
 const multer = require('multer'); // handle multipart form data (images)
 //
@@ -27,7 +28,7 @@ const PORT = 3000;
 const PR = `${CLR}${PROMPTS.Pad('UR_EXPRESS')}${TR}`;
 const SCREENSHOT_POST_URL = SESSION.ScreenshotPostURL();
 const SCREENSHOT_URL = SESSION.ScreenshotURL();
-const RUNTIMEPATH = path.join(__dirname, '../../runtime');
+const RUNTIMEPATH = path.join(OS.homedir(), '/Documents/MEME/');
 const UPLOADPATH = path.join(RUNTIMEPATH, SCREENSHOT_URL);
 let PAUSE_LISTENING = false;
 
@@ -73,74 +74,74 @@ function Start() {
     });
     promise = Promise.resolve();
   } else {
-  const configWebApp = require('../config/webpack.webapp.config');
-  const wpack = require('webpack');
-  const wpack_mid = require('webpack-dev-middleware'); //webpack hot reloading middleware
-  const wpack_hot = require('webpack-hot-middleware');
-  // otherwise, we are running as straight node out of npm scripts, or
-  // a generic Electron binary was used to load us (Electron works just
-  // as a node interpreter ya know!
-  console.log(PR, `COMPILING WEBSERVER w/ WEBPACK - THIS MAY TAKE SEVERAL SECONDS...`);
-  DOCROOT = path.resolve(__dirname, '../../built/web');
+    const configWebApp = require('../config/webpack.webapp.config');
+    const wpack = require('webpack');
+    const wpack_mid = require('webpack-dev-middleware'); //webpack hot reloading middleware
+    const wpack_hot = require('webpack-hot-middleware');
+    // otherwise, we are running as straight node out of npm scripts, or
+    // a generic Electron binary was used to load us (Electron works just
+    // as a node interpreter ya know!
+    console.log(PR, `COMPILING WEBSERVER w/ WEBPACK - THIS MAY TAKE SEVERAL SECONDS...`);
+    DOCROOT = path.resolve(__dirname, '../../built/web');
 
-  // RUN WEBPACK THROUGH API
-  // first create a webpack instance with our chosen config file
-  const webConfig = configWebApp();
-  const compiler = wpack(webConfig);
+    // RUN WEBPACK THROUGH API
+    // first create a webpack instance with our chosen config file
+    const webConfig = configWebApp();
+    const compiler = wpack(webConfig);
 
-  // add webpack middleware to express
-  // also add the hot module reloading middleware
-  const instance = wpack_mid(compiler, {
-    // logLevel: 'silent', // turns off [wdm] messages
-    publicPath: webConfig.output.publicPath,
-    stats: 'errors-only' // see https://webpack.js.org/configuration/stats/
-  });
-  app.use(instance);
-  app.use(wpack_hot(compiler));
+    // add webpack middleware to express
+    // also add the hot module reloading middleware
+    const instance = wpack_mid(compiler, {
+      // logLevel: 'silent', // turns off [wdm] messages
+      publicPath: webConfig.output.publicPath,
+      stats: 'errors-only' // see https://webpack.js.org/configuration/stats/
+    });
+    app.use(instance);
+    app.use(wpack_hot(compiler));
 
-  // compilation start message
-  // we'll start the server after webpack bundling is complete
-  // but we still have some configuration to do
-  compiler.hooks.afterCompile.tap('StartServer', () => {
-    if (!server) {
-      server = app.listen(PORT, () => {
-        console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT}`);
-        console.log(PR, `SERVING '${DOCROOT}'`);
-        console.log(PR, `LIVE RELOAD ENABLED`);
-      });
-    }
-  });
-
-  // return promise when server starts
-    promise = new Promise((resolve, reject) => {
-    let INTERVAL_COUNT = 0;
-    const INTERVAL_MAX = 15;
-    let COMPILE_RESOLVED = false;
-    const INTERVAL_PERIOD = 2000;
-    const COMPILE_TIME = Math.floor((INTERVAL_MAX * INTERVAL_PERIOD) / 1000);
-    // start compile status update timer
-    let INTERVAL = setInterval(() => {
-      if (++INTERVAL_COUNT < INTERVAL_MAX) {
-        console.log(PR, `... webpack compiling`);
-      } else {
-        clearInterval(INTERVAL);
-        const emsg = `webpack compile time > INTERVAL_MAX (${COMPILE_TIME} seconds)`;
-        const err = new Error(emsg);
-        reject(err);
-      }
-    }, INTERVAL_PERIOD);
-    // set resolver
-    compiler.hooks.afterCompile.tap('ResolvePromise', () => {
-      if (!COMPILE_RESOLVED) {
-        console.log(PR, `... webpack done`);
-        clearInterval(INTERVAL);
-        resolve();
-        COMPILE_RESOLVED = true;
-      } else {
-        console.log(PR, `RECOMPILED SOURCE CODE and RELOADING`);
+    // compilation start message
+    // we'll start the server after webpack bundling is complete
+    // but we still have some configuration to do
+    compiler.hooks.afterCompile.tap('StartServer', () => {
+      if (!server) {
+        server = app.listen(PORT, () => {
+          console.log(PR, `WEBSERVER LISTENING ON PORT ${PORT}`);
+          console.log(PR, `SERVING '${DOCROOT}'`);
+          console.log(PR, `LIVE RELOAD ENABLED`);
+        });
       }
     });
-  });
+
+    // return promise when server starts
+    promise = new Promise((resolve, reject) => {
+      let INTERVAL_COUNT = 0;
+      const INTERVAL_MAX = 15;
+      let COMPILE_RESOLVED = false;
+      const INTERVAL_PERIOD = 2000;
+      const COMPILE_TIME = Math.floor((INTERVAL_MAX * INTERVAL_PERIOD) / 1000);
+      // start compile status update timer
+      let INTERVAL = setInterval(() => {
+        if (++INTERVAL_COUNT < INTERVAL_MAX) {
+          console.log(PR, `... webpack compiling`);
+        } else {
+          clearInterval(INTERVAL);
+          const emsg = `webpack compile time > INTERVAL_MAX (${COMPILE_TIME} seconds)`;
+          const err = new Error(emsg);
+          reject(err);
+        }
+      }, INTERVAL_PERIOD);
+      // set resolver
+      compiler.hooks.afterCompile.tap('ResolvePromise', () => {
+        if (!COMPILE_RESOLVED) {
+          console.log(PR, `... webpack done`);
+          clearInterval(INTERVAL);
+          resolve();
+          COMPILE_RESOLVED = true;
+        } else {
+          console.log(PR, `RECOMPILED SOURCE CODE and RELOADING`);
+        }
+      });
+    });
   }
 
   // RESUME WITH COMMON SERVER SETUP //

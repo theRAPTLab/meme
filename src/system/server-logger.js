@@ -13,6 +13,7 @@ const DBG = false;
 /// LOAD LIBRARIES ////////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 const PATH = require('path');
+const OS = require('os');
 const FSE = require('fs-extra');
 const Tracer = require('tracer');
 
@@ -26,7 +27,7 @@ const PR = PROMPTS.Pad('LOGGER');
 /// MODULE-WIDE VARS //////////////////////////////////////////////////////////
 /// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-const LOG_DIR = PATH.join(__dirname, '../../runtime/logs');
+const LOG_DIR = PATH.join(OS.homedir(), '/Documents/MEME/logs');
 
 const LOG_DELIMITER = '\t';
 const LOG_CONFIG = {

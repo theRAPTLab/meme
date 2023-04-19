@@ -8,7 +8,7 @@ The software is designed to work in a classroom setting.  The core software runs
 
 See the [1.3.1](https://gitlab.com/inq-seeds/boilerplate/-/tags/v1.3.1-final) and [1.3.0 Release Notes](https://gitlab.com/inq-seeds/boilerplate/-/tags/v1.3.0-final) for information on the latest features.  You can also view all [Release Notes](https://gitlab.com/inq-seeds/boilerplate/-/tags) by browsing Tags.
 
-See the [Wiki Home](https://gitlab.com/inq-seeds/boilerplate/wikis/home) for End User Instructions.
+See the [Wiki Home](https://gitlab.com/inq-seeds/boilerplate/-/wikis/home) for End User Instructions.
 
 Please visit [modelingandevidence.org](http://modelingandevidence.org) for more information about the MEME project.
 
@@ -72,7 +72,7 @@ You can also create and use arbitrary databases.  E.g. to create a new database,
 
 Once you verify the local server is running, you can build and deploy a standalone Electron application for distribution to teachers, so all they have do to start a MEME server in their classroom is to double click on the MEME.app.
 
-If you want to seed (no pun intended) a MEME Electron application with sample data, e.g. configure teachers, classrooms, and groups, example models, etc, you can just run the MEME application, make the changes, and then duplicate and the MEME.app.  
+If you want to seed (no pun intended) a MEME Electron application with sample data, e.g. configure teachers, classrooms, and groups, example models, etc, you can just run the MEME application, make the changes, and then duplicate and run the MEME.app.  
 
 The one thing that can't be easily changed via the admin interface are the resources, so generally it's best to download them first.  (Technical note: By running the Electron app, you're automatically loading the `db.js` files in `system/datasets/meme`.  If you want to edit the `db.js` files by hand for the Electron app, edit those.
 
@@ -85,12 +85,12 @@ To build and run the Electron app:
 
 You can copy and distribute the `meme.app` file by itself.  But first, you might want to set up some template admin settings.  See the "Admin Interface" section below.
 
-NOTE: Because the `meme.app` Electron app is not a signed and notarized, you may have to disable some security features on your Mac to run it.
+NOTE: Because the `meme.app` Electron app is not signed and notarized, you may have to disable some security features on your Mac to run it.  As of April 2023, it is now possible to Code Sign and Notarize the Electron app for distribution.  You will need to be registered as an Apple Developer in order to do so.  Please refer to the [README-signing.md](README-signing.md) file for details.
 
 
 For more technical information about creating and managing the dataset, see:
-* [Dataset Editing for Curriculum Development](https://gitlab.com/inq-seeds/boilerplate/wikis/Dataset-Editing-for-Curriculum-Development).
-* [Dataset Mangement](https://gitlab.com/inq-seeds/boilerplate/wikis/Dataset-Management)
+* [Dataset Editing for Curriculum Development](https://gitlab.com/inq-seeds/boilerplate/-/wikis/User/Dataset-Editing-for-Curriculum-Development).
+* [Dataset Mangement](https://gitlab.com/inq-seeds/boilerplate/-/wikis/Developer/Dataset-Management)
 
 
 
@@ -109,7 +109,7 @@ If you've already built and distributed the MEME app and find that you need to a
 
 ## III. Admin Interface
 
-Use the interface to set up teachers, classrooms, groups, students, ratings definitions, criteria, sentence starters, and resources.
+Use the Admin Interface to set up teachers, classrooms, groups, students, ratings definitions, criteria, sentence starters, and resources.
 
 Each classroom can have its own ratings definition, criteria, and sentence starter, as well as a subset of the resources enabled for them.  Resources are shared across all classrooms, but are only visible to the class if you enable it.  This means you'll want to carefully set up each class's initial settings if you want them to be anything other than the defaults.  No resources are enabled by default, so you will have to enable them for each class.
 
@@ -242,8 +242,8 @@ The snapshot time corresponds to the snapshot log, e.g. `2020-0209-log-124525.lo
 ## Getting Ready
 
 * Managing Datasets
-  * [Dataset Editing for Curriculum Development](Dataset-Editing-for-Curriculum-Development)
-  * [Dataset Management](Dataset-Management)
+  * [Dataset Editing for Curriculum Development](https://gitlab.com/inq-seeds/boilerplate/-/wikis/User/Dataset-Editing-for-Curriculum-Development)
+  * [Dataset Management](https://gitlab.com/inq-seeds/boilerplate/-/wikis/Developer/Dataset-Management)
 * Deploying
-  * [Deploy Electron](deploy-electron)
-  * Digital Ocean Deployment [deploying on digital ocean](deploy-do) *(Placeholder only)*
+  * [Deploy Electron](https://gitlab.com/inq-seeds/boilerplate/-/wikis/Developer/Deploy-Electron)
+  * Digital Ocean Deployment [deploying on digital ocean](https://gitlab.com/inq-seeds/boilerplate/-/wikis/Developer/Digital-Ocean-Deployment) *(Placeholder only)*

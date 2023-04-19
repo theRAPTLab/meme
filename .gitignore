@@ -57,3 +57,4 @@ Thumbs.db
 .idea
 data
 src/system/datasets
+.env
