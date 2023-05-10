@@ -11,7 +11,11 @@ const DATESTR = require('./util/datestring');
 /// HELPERS ///////////////////////////////////////////////////////////////////
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const AssetPath = asset => path.join(__dirname, 'static', asset);
-const RuntimePath = file => path.join(__dirname, '../../runtime', file);
+// Orig runtime path
+// const RuntimePath = file => path.join(__dirname, '../../runtime', file);
+// TEMP FIX: The `/Documents/MEME/db/` should be parameterized as a setting.
+//           This fix at least allows the Electron app to export and import data
+const RuntimePath = file => path.join(os.homedir(), '/Documents/MEME/db/', file);
 const TempDir = prefix => fs.mkdtempSync(path.join(os.tmpdir(), prefix || TMP_PREFIX));
 
 /// DEBUG /////////////////////////////////////////////////////////////////////

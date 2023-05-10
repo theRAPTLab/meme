@@ -10,7 +10,7 @@
 
 // import appserver
 // Import parts of electron to use
-const { app, BrowserWindow, dialog, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, MessagePort, dialog, Menu, ipcMain } = require('electron');
 const ip = require('ip');
 const fs = require('fs-extra');
 const os = require('os');
